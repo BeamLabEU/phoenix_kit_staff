@@ -10,13 +10,56 @@
 # Where third-party dependencies like ExDoc output generated docs.
 /doc/
 
+# Ignore .fetch files in case you like to edit your project deps locally.
+/.fetch
+
 # If the VM crashes, it generates a dump, let's ignore it too.
 erl_crash.dump
 
 # Also ignore archive artifacts (built via "mix archive.build").
 *.ez
 
+# Compiled BEAM files
+*.beam
+
 # Ignore package tarball (built via "mix hex.build").
 phoenix_kit_staff-*.tar
 
+# Temporary files
+/tmp/
+
+# Elixir Language Server
+.elixir_ls/
+
+# Dialyzer PLTs
+/priv/plts/
+*.plt
+*.plt.hash
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Log files
 *.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Editor-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code
+.claude/
+.mcp.json
+CLAUDE.local.md
+
+# Git worktrees
+/.worktrees/
+.worktrees/
