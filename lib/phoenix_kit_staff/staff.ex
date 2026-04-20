@@ -256,16 +256,34 @@ defmodule PhoenixKitStaff.Staff do
   """
   def upcoming_birthdays(window_days \\ 30) do
     today = Date.utc_today()
+    window_days = max(window_days, 0)
 
-    Person
-    |> where([p], p.status == "active" and not is_nil(p.date_of_birth))
-    |> preload([:user])
+    from(p in Person,
+      where: p.status == "active" and not is_nil(p.date_of_birth),
+      where:
+        fragment(
+          """
+          ((CASE
+             WHEN (? + (EXTRACT(YEAR FROM CURRENT_DATE)::int - EXTRACT(YEAR FROM ?)::int) * INTERVAL '1 year')::date < CURRENT_DATE
+               THEN (? + (EXTRACT(YEAR FROM CURRENT_DATE)::int - EXTRACT(YEAR FROM ?)::int + 1) * INTERVAL '1 year')::date
+             ELSE (? + (EXTRACT(YEAR FROM CURRENT_DATE)::int - EXTRACT(YEAR FROM ?)::int) * INTERVAL '1 year')::date
+           END) - CURRENT_DATE) <= ?
+          """,
+          p.date_of_birth,
+          p.date_of_birth,
+          p.date_of_birth,
+          p.date_of_birth,
+          p.date_of_birth,
+          p.date_of_birth,
+          ^window_days
+        ),
+      preload: [:user]
+    )
     |> repo().all()
     |> Enum.map(fn p ->
       {next, days} = next_birthday_and_days(p.date_of_birth, today)
       %{person: p, next_birthday: next, days_until: days}
     end)
-    |> Enum.filter(&(&1.days_until <= window_days))
     |> Enum.sort_by(& &1.days_until)
   end
 
@@ -299,16 +317,16 @@ defmodule PhoenixKitStaff.Staff do
     departments = Departments.list(preload: [:teams])
     all_people = list_people()
 
-    people_by_team =
-      from(tm in TeamMembership,
-        preload: [staff_person: [:user]]
-      )
+    all_memberships =
+      from(tm in TeamMembership, preload: [staff_person: [:user]])
       |> repo().all()
-      |> Enum.group_by(& &1.team_uuid, & &1.staff_person)
+
+    people_by_team =
+      Enum.group_by(all_memberships, & &1.team_uuid, & &1.staff_person)
 
     person_team_ids =
-      from(tm in TeamMembership, select: tm.staff_person_uuid)
-      |> repo().all()
+      all_memberships
+      |> Enum.map(& &1.staff_person_uuid)
       |> MapSet.new()
 
     dept_tree =
