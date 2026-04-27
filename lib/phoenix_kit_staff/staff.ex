@@ -21,9 +21,11 @@ defmodule PhoenixKitStaff.Staff do
   @email_regex ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
   @doc "Returns the regex used to validate emails throughout the staff module."
+  @spec email_regex() :: Regex.t()
   def email_regex, do: @email_regex
 
   @doc "Whether the given string looks like a valid email."
+  @spec valid_email?(any()) :: boolean()
   def valid_email?(email) when is_binary(email), do: String.match?(email, @email_regex)
   def valid_email?(_), do: false
 
@@ -35,23 +37,26 @@ defmodule PhoenixKitStaff.Staff do
   that nobody has signed up for yet. Refuses if another user already
   exists with the new email.
   """
+  @spec rename_placeholder_email(User.t(), String.t()) ::
+          :ok
+          | {:ok, User.t()}
+          | {:error, PhoenixKitStaff.Errors.error_atom() | Ecto.Changeset.t()}
   def rename_placeholder_email(%User{} = user, new_email) do
     new_email = String.trim(new_email)
     current = user.email
 
     cond do
       new_email == "" ->
-        {:error, gettext("Email cannot be blank.")}
+        {:error, :blank_email}
 
       new_email == current ->
         :ok
 
       not placeholder?(user) ->
-        {:error,
-         gettext("This user has already claimed their account — email cannot be changed here.")}
+        {:error, :placeholder_already_claimed}
 
       Auth.get_user_by_email(new_email) != nil ->
-        {:error, gettext("An account with that email already exists.")}
+        {:error, :email_already_taken}
 
       true ->
         user
@@ -158,6 +163,7 @@ defmodule PhoenixKitStaff.Staff do
   # ── People ─────────────────────────────────────────────────────────
 
   @doc "Lists people. Accepts `:preload`, `:status` filter, and `:search` (matches user email)."
+  @spec list_people(keyword()) :: [Person.t()]
   def list_people(opts \\ []) do
     preload = Keyword.get(opts, :preload, [:user, :primary_department])
     status = Keyword.get(opts, :status)
@@ -191,6 +197,7 @@ defmodule PhoenixKitStaff.Staff do
   defp normalize_search(s) when is_binary(s), do: String.trim(s)
 
   @doc "Fetches a person by the linked user's uuid, or `nil` if no staff profile exists."
+  @spec get_person_by_user_uuid(UUIDv7.t() | String.t(), keyword()) :: Person.t() | nil
   def get_person_by_user_uuid(user_uuid, opts \\ []) do
     preload = Keyword.get(opts, :preload, [:user, :primary_department])
 
@@ -219,9 +226,11 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Returns a changeset for the given person."
+  @spec change_person(Person.t(), map()) :: Ecto.Changeset.t(Person.t())
   def change_person(%Person{} = p, attrs \\ %{}), do: Person.changeset(p, attrs)
 
   @doc "Inserts a person and broadcasts `:person_created` on success."
+  @spec create_person(map()) :: {:ok, Person.t()} | {:error, Ecto.Changeset.t(Person.t())}
   def create_person(attrs) do
     with {:ok, person} <- %Person{} |> Person.changeset(attrs) |> repo().insert() do
       StaffPubSub.broadcast_person(:person_created, %{uuid: person.uuid})
@@ -230,6 +239,8 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Updates a person and broadcasts `:person_updated` on success."
+  @spec update_person(Person.t(), map()) ::
+          {:ok, Person.t()} | {:error, Ecto.Changeset.t(Person.t())}
   def update_person(%Person{} = p, attrs) do
     with {:ok, updated} <- p |> Person.changeset(attrs) |> repo().update() do
       StaffPubSub.broadcast_person(:person_updated, %{uuid: updated.uuid})
@@ -238,6 +249,7 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Deletes a person and broadcasts `:person_deleted` on success."
+  @spec delete_person(Person.t()) :: {:ok, Person.t()} | {:error, Ecto.Changeset.t(Person.t())}
   def delete_person(%Person{} = p) do
     with {:ok, deleted} <- repo().delete(p) do
       StaffPubSub.broadcast_person(:person_deleted, %{uuid: deleted.uuid})
@@ -246,6 +258,7 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Total number of people."
+  @spec count_people() :: non_neg_integer()
   def count_people, do: repo().aggregate(Person, :count, :uuid)
 
   # ── Upcoming birthdays ─────────────────────────────────────────────

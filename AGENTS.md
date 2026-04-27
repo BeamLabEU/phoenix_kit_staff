@@ -11,6 +11,41 @@ A PhoenixKit plugin module that manages staff. Implements the `PhoenixKit.Module
 - **Teams** — teams across all departments
 - **Staff** — people on staff (each linked 1:1 to a `PhoenixKit.Users.Auth.User`)
 
+## What this module does NOT have (by design)
+
+This module's job is the org-structure backbone — Departments → Teams →
+People with placeholder-user auto-link. It deliberately omits things a
+full HRIS would have so the surface stays small and the host app can
+plug in whatever it actually needs:
+
+- **No leave / PTO tracking** — no time-off requests, no approval
+  workflow, no balance ledger.
+- **No skills matrix or performance reviews** — `Person.skills` is a
+  free-text field; no structured taxonomy, no rating system, no review
+  cycles.
+- **No org-chart visualization** beyond the Overview's nested-list
+  view. Tree rendering uses plain HTML — no D3/SVG layout.
+- **No bulk import** (CSV/spreadsheet wizard) — every Department,
+  Team, and Person is created via single-record form. Use the context
+  API (`Staff.create_person/2`, etc.) for scripted imports.
+- **No public-facing pages** — staff is admin-only. There is no
+  user-facing "team directory" or "people search" route.
+- **No external HRIS integration** — no Workday, BambooHR, Rippling
+  connectors. The placeholder-user flow + `Staff.find_or_create_user_by_email/1`
+  is intentionally the only outside-onboarding surface.
+- **No payroll, compensation, or contract data** — `employment_type`
+  is a free-form string; no salary, no equity, no contract fields.
+- **No audit history beyond `PhoenixKit.Activity`** — every mutation
+  logs an action atom, but there is no per-field versioning or "who
+  changed what when" timeline UI of its own. The activity feed is the
+  audit trail.
+
+When the host app needs any of the above, build it as a sibling
+PhoenixKit module that consumes Staff's stable public API
+(`Staff.list_people/1`, `Staff.get_person_by_user_uuid/2`,
+`Teams.list/1`, `Departments.list/1`). The cross-module dep on
+`phoenix_kit_projects` already follows this pattern.
+
 ## Common commands
 
 Run from the workspace app directory (`/www/app`), not from inside this plugin subdir — the plugin's deps live in the app's `_build`. Exception: `mix format` works anywhere.
@@ -20,6 +55,17 @@ Run from the workspace app directory (`/www/app`), not from inside this plugin s
 mix compile                 # Compile the whole workspace including this plugin
 mix format                  # Format (uses Phoenix LiveView import rules)
 sudo supervisorctl restart elixir  # Restart the dev server after edits
+```
+
+### Code quality
+
+```bash
+mix format                  # Format (uses Phoenix LiveView import rules)
+mix credo --strict          # Lint / code quality
+mix dialyzer                # Static type checking
+mix precommit               # compile + format + credo --strict + dialyzer
+mix quality                 # format + credo --strict + dialyzer
+mix quality.ci              # format --check-formatted + credo --strict + dialyzer
 ```
 
 ## Dependencies

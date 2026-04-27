@@ -7,7 +7,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   require Logger
 
   alias PhoenixKit.Users.Auth
-  alias PhoenixKitStaff.{Activity, Departments, Paths, Staff, Teams}
+  alias PhoenixKitStaff.{Activity, Departments, Errors, Paths, Staff, Teams}
   alias PhoenixKitStaff.Schemas.Person
 
   @impl true
@@ -149,8 +149,8 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
          |> put_flash(kind, flash)
          |> push_navigate(to: Paths.person(person.uuid))}
 
-      {:error, :blank_email} ->
-        {:noreply, put_flash(socket, :error, gettext("Email is required."))}
+      {:error, atom} when is_atom(atom) ->
+        {:noreply, put_flash(socket, :error, Errors.message(atom))}
 
       {:error, %Ecto.Changeset{} = cs} ->
         {:noreply, assign_form(socket, cs)}
@@ -179,8 +179,8 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
       {:ok, _} ->
         do_update_person(socket, attrs, team_uuid)
 
-      {:error, msg} when is_binary(msg) ->
-        {:noreply, put_flash(socket, :error, msg)}
+      {:error, atom} when is_atom(atom) ->
+        {:noreply, put_flash(socket, :error, Errors.message(atom))}
 
       {:error, %Ecto.Changeset{} = cs} ->
         errors = Enum.map_join(cs.errors, ", ", fn {k, {m, _}} -> "#{k}: #{m}" end)

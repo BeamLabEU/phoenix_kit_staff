@@ -177,6 +177,7 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
                       type="button"
                       phx-click="remove_person"
                       phx-value-uuid={tm.uuid}
+                      phx-disable-with={gettext("Removing…")}
                       data-confirm={gettext("Remove this staff from the team?")}
                       class="btn btn-ghost btn-xs text-error"
                     >
