@@ -42,7 +42,7 @@ defmodule PhoenixKitStaff.Schemas.Team do
     |> validate_required(@required)
     |> validate_length(:name, min: 1, max: 255)
     |> assoc_constraint(:department)
-    |> unique_constraint([:department_uuid, :name],
+    |> unique_constraint(:name,
       name: :phoenix_kit_staff_teams_department_name_index,
       message: gettext("already taken in this department")
     )
