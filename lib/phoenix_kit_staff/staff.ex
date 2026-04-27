@@ -288,20 +288,26 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   defp next_birthday_and_days(dob, today) do
-    this_year =
-      case Date.new(today.year, dob.month, dob.day) do
-        {:ok, d} -> d
-        {:error, _} -> Date.new!(today.year, dob.month, min(dob.day, 28))
-      end
+    this_year = anniversary_in_year(dob, today.year)
 
     next =
       if Date.compare(this_year, today) == :lt do
-        Date.new!(today.year + 1, dob.month, min(dob.day, 28))
+        anniversary_in_year(dob, today.year + 1)
       else
         this_year
       end
 
     {next, Date.diff(next, today)}
+  end
+
+  # Returns the anniversary of `dob` in `year`, normalising Feb 29 → Feb 28
+  # only when `year` itself is non-leap. Mirrors Postgres `INTERVAL '1 year'`
+  # arithmetic so the SQL filter and the Elixir display stay consistent.
+  defp anniversary_in_year(dob, year) do
+    case Date.new(year, dob.month, dob.day) do
+      {:ok, d} -> d
+      {:error, _} -> Date.new!(year, dob.month, 28)
+    end
   end
 
   # ── Org tree ───────────────────────────────────────────────────────
@@ -324,10 +330,7 @@ defmodule PhoenixKitStaff.Staff do
     people_by_team =
       Enum.group_by(all_memberships, & &1.team_uuid, & &1.staff_person)
 
-    person_team_ids =
-      all_memberships
-      |> Enum.map(& &1.staff_person_uuid)
-      |> MapSet.new()
+    person_team_ids = MapSet.new(all_memberships, & &1.staff_person_uuid)
 
     dept_tree =
       Enum.map(departments, fn dept ->
