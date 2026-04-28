@@ -15,8 +15,11 @@ batches following the canonical template:
   ignore_modules)
 - **Batch 3** — fix-everything (`@spec` backfill, error-branch audit
   rows via LV-layer helper, edge-case tests, schema constraint fix)
-- **Batch 4** — coverage push (62.64% → 89.43% via `mix test --cover`
+- **Batch 4** — first coverage push (62.64% → 89.43% via `mix test --cover`
   only, no Mox/excoveralls/external deps)
+- **Batch 5** — second coverage push (89.43% → 95.07%, near the
+  practical no-deps ceiling for DB-only modules per the workspace
+  AGENTS.md "Coverage push pattern")
 
 All work shipped via `mdon:quality-sweep` (harness blocks `mdon:main`
 pushes per AGENTS.md:855-864). After upstream merges:
@@ -236,27 +239,114 @@ New test files:
 **Tests/pp ratio:** 85 tests buying 26.79pp = **3.17 tests/pp** —
 well below the 50-tests/pp diminishing-returns stop signal.
 
-### What stays uncovered (deliberate residual)
+### Batch 4 — first coverage push (62.64% → 89.43%)
+
+What landed in Batch 4 became the floor; Batch 5 below builds on it.
+
+## Fixed (Batch 5 — second coverage push 2026-04-28)
+
+Commit: `e18b18d` "Phase 2 re-validation Batch 5 — coverage push
+89.43% → 95.07%"
+
+Pushes line coverage **89.43% → 95.07%** (+5.64pp) via 69 additional
+tests in `test/coverage_extras_test.exs`. Tests/pp ratio: ~12.2 —
+under the 50-tests/pp diminishing-returns stop signal.
+
+Brings coverage to the **practical ceiling for DB-only modules**
+(95-97% per workspace AGENTS.md "Coverage push pattern"). Remaining
+~5pp residuals are deliberate defense-in-depth that core swallows
+before reaching the wrapper.
+
+| Module | Batch 4 | Batch 5 | Δ |
+|---|---:|---:|---:|
+| `Schemas.Person`              |  87.50% | 100.00% | +12.50 |
+| `Paths`                       |  92.31% | 100.00% |  +7.69 |
+| `Web.PersonShowLive`          |  84.80% |  95.20% | +10.40 |
+| `Web.PersonFormLive`          |  87.10% |  95.48% |  +8.38 |
+| `Web.TeamFormLive`            |  89.36% |  95.74% |  +6.38 |
+| `Web.DepartmentShowLive`      |  77.42% |  96.77% | +19.35 |
+| `Web.TeamShowLive`            |  82.26% |  91.94% |  +9.68 |
+| `Web.PeopleLive`              |  92.59% |  94.44% |  +1.85 |
+| `Web.DepartmentsLive`         |  88.37% |  93.02% |  +4.65 |
+| `Web.Helpers`                 |  87.50% |  93.75% |  +6.25 |
+| `Staff` (context)             |  93.65% |  99.21% |  +5.56 |
+
+Tests target previously-uncovered branches via:
+
+1. **Helpers atom-keyed metadata + string-key passthrough** —
+   `stringify_keys/1`'s `is_atom(k)` + plain `{k, v}` clauses.
+2. **Person status_label / employment_type_label every clause** —
+   direct unit tests for all atoms + the unknown fall-through. Plus
+   an LV smoke test that lands an out-of-band status row via raw
+   SQL (`validate_inclusion` blocks it through the public API) so
+   `status_badge_class/1`'s catch-all fall-through fires in the
+   PeopleLive table render.
+3. **PersonShowLive helper edges** — `full_name` with first/last
+   name, `format_birthday` wrap-to-next-year + Feb 29 in non-leap-
+   year target, Teams table when person has memberships, Employment
+   card render with partial fields, Admin notes warning panel,
+   Emergency contact partial cards.
+4. **PersonFormLive placeholder rename flow** — flips the fixture
+   user back to placeholder state via raw SQL (un-confirms + sets
+   `custom_fields.source = "staff_placeholder"`) so
+   `placeholder_user?/1` returns `true`. Drives rename success →
+   `:ok` path, rename to taken email → `:email_already_taken` atom
+   flash, no-op rename (same email) → `:ok` branch.
+5. **PersonFormLive maybe_add_to_team error** — non-existent
+   `team_uuid` triggers `Logger.warning(...)` (line 234-235); pinned
+   via `capture_log` and asserts the warning fires + person was
+   still created.
+6. **PersonFormLive existing-user reuse** — second profile attempt
+   for an existing user (after the first profile is deleted) hits
+   `create_flash(:existing, :ok, _email)` branch.
+7. **Bogus uuid mounts** — TeamShowLive, DepartmentShowLive,
+   PersonShowLive all redirect with not-found flash on bogus UUIDs
+   (covers L20 `nil ->` clauses in `mount/3`).
+8. **Cross-process `Activity.log`** — spawns an unallowed process
+   that calls `Activity.log/2` without sandbox checkout; the
+   wrapper must not crash regardless of whether the
+   `OwnershipError` reaches its rescue or core's catches it first.
+9. **`PhoenixKitStaff.enabled?` rescue** — drops `phoenix_kit_settings`
+   mid-tx and asserts `enabled?/0` returns `false` without crashing
+   (core's `Settings.get_boolean_setting/2` itself catches and
+   returns the default, so the wrapper rescue is defense-in-depth
+   that's hard to actually invoke; the test pins the contract).
+10. **Staff context edges** — `create_person_with_user` rollback
+    when person insert fails, `list_people` `:status` / `:search`
+    filters, `normalize_search` blank/nil, `get_person_by_user_uuid`
+    happy + nil paths, `Departments`/`Teams.{change,count,list with
+    preload, get!}`.
+
+### What stays uncovered (deliberate residual after Batch 5)
 
 - **`PhoenixKitStaff.Activity` 58.33%** — 5 missed lines are the
   rescue-clause branches (`Postgrex.Error -> :ok`,
-  `DBConnection.OwnershipError -> :ok`,
-  `e -> Logger.warning`, `catch :exit, _ -> :ok`). Core's
-  `PhoenixKit.Activity.log/1` has its own rescue that swallows DB
-  errors before they reach the wrapper, so these are defense-in-depth
-  — only reachable if core re-raises. Same shape as locations / ai /
-  hello_world residuals documented in those modules' FOLLOW_UPs.
-- **`PhoenixKitStaff` 81.25%** — top-level module's
-  `use PhoenixKit.Module` macro expansion (line 13) and the
-  rescue/catch branches of `enabled?/0` (lines 30, 32) — same
-  defense-in-depth as Activity.
-- **`DepartmentShowLive` 77.42%** — handle_info redirect-on-stale-
-  broadcast branch is covered, but a few pure-render helper paths
-  remain. Closing them needs ~10 more tests for ~5pp; below the
-  coverage-push tests/pp ratio.
+  `DBConnection.OwnershipError -> :ok`, `e -> Logger.warning`,
+  `catch :exit, _ -> :ok`). Core's `PhoenixKit.Activity.log/1`
+  has its own catch-all rescue that swallows DB errors before they
+  reach the wrapper, so these are unreachable from real callers —
+  only fire if core re-raises. Same shape as the locations / ai /
+  hello_world residuals.
+- **`PhoenixKitStaff` 81.25%** — `use PhoenixKit.Module` macro
+  expansion line (compile-time, never executed at runtime) plus
+  `enabled?/0` rescue/catch clauses. Core's
+  `Settings.get_boolean_setting/2` itself catches errors and
+  returns the default value, so the wrapper's rescue never fires
+  in normal usage.
+- **Defense-in-depth `:error` branches across the listing LVs**
+  (DepartmentsLive#delete / TeamsLive#delete / PeopleLive#delete /
+  TeamShowLive#remove_person `Helpers.log_operation_error` call
+  sites). Schemas use `on_delete: :delete_all` cascades, so
+  `Repo.delete/1` always succeeds for valid records — the helper
+  call is wired in defensively for future schema changes that add
+  constraints.
+- **`Web.Helpers` `defp stringify_keys(other), do: other`
+  fallback** — the only caller (`Map.merge(base_metadata, …)`)
+  would crash on a non-map, so the fallback is unreachable through
+  the public API.
 
 These are deliberate defense-in-depth choices. The cost of an
-unhandled exception in production is higher than a 3% coverage gap.
+unhandled exception in production is higher than a 5% coverage gap.
 
 ## Files touched
 
@@ -289,6 +379,7 @@ unhandled exception in production is higher than a 3% coverage gap.
 | `test/phoenix_kit_staff/l10n_test.exs` | NEW (+15) | 4 |
 | `test/phoenix_kit_staff/web/team_form_live_test.exs` | NEW (+9) | 4 |
 | `test/phoenix_kit_staff/web/coverage_test.exs` | NEW (+44) | 4 |
+| `test/phoenix_kit_staff/coverage_extras_test.exs` | NEW (+69) | 5 |
 
 ## Verification
 
@@ -296,11 +387,13 @@ unhandled exception in production is higher than a 3% coverage gap.
 - `mix compile --warnings-as-errors` — clean.
 - `mix credo --strict` — 345 mods/funs, 0 issues.
 - `mix dialyzer` — 0 errors.
-- `mix test` — **233 tests, 0 failures** (+152 over the original
-  sweep baseline of 81; +184 over the pre-sweep baseline of 49).
+- `mix test` — **302 tests, 0 failures** (+221 over the original
+  sweep baseline of 81; +253 over the pre-sweep baseline of 49).
 - **5/5 consecutive `mix test` runs stable**, no flakes.
-- `mix test --cover` — **89.43% production coverage** (up from
-  62.64%); residuals documented above.
+- `mix test --cover` — **95.07% production coverage** (up from
+  62.64% pre-Batch-4; +32.43pp across Batches 4 and 5). At the
+  practical no-deps ceiling for DB-only modules; residuals
+  documented above.
 - No regressions vs C0 baseline. No UI / template / heex changes were
   made — Batch 2/3/4 are entirely lib/test edits (Logger.debug calls,
   `@spec`, activity-log helper, schema constraint name, tests). The
