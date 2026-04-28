@@ -8,6 +8,7 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
 
   alias PhoenixKitStaff.{Activity, Paths, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
+  alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def mount(_params, _session, socket) do
@@ -48,7 +49,14 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
              |> put_flash(:info, gettext("Team deleted."))
              |> load_teams()}
 
-          {:error, _} ->
+          {:error, reason} ->
+            Helpers.log_operation_error("staff.team_deleted", socket,
+              reason: reason,
+              resource_type: "team",
+              resource_uuid: team.uuid,
+              metadata: %{"name" => team.name}
+            )
+
             {:noreply, put_flash(socket, :error, gettext("Could not delete team."))}
         end
     end

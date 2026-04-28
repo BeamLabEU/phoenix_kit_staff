@@ -16,6 +16,7 @@ defmodule PhoenixKitStaff.L10n do
   use Gettext, backend: PhoenixKitWeb.Gettext
 
   @doc "Formats a `Date`/`DateTime` as `Mon DD, YYYY`. Returns `nil` for nil."
+  @spec format_date(Date.t() | DateTime.t() | NaiveDateTime.t() | nil) :: String.t() | nil
   def format_date(nil), do: nil
 
   def format_date(%DateTime{} = dt),
@@ -28,6 +29,7 @@ defmodule PhoenixKitStaff.L10n do
     do: gettext("%{month} %{day}, %{year}", month: short_month(d.month), day: d.day, year: d.year)
 
   @doc "Formats as `Mon DD` (no year). Useful for near-term dates."
+  @spec format_month_day(Date.t() | DateTime.t() | nil) :: String.t() | nil
   def format_month_day(nil), do: nil
 
   def format_month_day(%DateTime{} = dt),
@@ -37,6 +39,7 @@ defmodule PhoenixKitStaff.L10n do
     do: gettext("%{month} %{day}", month: short_month(d.month), day: d.day)
 
   @doc "Short 3-letter month name, translated (`Jan`, `Feb`, ...)."
+  @spec short_month(1..12) :: String.t()
   def short_month(1), do: gettext("Jan")
   def short_month(2), do: gettext("Feb")
   def short_month(3), do: gettext("Mar")

@@ -109,7 +109,10 @@ defmodule PhoenixKitStaff.Schemas.Person do
     |> validate_length(:emergency_contact_phone, max: 50)
     |> validate_length(:emergency_contact_relationship, max: 100)
     |> assoc_constraint(:user)
-    |> unique_constraint(:user_uuid, message: gettext("already linked to a person on staff"))
+    |> unique_constraint(:user_uuid,
+      name: :phoenix_kit_staff_people_user_index,
+      message: gettext("already linked to a person on staff")
+    )
   end
 
   def statuses, do: @statuses

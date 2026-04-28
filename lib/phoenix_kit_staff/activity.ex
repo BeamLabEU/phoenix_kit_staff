@@ -10,6 +10,8 @@ defmodule PhoenixKitStaff.Activity do
   @module "staff"
 
   @doc "Logs a staff activity entry via `PhoenixKit.Activity`. Swallows errors so it never crashes the caller."
+  @spec log(String.t(), keyword()) ::
+          :ok | :activity_unavailable | {:ok, struct()} | {:error, any()}
   def log(action, opts) when is_binary(action) and is_list(opts) do
     if Code.ensure_loaded?(PhoenixKit.Activity) do
       entry = %{
@@ -42,6 +44,7 @@ defmodule PhoenixKitStaff.Activity do
   end
 
   @doc "Extracts `user.uuid` from the LiveView socket assigns."
+  @spec actor_uuid(Phoenix.LiveView.Socket.t()) :: UUIDv7.t() | String.t() | nil
   def actor_uuid(socket) do
     case socket.assigns[:phoenix_kit_current_user] do
       %{uuid: uuid} -> uuid

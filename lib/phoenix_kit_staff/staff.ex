@@ -105,6 +105,9 @@ defmodule PhoenixKitStaff.Staff do
   usable password. When the person later registers or logs in via OAuth
   with the same email, PhoenixKit's built-in lookup links them automatically.
   """
+  @spec find_or_create_user_by_email(String.t()) ::
+          {:ok, User.t(), :created | :existing}
+          | {:error, PhoenixKitStaff.Errors.error_atom() | Ecto.Changeset.t()}
   def find_or_create_user_by_email(email) when is_binary(email) do
     case String.trim(email) do
       "" -> {:error, :blank_email}
@@ -138,6 +141,7 @@ defmodule PhoenixKitStaff.Staff do
   Users who don't yet have a staff profile. When `exclude_person_uuid`
   is passed (edit mode), that person's linked user is kept in the list.
   """
+  @spec eligible_users(keyword()) :: [User.t()]
   def eligible_users(opts \\ []) do
     exclude_person_uuid = Keyword.get(opts, :exclude_person_uuid)
 
@@ -208,6 +212,7 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Fetches a person by uuid. Raises if not found."
+  @spec get_person!(UUIDv7.t() | String.t(), keyword()) :: Person.t()
   def get_person!(uuid, opts \\ []) do
     preload = Keyword.get(opts, :preload, [:user, :primary_department])
 
@@ -217,6 +222,7 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Fetches a person by uuid, or `nil` if not found."
+  @spec get_person(UUIDv7.t() | String.t() | any(), keyword()) :: Person.t() | nil
   def get_person(uuid, opts \\ []) do
     preload = Keyword.get(opts, :preload, [:user, :primary_department])
 
@@ -267,6 +273,9 @@ defmodule PhoenixKitStaff.Staff do
   Returns upcoming birthdays within the given window (default 30 days),
   sorted by days-until-birthday.
   """
+  @spec upcoming_birthdays(non_neg_integer()) :: [
+          %{person: Person.t(), next_birthday: Date.t(), days_until: non_neg_integer()}
+        ]
   def upcoming_birthdays(window_days \\ 30) do
     today = Date.utc_today()
     window_days = max(window_days, 0)
@@ -332,6 +341,16 @@ defmodule PhoenixKitStaff.Staff do
     unassigned_people: [...]
   }
   """
+  @spec org_tree() :: %{
+          departments: [
+            %{
+              department: PhoenixKitStaff.Schemas.Department.t(),
+              teams: [%{team: PhoenixKitStaff.Schemas.Team.t(), people: [Person.t()]}],
+              dept_only_people: [Person.t()]
+            }
+          ],
+          unassigned_people: [Person.t()]
+        }
   def org_tree do
     departments = Departments.list(preload: [:teams])
     all_people = list_people()
@@ -380,6 +399,7 @@ defmodule PhoenixKitStaff.Staff do
   # ── Team memberships ───────────────────────────────────────────────
 
   @doc "Memberships on a given team, preloaded with staff_person and user."
+  @spec list_team_memberships(UUIDv7.t() | String.t()) :: [TeamMembership.t()]
   def list_team_memberships(team_uuid) do
     TeamMembership
     |> where([tm], tm.team_uuid == ^team_uuid)
@@ -389,6 +409,7 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "All memberships a given person belongs to, with team and department preloaded."
+  @spec list_memberships_for_person(UUIDv7.t() | String.t()) :: [TeamMembership.t()]
   def list_memberships_for_person(person_uuid) do
     TeamMembership
     |> where([tm], tm.staff_person_uuid == ^person_uuid)
@@ -398,6 +419,8 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Adds a person to a team and broadcasts `:team_person_added`."
+  @spec add_team_person(UUIDv7.t() | String.t(), UUIDv7.t() | String.t()) ::
+          {:ok, TeamMembership.t()} | {:error, Ecto.Changeset.t(TeamMembership.t())}
   def add_team_person(team_uuid, staff_person_uuid) do
     with {:ok, tm} <-
            %TeamMembership{}
@@ -417,6 +440,12 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Removes a team membership (by struct or by team/person uuids) and broadcasts `:team_person_removed`."
+  @spec remove_team_person(TeamMembership.t()) ::
+          {:ok, TeamMembership.t()} | {:error, Ecto.Changeset.t(TeamMembership.t())}
+  @spec remove_team_person(UUIDv7.t() | String.t(), UUIDv7.t() | String.t()) ::
+          {:ok, TeamMembership.t()}
+          | {:error, Ecto.Changeset.t(TeamMembership.t())}
+          | {:error, :not_found}
   def remove_team_person(%TeamMembership{} = tm) do
     with {:ok, deleted} <- repo().delete(tm) do
       StaffPubSub.broadcast_team_membership(:team_person_removed, %{
@@ -437,6 +466,7 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "People not already on this team (for the add-to-team picker)."
+  @spec people_not_on_team(UUIDv7.t() | String.t()) :: [Person.t()]
   def people_not_on_team(team_uuid) do
     person_uuids_on_team =
       from(tm in TeamMembership,

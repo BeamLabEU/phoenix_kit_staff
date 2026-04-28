@@ -8,6 +8,7 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
 
   alias PhoenixKitStaff.{Activity, Departments, Paths}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
+  alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def mount(_params, _session, socket) do
@@ -50,7 +51,14 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
              |> put_flash(:info, gettext("Department deleted."))
              |> load_departments()}
 
-          {:error, _} ->
+          {:error, reason} ->
+            Helpers.log_operation_error("staff.department_deleted", socket,
+              reason: reason,
+              resource_type: "department",
+              resource_uuid: dept.uuid,
+              metadata: %{"name" => dept.name}
+            )
+
             {:noreply, put_flash(socket, :error, gettext("Could not delete department."))}
         end
     end

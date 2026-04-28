@@ -9,6 +9,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
   alias PhoenixKitStaff.{Activity, Paths, Staff}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
   alias PhoenixKitStaff.Schemas.Person
+  alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def mount(_params, _session, socket) do
@@ -68,7 +69,14 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
              |> put_flash(:info, gettext("Staff removed."))
              |> load_people()}
 
-          {:error, _} ->
+          {:error, reason} ->
+            Helpers.log_operation_error("staff.person_deleted", socket,
+              reason: reason,
+              resource_type: "staff_person",
+              resource_uuid: person.uuid,
+              target_uuid: person.user_uuid
+            )
+
             {:noreply, put_flash(socket, :error, gettext("Could not remove staff."))}
         end
     end

@@ -8,6 +8,7 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
 
   alias PhoenixKitStaff.{Activity, Paths, Staff, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
+  alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -81,7 +82,14 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
          |> put_flash(:info, gettext("Staff added."))
          |> load_memberships()}
 
-      {:error, _cs} ->
+      {:error, reason} ->
+        Helpers.log_operation_error("staff.team_person_added", socket,
+          reason: reason,
+          resource_type: "team",
+          resource_uuid: socket.assigns.team.uuid,
+          target_uuid: person_uuid
+        )
+
         {:noreply, put_flash(socket, :error, gettext("Could not add staff."))}
     end
   end
@@ -108,7 +116,14 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
 
             {:noreply, load_memberships(socket) |> put_flash(:info, gettext("Staff removed."))}
 
-          {:error, _} ->
+          {:error, reason} ->
+            Helpers.log_operation_error("staff.team_person_removed", socket,
+              reason: reason,
+              resource_type: "team",
+              resource_uuid: socket.assigns.team.uuid,
+              target_uuid: tm.staff_person_uuid
+            )
+
             {:noreply, put_flash(socket, :error, gettext("Could not remove staff from team."))}
         end
     end
