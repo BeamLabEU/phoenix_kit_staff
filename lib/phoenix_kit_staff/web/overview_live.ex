@@ -4,6 +4,8 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitWeb.Gettext
 
+  require Logger
+
   alias PhoenixKitStaff.{Departments, L10n, Paths, Staff, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
 
@@ -30,7 +32,11 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
 
   @impl true
   def handle_info({:staff, _event, _payload}, socket), do: {:noreply, reload(socket)}
-  def handle_info(_msg, socket), do: {:noreply, socket}
+
+  def handle_info(msg, socket) do
+    Logger.debug("[Staff] OverviewLive: unexpected handle_info #{inspect(msg)}")
+    {:noreply, socket}
+  end
 
   defp person_label(%{user: %{email: email}}), do: email
   defp person_label(_), do: "—"

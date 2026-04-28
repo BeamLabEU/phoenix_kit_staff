@@ -4,6 +4,8 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitWeb.Gettext
 
+  require Logger
+
   alias PhoenixKitStaff.{Activity, Paths, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
 
@@ -20,7 +22,10 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
     {:noreply, load_teams(socket)}
   end
 
-  def handle_info(_msg, socket), do: {:noreply, socket}
+  def handle_info(msg, socket) do
+    Logger.debug("[Staff] TeamsLive: unexpected handle_info #{inspect(msg)}")
+    {:noreply, socket}
+  end
 
   @impl true
   def handle_event("delete", %{"uuid" => uuid}, socket) do

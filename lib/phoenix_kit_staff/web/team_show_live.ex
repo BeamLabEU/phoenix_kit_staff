@@ -4,11 +4,17 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitWeb.Gettext
 
+  require Logger
+
   alias PhoenixKitStaff.{Activity, Paths, Staff, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
+    # Subscribe BEFORE the DB read so a broadcast between fetch and
+    # subscribe doesn't get dropped. URL `id` is the UUID; same topic.
+    if connected?(socket), do: StaffPubSub.subscribe(StaffPubSub.topic_team(id))
+
     case Teams.get(id) do
       nil ->
         {:ok,
@@ -17,8 +23,6 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
          |> push_navigate(to: Paths.teams())}
 
       team ->
-        if connected?(socket), do: StaffPubSub.subscribe(StaffPubSub.topic_team(team.uuid))
-
         {:ok,
          socket
          |> assign(page_title: team.name, team: team)
@@ -44,7 +48,10 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
     end
   end
 
-  def handle_info(_msg, socket), do: {:noreply, socket}
+  def handle_info(msg, socket) do
+    Logger.debug("[Staff] TeamShowLive: unexpected handle_info #{inspect(msg)}")
+    {:noreply, socket}
+  end
 
   defp load_memberships(socket) do
     team_uuid = socket.assigns.team.uuid

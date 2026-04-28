@@ -14,6 +14,14 @@ defmodule PhoenixKitStaff.MixProject do
       deps: deps(),
       aliases: aliases(),
       test_ignore_filters: [~r"/support/"],
+      test_coverage: [
+        ignore_modules: [
+          ~r/^PhoenixKitStaff\.Test\./,
+          PhoenixKitStaff.DataCase,
+          PhoenixKitStaff.LiveCase,
+          PhoenixKitStaff.ActivityLogAssertions
+        ]
+      ],
       description: "Staff module for PhoenixKit — departments, teams, and people.",
       package: package(),
       dialyzer: [plt_add_apps: [:phoenix_kit]],

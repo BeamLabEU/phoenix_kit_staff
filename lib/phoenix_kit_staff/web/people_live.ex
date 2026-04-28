@@ -4,6 +4,8 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitWeb.Gettext
 
+  require Logger
+
   alias PhoenixKitStaff.{Activity, Paths, Staff}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
   alias PhoenixKitStaff.Schemas.Person
@@ -20,7 +22,11 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
 
   @impl true
   def handle_info({:staff, _event, _payload}, socket), do: {:noreply, load_people(socket)}
-  def handle_info(_msg, socket), do: {:noreply, socket}
+
+  def handle_info(msg, socket) do
+    Logger.debug("[Staff] PeopleLive: unexpected handle_info #{inspect(msg)}")
+    {:noreply, socket}
+  end
 
   defp load_people(socket) do
     assign(socket,

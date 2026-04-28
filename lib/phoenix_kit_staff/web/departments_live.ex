@@ -4,6 +4,8 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitWeb.Gettext
 
+  require Logger
+
   alias PhoenixKitStaff.{Activity, Departments, Paths}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
 
@@ -22,7 +24,10 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
     {:noreply, load_departments(socket)}
   end
 
-  def handle_info(_msg, socket), do: {:noreply, socket}
+  def handle_info(msg, socket) do
+    Logger.debug("[Staff] DepartmentsLive: unexpected handle_info #{inspect(msg)}")
+    {:noreply, socket}
+  end
 
   @impl true
   def handle_event("delete", %{"uuid" => uuid}, socket) do
