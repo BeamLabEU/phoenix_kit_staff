@@ -21,6 +21,8 @@ defmodule PhoenixKitStaff.Errors do
 
   use Gettext, backend: PhoenixKitWeb.Gettext
 
+  require Logger
+
   @typedoc """
   Atoms that the Staff context returns inside `{:error, atom}` tuples.
   Adding a new atom requires adding a `message/1` branch below — the
@@ -52,5 +54,12 @@ defmodule PhoenixKitStaff.Errors do
 
   def message(:not_found), do: gettext("Record not found.")
 
-  def message(_other), do: gettext("Something went wrong. Please try again.")
+  def message(other) do
+    Logger.warning(
+      "[Staff] Errors.message/1 fallback fired for unknown atom: #{inspect(other)} — " <>
+        "either add a branch in PhoenixKitStaff.Errors or stop returning this atom from a context fn"
+    )
+
+    gettext("Something went wrong. Please try again.")
+  end
 end

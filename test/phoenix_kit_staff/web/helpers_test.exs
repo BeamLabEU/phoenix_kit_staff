@@ -114,7 +114,7 @@ defmodule PhoenixKitStaff.Web.HelpersTest do
   end
 
   describe "extra metadata merging" do
-    test "user-supplied metadata merges on top of helper's defaults" do
+    test "user-supplied metadata merges alongside helper's defaults" do
       actor_uuid = Ecto.UUID.generate()
       resource_uuid = Ecto.UUID.generate()
 
@@ -132,6 +132,70 @@ defmodule PhoenixKitStaff.Web.HelpersTest do
           "error_kind" => "atom",
           "error_atom" => "forbidden",
           "name" => "Engineering"
+        }
+      )
+    end
+
+    test "helper-owned keys win over caller-supplied collisions" do
+      # Audit-feed readers depend on `db_pending` and `error_kind`
+      # being authoritative — a buggy caller passing a colliding key
+      # must NOT poison those keys. Pins the merge precedence
+      # introduced after PR #3 review.
+      actor_uuid = Ecto.UUID.generate()
+      resource_uuid = Ecto.UUID.generate()
+
+      Helpers.log_operation_error("staff.team_deleted", socket_with_actor(actor_uuid),
+        reason: :forbidden,
+        resource_type: "team",
+        resource_uuid: resource_uuid,
+        metadata: %{
+          "db_pending" => false,
+          "error_kind" => "wrong",
+          "error_atom" => "wrong",
+          "safe_extra" => "kept"
+        }
+      )
+
+      row =
+        assert_activity_logged("staff.team_deleted",
+          resource_uuid: resource_uuid,
+          metadata_has: %{
+            "db_pending" => true,
+            "error_kind" => "atom",
+            "error_atom" => "forbidden",
+            "safe_extra" => "kept"
+          }
+        )
+
+      # The helper-owned keys must reflect the actual state, not the
+      # caller's bogus override.
+      assert row.metadata["db_pending"] == true
+      assert row.metadata["error_kind"] == "atom"
+      assert row.metadata["error_atom"] == "forbidden"
+    end
+  end
+
+  describe "resource_uuid is optional" do
+    test "lands an audit row even with no resource_uuid (failed CREATE submissions)" do
+      # Form Save failures on CREATE have no uuid yet — the helper
+      # must accept `:resource_uuid` being absent and still record
+      # the attempt so the audit feed captures what was tried.
+      actor_uuid = Ecto.UUID.generate()
+
+      Helpers.log_operation_error("staff.department_created", socket_with_actor(actor_uuid),
+        reason: :forbidden,
+        resource_type: "department",
+        metadata: %{"attempted_name" => "New Eng"}
+      )
+
+      assert_activity_logged("staff.department_created",
+        actor_uuid: actor_uuid,
+        resource_uuid: nil,
+        metadata_has: %{
+          "db_pending" => true,
+          "error_kind" => "atom",
+          "error_atom" => "forbidden",
+          "attempted_name" => "New Eng"
         }
       )
     end

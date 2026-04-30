@@ -5,6 +5,7 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
   use Gettext, backend: PhoenixKitWeb.Gettext
 
   alias PhoenixKitStaff.{Activity, Departments, Paths, Teams}
+  alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def mount(params, _session, socket) do
@@ -72,6 +73,15 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
          |> push_navigate(to: Paths.team(team.uuid))}
 
       {:error, cs} ->
+        Helpers.log_operation_error("staff.team_created", socket,
+          reason: cs,
+          resource_type: "team",
+          metadata: %{
+            "attempted_name" => attrs["name"],
+            "department_uuid" => attrs["department_uuid"]
+          }
+        )
+
         {:noreply, assign_form(socket, cs)}
     end
   end
@@ -92,6 +102,13 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
          |> push_navigate(to: Paths.team(team.uuid))}
 
       {:error, cs} ->
+        Helpers.log_operation_error("staff.team_updated", socket,
+          reason: cs,
+          resource_type: "team",
+          resource_uuid: socket.assigns.team.uuid,
+          metadata: %{"attempted_name" => attrs["name"]}
+        )
+
         {:noreply, assign_form(socket, cs)}
     end
   end

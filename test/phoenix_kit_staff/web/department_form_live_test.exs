@@ -67,6 +67,54 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLiveTest do
     end
   end
 
+  describe "save error — failure-side audit row" do
+    test "create-form Save with invalid changeset writes a db_pending audit row", %{
+      conn: conn,
+      actor_uuid: actor_uuid
+    } do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/departments/new")
+
+      # Empty name fails validate_required, so Departments.create/1
+      # returns {:error, %Ecto.Changeset{}} — no department row is
+      # inserted, but an audit row should still record the attempt.
+      view
+      |> form("#department-form", department: %{name: "", description: "x"})
+      |> render_submit()
+
+      assert_activity_logged("staff.department_created",
+        actor_uuid: actor_uuid,
+        resource_uuid: nil,
+        metadata_has: %{
+          "db_pending" => true,
+          "error_kind" => "changeset"
+        }
+      )
+    end
+
+    test "edit-form Save error keeps the original record uuid on the audit row", %{
+      conn: conn,
+      actor_uuid: actor_uuid
+    } do
+      dept = fixture_department(%{"name" => "Editable-#{System.unique_integer([:positive])}"})
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/departments/#{dept.uuid}/edit")
+
+      # Clear name to fail validate_required.
+      view
+      |> form("#department-form", department: %{name: ""})
+      |> render_submit()
+
+      assert_activity_logged("staff.department_updated",
+        actor_uuid: actor_uuid,
+        resource_uuid: dept.uuid,
+        metadata_has: %{
+          "db_pending" => true,
+          "error_kind" => "changeset"
+        }
+      )
+    end
+  end
+
   describe "edit department form" do
     test "renders existing values", %{conn: conn} do
       dept = fixture_department(%{"name" => "Existing-#{System.unique_integer([:positive])}"})

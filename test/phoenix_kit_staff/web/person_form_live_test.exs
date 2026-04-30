@@ -112,6 +112,80 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
     end
   end
 
+  describe "save error — failure-side audit row" do
+    test "create-form Save with blank email writes a db_pending audit row (atom branch)", %{
+      conn: conn,
+      actor_uuid: actor_uuid
+    } do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/new")
+
+      # Empty email → Staff.find_or_create_user_by_email/1 returns
+      # {:error, :blank_email} → the atom branch in save/5 fires.
+      view
+      |> form("#person-form", person: %{status: "active"}, email: "")
+      |> render_submit()
+
+      assert_activity_logged("staff.person_created",
+        actor_uuid: actor_uuid,
+        resource_uuid: nil,
+        metadata_has: %{
+          "db_pending" => true,
+          "error_kind" => "atom",
+          "error_atom" => "blank_email"
+        }
+      )
+    end
+
+    test "create-form Save with invalid status writes a db_pending audit row (changeset)", %{
+      conn: conn,
+      actor_uuid: actor_uuid
+    } do
+      email = "save-err-#{System.unique_integer([:positive])}@example.com"
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/new")
+
+      # Valid email so find_or_create_user_by_email succeeds; bogus
+      # status fails validate_inclusion, so create_person/1 returns
+      # {:error, %Ecto.Changeset{}} and the placeholder user is rolled
+      # back — but the audit row records the failed attempt.
+      view
+      |> form("#person-form", person: %{status: "bogus_status"}, email: email)
+      |> render_submit()
+
+      assert_activity_logged("staff.person_created",
+        actor_uuid: actor_uuid,
+        resource_uuid: nil,
+        metadata_has: %{
+          "db_pending" => true,
+          "error_kind" => "changeset",
+          "attempted_email" => email
+        }
+      )
+    end
+
+    test "edit-form Save with invalid attrs keeps the original record uuid on the audit row", %{
+      conn: conn,
+      actor_uuid: actor_uuid
+    } do
+      person = fixture_person()
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      view
+      |> form("#person-form", person: %{status: "bogus_status"}, email: person.user.email)
+      |> render_submit()
+
+      assert_activity_logged("staff.person_updated",
+        actor_uuid: actor_uuid,
+        resource_uuid: person.uuid,
+        metadata_has: %{
+          "db_pending" => true,
+          "error_kind" => "changeset"
+        }
+      )
+    end
+  end
+
   describe "404 fallback" do
     test "edit with bogus uuid redirects to people list", %{conn: conn} do
       bogus = Ecto.UUID.generate()

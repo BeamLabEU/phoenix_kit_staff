@@ -5,6 +5,7 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
   use Gettext, backend: PhoenixKitWeb.Gettext
 
   alias PhoenixKitStaff.{Activity, Departments, Paths}
+  alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def mount(params, _session, socket) do
@@ -65,6 +66,12 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
          |> push_navigate(to: Paths.department(dept.uuid))}
 
       {:error, cs} ->
+        Helpers.log_operation_error("staff.department_created", socket,
+          reason: cs,
+          resource_type: "department",
+          metadata: %{"attempted_name" => attrs["name"]}
+        )
+
         {:noreply, assign_form(socket, cs)}
     end
   end
@@ -85,6 +92,13 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
          |> push_navigate(to: Paths.department(dept.uuid))}
 
       {:error, cs} ->
+        Helpers.log_operation_error("staff.department_updated", socket,
+          reason: cs,
+          resource_type: "department",
+          resource_uuid: socket.assigns.dept.uuid,
+          metadata: %{"attempted_name" => attrs["name"]}
+        )
+
         {:noreply, assign_form(socket, cs)}
     end
   end

@@ -9,6 +9,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   alias PhoenixKit.Users.Auth
   alias PhoenixKitStaff.{Activity, Departments, Errors, Paths, Staff, Teams}
   alias PhoenixKitStaff.Schemas.Person
+  alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def mount(params, _session, socket) do
@@ -150,9 +151,21 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
          |> push_navigate(to: Paths.person(person.uuid))}
 
       {:error, atom} when is_atom(atom) ->
+        Helpers.log_operation_error("staff.person_created", socket,
+          reason: atom,
+          resource_type: "staff_person",
+          metadata: %{"attempted_email" => email}
+        )
+
         {:noreply, put_flash(socket, :error, Errors.message(atom))}
 
       {:error, %Ecto.Changeset{} = cs} ->
+        Helpers.log_operation_error("staff.person_created", socket,
+          reason: cs,
+          resource_type: "staff_person",
+          metadata: %{"attempted_email" => email}
+        )
+
         {:noreply, assign_form(socket, cs)}
     end
   end
@@ -180,9 +193,25 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
         do_update_person(socket, attrs, team_uuid)
 
       {:error, atom} when is_atom(atom) ->
+        Helpers.log_operation_error("staff.person_updated", socket,
+          reason: atom,
+          resource_type: "staff_person",
+          resource_uuid: socket.assigns.person.uuid,
+          target_uuid: socket.assigns.person.user_uuid,
+          metadata: %{"attempted_email" => new_email, "phase" => "rename_email"}
+        )
+
         {:noreply, put_flash(socket, :error, Errors.message(atom))}
 
       {:error, %Ecto.Changeset{} = cs} ->
+        Helpers.log_operation_error("staff.person_updated", socket,
+          reason: cs,
+          resource_type: "staff_person",
+          resource_uuid: socket.assigns.person.uuid,
+          target_uuid: socket.assigns.person.user_uuid,
+          metadata: %{"phase" => "rename_email"}
+        )
+
         errors = Enum.map_join(cs.errors, ", ", fn {k, {m, _}} -> "#{k}: #{m}" end)
 
         {:noreply,
@@ -211,6 +240,13 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
          |> push_navigate(to: Paths.person(person.uuid))}
 
       {:error, cs} ->
+        Helpers.log_operation_error("staff.person_updated", socket,
+          reason: cs,
+          resource_type: "staff_person",
+          resource_uuid: socket.assigns.person.uuid,
+          target_uuid: socket.assigns.person.user_uuid
+        )
+
         {:noreply, assign_form(socket, cs)}
     end
   end

@@ -38,15 +38,19 @@ defmodule PhoenixKitStaff.Web.Helpers do
   ## Required opts
 
     * `:resource_type` — string, e.g. `"staff_person"` / `"department"`
-    * `:resource_uuid` — uuid of the record the operation targeted
     * `:reason` — the `{:error, reason}` value from the context call
 
   ## Optional opts
 
+    * `:resource_uuid` — uuid of the record the operation targeted.
+      Optional because failed CREATE submissions have no uuid yet — in
+      that case the audit row records intent without a target.
     * `:target_uuid` — second-party uuid for membership operations
       (the user being added/removed, etc.)
-    * `:metadata` — extra metadata (must be PII-safe; merged on top
-      of the helper's own `db_pending` / `error_kind` / `error_keys`).
+    * `:metadata` — extra metadata (must be PII-safe). Merged UNDER
+      the helper's own `db_pending` / `error_kind` / `error_keys` /
+      `error_atom` keys — caller-supplied collisions on those keys are
+      ignored so the audit-feed contract stays stable.
 
   Returns the underlying `Activity.log/2` return value (`:ok`,
   `{:ok, _entry}`, `{:error, _}`, `:activity_unavailable`); never
@@ -57,15 +61,18 @@ defmodule PhoenixKitStaff.Web.Helpers do
   def log_operation_error(action, socket, opts) when is_binary(action) and is_list(opts) do
     reason = Keyword.fetch!(opts, :reason)
     resource_type = Keyword.fetch!(opts, :resource_type)
-    resource_uuid = Keyword.fetch!(opts, :resource_uuid)
+    resource_uuid = Keyword.get(opts, :resource_uuid)
     target_uuid = Keyword.get(opts, :target_uuid)
     extra_metadata = Keyword.get(opts, :metadata, %{})
 
-    base_metadata = %{"db_pending" => true} |> Map.merge(reason_metadata(reason))
+    helper_metadata = Map.put(reason_metadata(reason), "db_pending", true)
 
+    # Caller metadata first; helper-owned keys win. Audit-feed readers
+    # rely on `db_pending` / `error_kind` so callers must not override.
     metadata =
-      base_metadata
-      |> Map.merge(stringify_keys(extra_metadata))
+      extra_metadata
+      |> stringify_keys()
+      |> Map.merge(helper_metadata)
 
     Activity.log(action,
       actor_uuid: Activity.actor_uuid(socket),

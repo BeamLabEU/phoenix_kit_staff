@@ -11,6 +11,8 @@ defmodule PhoenixKitStaff.ErrorsTest do
 
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureLog
+
   alias PhoenixKitStaff.Errors
 
   describe "message/1" do
@@ -33,8 +35,30 @@ defmodule PhoenixKitStaff.ErrorsTest do
     end
 
     test "unknown atom falls back to the generic message" do
-      assert Errors.message(:never_mapped_atom) ==
-               "Something went wrong. Please try again."
+      # capture_log so the warning we emit on the fallback branch
+      # doesn't pollute test output. Branch is also pinned below.
+      log =
+        capture_log(fn ->
+          assert Errors.message(:never_mapped_atom) ==
+                   "Something went wrong. Please try again."
+        end)
+
+      assert log =~ "[Staff] Errors.message/1 fallback fired for unknown atom: :never_mapped_atom"
+    end
+
+    test "unknown-atom fallback emits a Logger.warning so drift is loud in dev/staging" do
+      # Pins the contract introduced after PR #3: a context fn returning
+      # an atom this module doesn't know about should NOT silently
+      # degrade to the generic message — it should warn so devs notice
+      # the typo in CI logs / staging and add the missing branch.
+      log =
+        capture_log([level: :warning], fn ->
+          Errors.message(:totally_unknown_drift)
+        end)
+
+      assert log =~ "[Staff]"
+      assert log =~ "totally_unknown_drift"
+      assert log =~ "fallback fired"
     end
   end
 end

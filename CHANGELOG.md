@@ -4,6 +4,102 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.0] - 2026-04-30
+
+Quality sweep + re-validation pipeline (PRs #2 and #3) plus the
+post-merge follow-up: form-Save audit rows, Errors fallback warning,
+Helpers merge-precedence fix.
+
+### Added
+- `PhoenixKitStaff.Errors` — atom → translated-string dispatcher.
+  Context functions now return `{:error, atom}`; LiveViews call
+  `Errors.message/1` at the presentation boundary. Unknown-atom
+  fallback emits a `Logger.warning` so drift is loud in dev/staging.
+- `PhoenixKitStaff.Web.Helpers` — `log_operation_error/3` writes a
+  failure-side activity row with `db_pending: true` and PII-safe
+  reason metadata. Resolves the tension between the module's
+  documented success-only `Activity` invariant at the call site and
+  the post-Apr pipeline's both-branch audit-row requirement. Wired
+  into all 5 destructive listing actions plus all 6 form Save error
+  branches (department / team / person × create + edit).
+- `@type t` on every Ecto schema; 41 new `@spec`s across the public
+  context and helper modules.
+- Test infrastructure under `test/support/`: `Test.Endpoint`,
+  `Test.Router`, `Test.Layouts`, `DataCase`, `LiveCase`, `Hooks`,
+  `ActivityLogAssertions`. `lazy_html` test-only dep for
+  `Phoenix.LiveViewTest` HTML parsing.
+- `mix test.setup` / `mix test.reset` aliases for local DB bootstrap.
+
+### Changed
+- **BREAKING (return-shape):** `Staff.rename_placeholder_email/2`
+  now returns `{:error, atom}` (`:blank_email`,
+  `:placeholder_already_claimed`, `:email_already_taken`) instead of
+  `{:error, binary_message}`. Callers must route through
+  `PhoenixKitStaff.Errors.message/1` at the presentation boundary.
+- `Helpers.log_operation_error/3` metadata-merge precedence: caller-
+  supplied metadata is now merged UNDER the helper-owned keys
+  (`db_pending` / `error_kind` / `error_keys` / `error_atom`) so
+  audit-feed readers can rely on those keys being authoritative.
+  `:resource_uuid` opt is now optional (failed CREATE submissions
+  have no uuid yet).
+- `PhoenixKitStaff.Activity.log/2` rescue widened to canonical
+  post-Apr shape: explicit `Postgrex.Error -> :ok` and
+  `DBConnection.OwnershipError -> :ok` ahead of the generic
+  `Logger.warning` branch, plus `catch :exit, _ -> :ok`.
+- `PhoenixKitStaff.enabled?/0` adds `catch :exit, _ -> false` for
+  sandbox-shutdown safety.
+- `handle_info/2` catch-all in all 7 admin LVs promoted from silent
+  `{:noreply, socket}` to `Logger.debug(...)`.
+- `Staff.next_birthday_and_days/2` extracted shared
+  `anniversary_in_year/2` helper that mirrors Postgres `INTERVAL '1
+  year'` arithmetic.
+- `Staff.org_tree/0` collapses `MapSet` build via `MapSet.new/2`.
+
+### Fixed
+- **Schema constraint name mismatch in `Schemas.Person.changeset/2`**
+  (HIGH). The DB index is `phoenix_kit_staff_people_user_index`,
+  but the changeset registered the Ecto-default
+  `phoenix_kit_staff_people_user_uuid_index`, so duplicate
+  `user_uuid` inserts raised `Ecto.ConstraintError` instead of
+  returning `{:error, %Ecto.Changeset{}}`. Changeset now passes
+  `name: :phoenix_kit_staff_people_user_index` explicitly.
+- **`PersonShowLive.handle_info/2` had no catch-all** (MEDIUM). Any
+  non-`{:staff, ...}` message reaching the LV's mailbox would have
+  raised `FunctionClauseError`. Catch-all clause added.
+- **Subscribe-after-fetch race on the 3 show pages** (LOW).
+  `department_show_live` / `team_show_live` / `person_show_live`
+  now subscribe BEFORE the DB read so a broadcast in the gap
+  doesn't get silently dropped.
+- **Leap-day display drift in `next_birthday_and_days/2`** (LOW).
+  Wrap-to-next-year branch was unconditionally clamping Feb 29 →
+  Feb 28 even when the target year was a leap year. Display now
+  matches the Postgres SQL window filter exactly.
+- **`Schemas.Team.changeset/2`** changes `unique_constraint` from
+  `[:department_uuid, :name]` (composite list — error attached to
+  the first field) to `unique_constraint(:name, name: ...)` so
+  inline form errors render below the field the user actually edits.
+
+### Performance
+- `Staff.org_tree/0`: `MapSet.new(list, mapper)` skips an
+  intermediate list allocation.
+
+### Tests
+- 49 → 302 tests, 0 failures, 5/5 stable.
+- `mix test --cover`: 62.64% → **95.07%** line coverage.
+- New test files cover: per-atom `Errors.message/1` pins, helpers
+  unit tests with PII-safety assertions, error-branch logging,
+  per-LV `handle_info` catch-all `Logger.debug` pins,
+  subscribe-before-fetch source-pairing meta-test, edge-case
+  Unicode/SQL-metacharacter inputs, all listing LVs, all form LVs
+  with both happy-path AND failure-side audit-row pins.
+
+### Internal
+- `mix.exs` `test_coverage [ignore_modules]` filter so
+  `mix test --cover` reports production-only coverage.
+- `test_helper.exs` rescues `ErlangError` from `System.cmd("psql",
+  ...)` so `mix test --exclude integration` works in environments
+  without `psql` on PATH.
+
 ## [0.1.0] - 2026-04-20
 
 Initial release.

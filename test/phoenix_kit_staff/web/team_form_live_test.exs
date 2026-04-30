@@ -72,6 +72,55 @@ defmodule PhoenixKitStaff.Web.TeamFormLiveTest do
     end
   end
 
+  describe "save error — failure-side audit row" do
+    test "create-form Save with invalid changeset writes a db_pending audit row", %{
+      conn: conn,
+      actor_uuid: actor_uuid,
+      dept: dept
+    } do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/teams/new")
+
+      view
+      |> form("#team-form",
+        team: %{name: "", description: "x", department_uuid: dept.uuid}
+      )
+      |> render_submit()
+
+      assert_activity_logged("staff.team_created",
+        actor_uuid: actor_uuid,
+        resource_uuid: nil,
+        metadata_has: %{
+          "db_pending" => true,
+          "error_kind" => "changeset"
+        }
+      )
+    end
+
+    test "edit-form Save error keeps the original record uuid on the audit row", %{
+      conn: conn,
+      actor_uuid: actor_uuid
+    } do
+      team = fixture_team(%{"name" => "Editable-#{System.unique_integer([:positive])}"})
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/teams/#{team.uuid}/edit")
+
+      view
+      |> form("#team-form",
+        team: %{name: "", description: team.description, department_uuid: team.department_uuid}
+      )
+      |> render_submit()
+
+      assert_activity_logged("staff.team_updated",
+        actor_uuid: actor_uuid,
+        resource_uuid: team.uuid,
+        metadata_has: %{
+          "db_pending" => true,
+          "error_kind" => "changeset"
+        }
+      )
+    end
+  end
+
   describe "edit team form" do
     test "renders existing values", %{conn: conn} do
       team = fixture_team(%{"name" => "Existing-#{System.unique_integer([:positive])}"})
