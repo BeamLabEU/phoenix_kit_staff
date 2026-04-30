@@ -60,6 +60,9 @@ Thumbs.db
 .mcp.json
 CLAUDE.local.md
 
+# Phase 2 sweep visual baselines (local-only, not for VCS)
+/dev_docs/baselines/
+
 # Git worktrees
 /.worktrees/
 .worktrees/

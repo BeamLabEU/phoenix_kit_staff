@@ -4,8 +4,11 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitWeb.Gettext
 
+  require Logger
+
   alias PhoenixKitStaff.{Activity, Departments, Paths}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
+  alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def mount(_params, _session, socket) do
@@ -22,7 +25,10 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
     {:noreply, load_departments(socket)}
   end
 
-  def handle_info(_msg, socket), do: {:noreply, socket}
+  def handle_info(msg, socket) do
+    Logger.debug("[Staff] DepartmentsLive: unexpected handle_info #{inspect(msg)}")
+    {:noreply, socket}
+  end
 
   @impl true
   def handle_event("delete", %{"uuid" => uuid}, socket) do
@@ -45,7 +51,14 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
              |> put_flash(:info, gettext("Department deleted."))
              |> load_departments()}
 
-          {:error, _} ->
+          {:error, reason} ->
+            Helpers.log_operation_error("staff.department_deleted", socket,
+              reason: reason,
+              resource_type: "department",
+              resource_uuid: dept.uuid,
+              metadata: %{"name" => dept.name}
+            )
+
             {:noreply, put_flash(socket, :error, gettext("Could not delete department."))}
         end
     end

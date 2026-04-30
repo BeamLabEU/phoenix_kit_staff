@@ -11,6 +11,15 @@ defmodule PhoenixKitStaff.Schemas.Department do
   @primary_key {:uuid, UUIDv7, autogenerate: true}
   @foreign_key_type UUIDv7
 
+  @type t :: %__MODULE__{
+          uuid: UUIDv7.t() | nil,
+          name: String.t() | nil,
+          description: String.t() | nil,
+          teams: [Team.t()] | Ecto.Association.NotLoaded.t(),
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+
   schema "phoenix_kit_staff_departments" do
     field(:name, :string)
     field(:description, :string)
@@ -23,6 +32,7 @@ defmodule PhoenixKitStaff.Schemas.Department do
   @required ~w(name)a
   @optional ~w(description)a
 
+  @spec changeset(t() | Ecto.Changeset.t(t()), map()) :: Ecto.Changeset.t(t())
   def changeset(dept, attrs) do
     dept
     |> cast(attrs, @required ++ @optional)

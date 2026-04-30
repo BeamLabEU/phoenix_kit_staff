@@ -21,9 +21,11 @@ defmodule PhoenixKitStaff.Staff do
   @email_regex ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
   @doc "Returns the regex used to validate emails throughout the staff module."
+  @spec email_regex() :: Regex.t()
   def email_regex, do: @email_regex
 
   @doc "Whether the given string looks like a valid email."
+  @spec valid_email?(any()) :: boolean()
   def valid_email?(email) when is_binary(email), do: String.match?(email, @email_regex)
   def valid_email?(_), do: false
 
@@ -35,23 +37,26 @@ defmodule PhoenixKitStaff.Staff do
   that nobody has signed up for yet. Refuses if another user already
   exists with the new email.
   """
+  @spec rename_placeholder_email(User.t(), String.t()) ::
+          :ok
+          | {:ok, User.t()}
+          | {:error, PhoenixKitStaff.Errors.error_atom() | Ecto.Changeset.t()}
   def rename_placeholder_email(%User{} = user, new_email) do
     new_email = String.trim(new_email)
     current = user.email
 
     cond do
       new_email == "" ->
-        {:error, gettext("Email cannot be blank.")}
+        {:error, :blank_email}
 
       new_email == current ->
         :ok
 
       not placeholder?(user) ->
-        {:error,
-         gettext("This user has already claimed their account — email cannot be changed here.")}
+        {:error, :placeholder_already_claimed}
 
       Auth.get_user_by_email(new_email) != nil ->
-        {:error, gettext("An account with that email already exists.")}
+        {:error, :email_already_taken}
 
       true ->
         user
@@ -100,6 +105,9 @@ defmodule PhoenixKitStaff.Staff do
   usable password. When the person later registers or logs in via OAuth
   with the same email, PhoenixKit's built-in lookup links them automatically.
   """
+  @spec find_or_create_user_by_email(String.t()) ::
+          {:ok, User.t(), :created | :existing}
+          | {:error, PhoenixKitStaff.Errors.error_atom() | Ecto.Changeset.t()}
   def find_or_create_user_by_email(email) when is_binary(email) do
     case String.trim(email) do
       "" -> {:error, :blank_email}
@@ -133,6 +141,7 @@ defmodule PhoenixKitStaff.Staff do
   Users who don't yet have a staff profile. When `exclude_person_uuid`
   is passed (edit mode), that person's linked user is kept in the list.
   """
+  @spec eligible_users(keyword()) :: [User.t()]
   def eligible_users(opts \\ []) do
     exclude_person_uuid = Keyword.get(opts, :exclude_person_uuid)
 
@@ -158,6 +167,7 @@ defmodule PhoenixKitStaff.Staff do
   # ── People ─────────────────────────────────────────────────────────
 
   @doc "Lists people. Accepts `:preload`, `:status` filter, and `:search` (matches user email)."
+  @spec list_people(keyword()) :: [Person.t()]
   def list_people(opts \\ []) do
     preload = Keyword.get(opts, :preload, [:user, :primary_department])
     status = Keyword.get(opts, :status)
@@ -191,6 +201,7 @@ defmodule PhoenixKitStaff.Staff do
   defp normalize_search(s) when is_binary(s), do: String.trim(s)
 
   @doc "Fetches a person by the linked user's uuid, or `nil` if no staff profile exists."
+  @spec get_person_by_user_uuid(UUIDv7.t() | String.t(), keyword()) :: Person.t() | nil
   def get_person_by_user_uuid(user_uuid, opts \\ []) do
     preload = Keyword.get(opts, :preload, [:user, :primary_department])
 
@@ -201,6 +212,7 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Fetches a person by uuid. Raises if not found."
+  @spec get_person!(UUIDv7.t() | String.t(), keyword()) :: Person.t()
   def get_person!(uuid, opts \\ []) do
     preload = Keyword.get(opts, :preload, [:user, :primary_department])
 
@@ -210,6 +222,7 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Fetches a person by uuid, or `nil` if not found."
+  @spec get_person(UUIDv7.t() | String.t() | any(), keyword()) :: Person.t() | nil
   def get_person(uuid, opts \\ []) do
     preload = Keyword.get(opts, :preload, [:user, :primary_department])
 
@@ -219,9 +232,11 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Returns a changeset for the given person."
+  @spec change_person(Person.t(), map()) :: Ecto.Changeset.t(Person.t())
   def change_person(%Person{} = p, attrs \\ %{}), do: Person.changeset(p, attrs)
 
   @doc "Inserts a person and broadcasts `:person_created` on success."
+  @spec create_person(map()) :: {:ok, Person.t()} | {:error, Ecto.Changeset.t(Person.t())}
   def create_person(attrs) do
     with {:ok, person} <- %Person{} |> Person.changeset(attrs) |> repo().insert() do
       StaffPubSub.broadcast_person(:person_created, %{uuid: person.uuid})
@@ -230,6 +245,8 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Updates a person and broadcasts `:person_updated` on success."
+  @spec update_person(Person.t(), map()) ::
+          {:ok, Person.t()} | {:error, Ecto.Changeset.t(Person.t())}
   def update_person(%Person{} = p, attrs) do
     with {:ok, updated} <- p |> Person.changeset(attrs) |> repo().update() do
       StaffPubSub.broadcast_person(:person_updated, %{uuid: updated.uuid})
@@ -238,6 +255,7 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Deletes a person and broadcasts `:person_deleted` on success."
+  @spec delete_person(Person.t()) :: {:ok, Person.t()} | {:error, Ecto.Changeset.t(Person.t())}
   def delete_person(%Person{} = p) do
     with {:ok, deleted} <- repo().delete(p) do
       StaffPubSub.broadcast_person(:person_deleted, %{uuid: deleted.uuid})
@@ -246,6 +264,7 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Total number of people."
+  @spec count_people() :: non_neg_integer()
   def count_people, do: repo().aggregate(Person, :count, :uuid)
 
   # ── Upcoming birthdays ─────────────────────────────────────────────
@@ -254,6 +273,9 @@ defmodule PhoenixKitStaff.Staff do
   Returns upcoming birthdays within the given window (default 30 days),
   sorted by days-until-birthday.
   """
+  @spec upcoming_birthdays(non_neg_integer()) :: [
+          %{person: Person.t(), next_birthday: Date.t(), days_until: non_neg_integer()}
+        ]
   def upcoming_birthdays(window_days \\ 30) do
     today = Date.utc_today()
     window_days = max(window_days, 0)
@@ -288,20 +310,26 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   defp next_birthday_and_days(dob, today) do
-    this_year =
-      case Date.new(today.year, dob.month, dob.day) do
-        {:ok, d} -> d
-        {:error, _} -> Date.new!(today.year, dob.month, min(dob.day, 28))
-      end
+    this_year = anniversary_in_year(dob, today.year)
 
     next =
       if Date.compare(this_year, today) == :lt do
-        Date.new!(today.year + 1, dob.month, min(dob.day, 28))
+        anniversary_in_year(dob, today.year + 1)
       else
         this_year
       end
 
     {next, Date.diff(next, today)}
+  end
+
+  # Returns the anniversary of `dob` in `year`, normalising Feb 29 → Feb 28
+  # only when `year` itself is non-leap. Mirrors Postgres `INTERVAL '1 year'`
+  # arithmetic so the SQL filter and the Elixir display stay consistent.
+  defp anniversary_in_year(dob, year) do
+    case Date.new(year, dob.month, dob.day) do
+      {:ok, d} -> d
+      {:error, _} -> Date.new!(year, dob.month, 28)
+    end
   end
 
   # ── Org tree ───────────────────────────────────────────────────────
@@ -313,6 +341,16 @@ defmodule PhoenixKitStaff.Staff do
     unassigned_people: [...]
   }
   """
+  @spec org_tree() :: %{
+          departments: [
+            %{
+              department: PhoenixKitStaff.Schemas.Department.t(),
+              teams: [%{team: PhoenixKitStaff.Schemas.Team.t(), people: [Person.t()]}],
+              dept_only_people: [Person.t()]
+            }
+          ],
+          unassigned_people: [Person.t()]
+        }
   def org_tree do
     departments = Departments.list(preload: [:teams])
     all_people = list_people()
@@ -324,10 +362,7 @@ defmodule PhoenixKitStaff.Staff do
     people_by_team =
       Enum.group_by(all_memberships, & &1.team_uuid, & &1.staff_person)
 
-    person_team_ids =
-      all_memberships
-      |> Enum.map(& &1.staff_person_uuid)
-      |> MapSet.new()
+    person_team_ids = MapSet.new(all_memberships, & &1.staff_person_uuid)
 
     dept_tree =
       Enum.map(departments, fn dept ->
@@ -364,6 +399,7 @@ defmodule PhoenixKitStaff.Staff do
   # ── Team memberships ───────────────────────────────────────────────
 
   @doc "Memberships on a given team, preloaded with staff_person and user."
+  @spec list_team_memberships(UUIDv7.t() | String.t()) :: [TeamMembership.t()]
   def list_team_memberships(team_uuid) do
     TeamMembership
     |> where([tm], tm.team_uuid == ^team_uuid)
@@ -373,6 +409,7 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "All memberships a given person belongs to, with team and department preloaded."
+  @spec list_memberships_for_person(UUIDv7.t() | String.t()) :: [TeamMembership.t()]
   def list_memberships_for_person(person_uuid) do
     TeamMembership
     |> where([tm], tm.staff_person_uuid == ^person_uuid)
@@ -382,6 +419,8 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Adds a person to a team and broadcasts `:team_person_added`."
+  @spec add_team_person(UUIDv7.t() | String.t(), UUIDv7.t() | String.t()) ::
+          {:ok, TeamMembership.t()} | {:error, Ecto.Changeset.t(TeamMembership.t())}
   def add_team_person(team_uuid, staff_person_uuid) do
     with {:ok, tm} <-
            %TeamMembership{}
@@ -401,6 +440,12 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Removes a team membership (by struct or by team/person uuids) and broadcasts `:team_person_removed`."
+  @spec remove_team_person(TeamMembership.t()) ::
+          {:ok, TeamMembership.t()} | {:error, Ecto.Changeset.t(TeamMembership.t())}
+  @spec remove_team_person(UUIDv7.t() | String.t(), UUIDv7.t() | String.t()) ::
+          {:ok, TeamMembership.t()}
+          | {:error, Ecto.Changeset.t(TeamMembership.t())}
+          | {:error, :not_found}
   def remove_team_person(%TeamMembership{} = tm) do
     with {:ok, deleted} <- repo().delete(tm) do
       StaffPubSub.broadcast_team_membership(:team_person_removed, %{
@@ -421,6 +466,7 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "People not already on this team (for the add-to-team picker)."
+  @spec people_not_on_team(UUIDv7.t() | String.t()) :: [Person.t()]
   def people_not_on_team(team_uuid) do
     person_uuids_on_team =
       from(tm in TeamMembership,

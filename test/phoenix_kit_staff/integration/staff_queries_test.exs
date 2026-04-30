@@ -75,18 +75,28 @@ defmodule PhoenixKitStaff.Integration.StaffQueriesTest do
       assert d > 300 and d <= 365
     end
 
-    test "handles Feb 29 DOB without crashing (Postgres normalizes to Feb 28 in non-leap years)" do
+    test "handles Feb 29 DOB consistently between SQL filter and Elixir display" do
       dob = Date.new!(2000, 2, 29)
       p = create_person(%{date_of_birth: dob})
 
-      # Always reachable within a year, regardless of whether this or next
-      # year is a leap year. We just assert no crash and that the person
-      # appears with a sensible days_until.
       results = Staff.upcoming_birthdays(366)
       assert Enum.any?(results, fn r -> r.person.uuid == p.uuid end)
 
       result = Enum.find(results, &(&1.person.uuid == p.uuid))
+      today = Date.utc_today()
+
+      # `next_birthday` must equal exactly `Date.diff(_, today)` — no
+      # off-by-one between the SQL window check and the displayed value.
+      assert result.days_until == Date.diff(result.next_birthday, today)
       assert result.days_until >= 0 and result.days_until <= 366
+
+      # Day component must reflect the leap-year status of the target year:
+      # Feb 29 in a leap year, Feb 28 otherwise. This pins the leap-aware
+      # `anniversary_in_year/2` helper against the all-clamping regression.
+      target_year = result.next_birthday.year
+      expected_day = if :calendar.is_leap_year(target_year), do: 29, else: 28
+      assert result.next_birthday.month == 2
+      assert result.next_birthday.day == expected_day
     end
 
     test "excludes inactive people" do

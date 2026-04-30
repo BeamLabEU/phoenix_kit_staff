@@ -28,6 +28,8 @@ defmodule PhoenixKitStaff do
     Settings.get_boolean_setting("staff_enabled", false)
   rescue
     _ -> false
+  catch
+    :exit, _ -> false
   end
 
   @impl PhoenixKit.Module

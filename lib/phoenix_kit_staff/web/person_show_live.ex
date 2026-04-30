@@ -4,12 +4,18 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitWeb.Gettext
 
+  require Logger
+
   alias PhoenixKitStaff.{L10n, Paths, Staff}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
   alias PhoenixKitStaff.Schemas.Person
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
+    # Subscribe BEFORE the DB read so a broadcast between fetch and
+    # subscribe doesn't get dropped. URL `id` is the UUID; same topic.
+    if connected?(socket), do: StaffPubSub.subscribe(StaffPubSub.topic_person(id))
+
     case Staff.get_person(id) do
       nil ->
         {:ok,
@@ -18,8 +24,6 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
          |> push_navigate(to: Paths.people())}
 
       person ->
-        if connected?(socket), do: StaffPubSub.subscribe(StaffPubSub.topic_person(person.uuid))
-
         {:ok,
          assign(socket,
            page_title: person_label(person),
@@ -49,6 +53,11 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
            memberships: Staff.list_memberships_for_person(person.uuid)
          )}
     end
+  end
+
+  def handle_info(msg, socket) do
+    Logger.debug("[Staff] PersonShowLive: unexpected handle_info #{inspect(msg)}")
+    {:noreply, socket}
   end
 
   defp person_label(%{user: %{email: email}}), do: email

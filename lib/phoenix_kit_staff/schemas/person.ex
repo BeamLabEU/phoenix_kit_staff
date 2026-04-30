@@ -20,6 +20,33 @@ defmodule PhoenixKitStaff.Schemas.Person do
   @statuses ~w(active inactive)
   @employment_types ~w(full_time part_time contractor intern temporary)
 
+  @type t :: %__MODULE__{
+          uuid: UUIDv7.t() | nil,
+          user_uuid: UUIDv7.t() | nil,
+          user: User.t() | Ecto.Association.NotLoaded.t() | nil,
+          primary_department_uuid: UUIDv7.t() | nil,
+          primary_department: Department.t() | Ecto.Association.NotLoaded.t() | nil,
+          team_memberships: [TeamMembership.t()] | Ecto.Association.NotLoaded.t(),
+          status: String.t() | nil,
+          job_title: String.t() | nil,
+          employment_type: String.t() | nil,
+          employment_start_date: Date.t() | nil,
+          employment_end_date: Date.t() | nil,
+          work_location: String.t() | nil,
+          work_phone: String.t() | nil,
+          personal_phone: String.t() | nil,
+          bio: String.t() | nil,
+          skills: String.t() | nil,
+          notes: String.t() | nil,
+          date_of_birth: Date.t() | nil,
+          personal_email: String.t() | nil,
+          emergency_contact_name: String.t() | nil,
+          emergency_contact_phone: String.t() | nil,
+          emergency_contact_relationship: String.t() | nil,
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+
   schema "phoenix_kit_staff_people" do
     field(:status, :string, default: "active")
     field(:job_title, :string)
@@ -61,6 +88,7 @@ defmodule PhoenixKitStaff.Schemas.Person do
                emergency_contact_name emergency_contact_phone
                emergency_contact_relationship)a
 
+  @spec changeset(t() | Ecto.Changeset.t(t()), map()) :: Ecto.Changeset.t(t())
   def changeset(person, attrs) do
     person
     |> cast(attrs, @required ++ @optional)
@@ -81,7 +109,10 @@ defmodule PhoenixKitStaff.Schemas.Person do
     |> validate_length(:emergency_contact_phone, max: 50)
     |> validate_length(:emergency_contact_relationship, max: 100)
     |> assoc_constraint(:user)
-    |> unique_constraint(:user_uuid, message: gettext("already linked to a person on staff"))
+    |> unique_constraint(:user_uuid,
+      name: :phoenix_kit_staff_people_user_index,
+      message: gettext("already linked to a person on staff")
+    )
   end
 
   def statuses, do: @statuses

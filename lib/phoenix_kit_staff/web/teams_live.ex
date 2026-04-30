@@ -4,8 +4,11 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitWeb.Gettext
 
+  require Logger
+
   alias PhoenixKitStaff.{Activity, Paths, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
+  alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def mount(_params, _session, socket) do
@@ -20,7 +23,10 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
     {:noreply, load_teams(socket)}
   end
 
-  def handle_info(_msg, socket), do: {:noreply, socket}
+  def handle_info(msg, socket) do
+    Logger.debug("[Staff] TeamsLive: unexpected handle_info #{inspect(msg)}")
+    {:noreply, socket}
+  end
 
   @impl true
   def handle_event("delete", %{"uuid" => uuid}, socket) do
@@ -43,7 +49,14 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
              |> put_flash(:info, gettext("Team deleted."))
              |> load_teams()}
 
-          {:error, _} ->
+          {:error, reason} ->
+            Helpers.log_operation_error("staff.team_deleted", socket,
+              reason: reason,
+              resource_type: "team",
+              resource_uuid: team.uuid,
+              metadata: %{"name" => team.name}
+            )
+
             {:noreply, put_flash(socket, :error, gettext("Could not delete team."))}
         end
     end

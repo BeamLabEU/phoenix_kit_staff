@@ -21,29 +21,46 @@ defmodule PhoenixKitStaff.PubSub do
 
   alias PhoenixKit.PubSub.Manager
 
+  @typedoc "PubSub topic name."
+  @type topic :: String.t()
+
+  @typedoc "Department/team/person broadcast event atom."
+  @type event :: atom()
+
   # ── Topics ─────────────────────────────────────────────────────────
 
   @doc "Topic for all department mutations."
+  @spec topic_departments() :: topic()
   def topic_departments, do: "staff:departments"
   @doc "Topic for all team mutations."
+  @spec topic_teams() :: topic()
   def topic_teams, do: "staff:teams"
   @doc "Topic for all person mutations."
+  @spec topic_people() :: topic()
   def topic_people, do: "staff:people"
   @doc "Topic scoped to a single department."
+  @spec topic_department(UUIDv7.t() | String.t()) :: topic()
   def topic_department(uuid), do: "staff:department:#{uuid}"
   @doc "Topic scoped to a single team."
+  @spec topic_team(UUIDv7.t() | String.t()) :: topic()
   def topic_team(uuid), do: "staff:team:#{uuid}"
   @doc "Topic scoped to a single person."
+  @spec topic_person(UUIDv7.t() | String.t()) :: topic()
   def topic_person(uuid), do: "staff:person:#{uuid}"
 
   # ── Subscribe ──────────────────────────────────────────────────────
 
   @doc "Subscribes the calling process to the given PubSub topic."
+  @spec subscribe(topic()) :: :ok | {:error, term()}
   def subscribe(topic), do: Manager.subscribe(topic)
 
   # ── Broadcast ──────────────────────────────────────────────────────
 
   @doc "Broadcasts a department event to the departments topic and the department's own topic."
+  @spec broadcast_department(event(), %{
+          required(:uuid) => UUIDv7.t() | String.t(),
+          optional(any) => any
+        }) :: :ok
   def broadcast_department(event, %{uuid: uuid} = payload) do
     msg = {:staff, event, payload}
     Manager.broadcast(topic_departments(), msg)
@@ -51,6 +68,10 @@ defmodule PhoenixKitStaff.PubSub do
   end
 
   @doc "Broadcasts a team event to the teams, team, and (if present) parent-department topics."
+  @spec broadcast_team(event(), %{
+          required(:uuid) => UUIDv7.t() | String.t(),
+          optional(any) => any
+        }) :: :ok
   def broadcast_team(event, %{uuid: uuid} = payload) do
     msg = {:staff, event, payload}
     Manager.broadcast(topic_teams(), msg)
@@ -63,6 +84,10 @@ defmodule PhoenixKitStaff.PubSub do
   end
 
   @doc "Broadcasts a person event to the people topic and the person's own topic."
+  @spec broadcast_person(event(), %{
+          required(:uuid) => UUIDv7.t() | String.t(),
+          optional(any) => any
+        }) :: :ok
   def broadcast_person(event, %{uuid: uuid} = payload) do
     msg = {:staff, event, payload}
     Manager.broadcast(topic_people(), msg)
@@ -70,6 +95,11 @@ defmodule PhoenixKitStaff.PubSub do
   end
 
   @doc "Broadcasts a team-membership event to the teams, team, people, and person topics."
+  @spec broadcast_team_membership(event(), %{
+          required(:team_uuid) => UUIDv7.t() | String.t(),
+          required(:staff_person_uuid) => UUIDv7.t() | String.t(),
+          optional(any) => any
+        }) :: :ok
   def broadcast_team_membership(
         event,
         %{team_uuid: team_uuid, staff_person_uuid: person_uuid} = payload

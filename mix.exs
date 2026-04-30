@@ -14,6 +14,14 @@ defmodule PhoenixKitStaff.MixProject do
       deps: deps(),
       aliases: aliases(),
       test_ignore_filters: [~r"/support/"],
+      test_coverage: [
+        ignore_modules: [
+          ~r/^PhoenixKitStaff\.Test\./,
+          PhoenixKitStaff.DataCase,
+          PhoenixKitStaff.LiveCase,
+          PhoenixKitStaff.ActivityLogAssertions
+        ]
+      ],
       description: "Staff module for PhoenixKit — departments, teams, and people.",
       package: package(),
       dialyzer: [plt_add_apps: [:phoenix_kit]],
@@ -27,6 +35,10 @@ defmodule PhoenixKitStaff.MixProject do
     [extra_applications: [:logger, :phoenix_kit]]
   end
 
+  def cli do
+    [preferred_envs: ["test.setup": :test, "test.reset": :test]]
+  end
+
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
@@ -34,7 +46,15 @@ defmodule PhoenixKitStaff.MixProject do
     [
       quality: ["format", "credo --strict", "dialyzer"],
       "quality.ci": ["format --check-formatted", "credo --strict", "dialyzer"],
-      precommit: ["compile", "quality"]
+      precommit: ["compile", "quality"],
+      "test.setup": [
+        "ecto.create --quiet -r PhoenixKitStaff.Test.Repo",
+        "ecto.migrate -r PhoenixKitStaff.Test.Repo"
+      ],
+      "test.reset": [
+        "ecto.drop --quiet -r PhoenixKitStaff.Test.Repo",
+        "test.setup"
+      ]
     ]
   end
 
@@ -45,7 +65,10 @@ defmodule PhoenixKitStaff.MixProject do
       {:ecto_sql, "~> 3.13"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      # `Phoenix.LiveViewTest` parses HTML via `lazy_html` for `element/2`,
+      # `render(view) =~ "..."`, etc. Test-only.
+      {:lazy_html, ">= 0.1.0", only: :test}
     ]
   end
 

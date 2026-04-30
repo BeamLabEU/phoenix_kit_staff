@@ -4,11 +4,18 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitWeb.Gettext
 
+  require Logger
+
   alias PhoenixKitStaff.{Departments, Paths, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
+    # Subscribe BEFORE the DB read so a broadcast that fires between
+    # `Departments.get/2` and a post-fetch subscribe doesn't get dropped.
+    # The URL `id` is the UUID, so the topic key is identical either way.
+    if connected?(socket), do: StaffPubSub.subscribe(StaffPubSub.topic_department(id))
+
     case Departments.get(id, preload: [:teams]) do
       nil ->
         {:ok,
@@ -17,8 +24,6 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
          |> push_navigate(to: Paths.departments())}
 
       dept ->
-        if connected?(socket), do: StaffPubSub.subscribe(StaffPubSub.topic_department(dept.uuid))
-
         {:ok,
          assign(socket,
            page_title: dept.name,
@@ -46,7 +51,10 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
     end
   end
 
-  def handle_info(_msg, socket), do: {:noreply, socket}
+  def handle_info(msg, socket) do
+    Logger.debug("[Staff] DepartmentShowLive: unexpected handle_info #{inspect(msg)}")
+    {:noreply, socket}
+  end
 
   @impl true
   def render(assigns) do

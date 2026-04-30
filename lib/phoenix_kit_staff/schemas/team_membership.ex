@@ -11,6 +11,15 @@ defmodule PhoenixKitStaff.Schemas.TeamMembership do
   @primary_key {:uuid, UUIDv7, autogenerate: true}
   @foreign_key_type UUIDv7
 
+  @type t :: %__MODULE__{
+          uuid: UUIDv7.t() | nil,
+          team_uuid: UUIDv7.t() | nil,
+          team: Team.t() | Ecto.Association.NotLoaded.t() | nil,
+          staff_person_uuid: UUIDv7.t() | nil,
+          staff_person: Person.t() | Ecto.Association.NotLoaded.t() | nil,
+          inserted_at: DateTime.t() | nil
+        }
+
   schema "phoenix_kit_staff_team_memberships" do
     belongs_to(:team, Team, foreign_key: :team_uuid, references: :uuid)
 
@@ -24,6 +33,7 @@ defmodule PhoenixKitStaff.Schemas.TeamMembership do
 
   @required ~w(team_uuid staff_person_uuid)a
 
+  @spec changeset(t() | Ecto.Changeset.t(t()), map()) :: Ecto.Changeset.t(t())
   def changeset(tm, attrs) do
     tm
     |> cast(attrs, @required)

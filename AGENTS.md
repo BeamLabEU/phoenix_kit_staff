@@ -11,6 +11,41 @@ A PhoenixKit plugin module that manages staff. Implements the `PhoenixKit.Module
 - **Teams** — teams across all departments
 - **Staff** — people on staff (each linked 1:1 to a `PhoenixKit.Users.Auth.User`)
 
+## What this module does NOT have (by design)
+
+This module's job is the org-structure backbone — Departments → Teams →
+People with placeholder-user auto-link. It deliberately omits things a
+full HRIS would have so the surface stays small and the host app can
+plug in whatever it actually needs:
+
+- **No leave / PTO tracking** — no time-off requests, no approval
+  workflow, no balance ledger.
+- **No skills matrix or performance reviews** — `Person.skills` is a
+  free-text field; no structured taxonomy, no rating system, no review
+  cycles.
+- **No org-chart visualization** beyond the Overview's nested-list
+  view. Tree rendering uses plain HTML — no D3/SVG layout.
+- **No bulk import** (CSV/spreadsheet wizard) — every Department,
+  Team, and Person is created via single-record form. Use the context
+  API (`Staff.create_person/2`, etc.) for scripted imports.
+- **No public-facing pages** — staff is admin-only. There is no
+  user-facing "team directory" or "people search" route.
+- **No external HRIS integration** — no Workday, BambooHR, Rippling
+  connectors. The placeholder-user flow + `Staff.find_or_create_user_by_email/1`
+  is intentionally the only outside-onboarding surface.
+- **No payroll, compensation, or contract data** — `employment_type`
+  is a free-form string; no salary, no equity, no contract fields.
+- **No audit history beyond `PhoenixKit.Activity`** — every mutation
+  logs an action atom, but there is no per-field versioning or "who
+  changed what when" timeline UI of its own. The activity feed is the
+  audit trail.
+
+When the host app needs any of the above, build it as a sibling
+PhoenixKit module that consumes Staff's stable public API
+(`Staff.list_people/1`, `Staff.get_person_by_user_uuid/2`,
+`Teams.list/1`, `Departments.list/1`). The cross-module dep on
+`phoenix_kit_projects` already follows this pattern.
+
 ## Common commands
 
 Run from the workspace app directory (`/www/app`), not from inside this plugin subdir — the plugin's deps live in the app's `_build`. Exception: `mix format` works anywhere.
@@ -20,6 +55,17 @@ Run from the workspace app directory (`/www/app`), not from inside this plugin s
 mix compile                 # Compile the whole workspace including this plugin
 mix format                  # Format (uses Phoenix LiveView import rules)
 sudo supervisorctl restart elixir  # Restart the dev server after edits
+```
+
+### Code quality
+
+```bash
+mix format                  # Format (uses Phoenix LiveView import rules)
+mix credo --strict          # Lint / code quality
+mix dialyzer                # Static type checking
+mix precommit               # compile + format + credo --strict + dialyzer
+mix quality                 # format + credo --strict + dialyzer
+mix quality.ci              # format --check-formatted + credo --strict + dialyzer
 ```
 
 ## Dependencies
@@ -182,23 +228,61 @@ Step order matters: `compile` first (warnings-as-errors catches the loud stuff),
 
 ## Testing
 
-Two levels:
+Three levels:
 
-- **Unit tests** in `test/phoenix_kit_staff/` — schemas, changesets, pure helpers. Always run.
-- **Integration tests** in `test/phoenix_kit_staff/integration/` — hit a real PostgreSQL database via the Ecto sandbox. Use `PhoenixKitStaff.DataCase`.
+- **Unit tests** in `test/phoenix_kit_staff/` — schemas, changesets,
+  pure helpers, the `Errors` atom dispatcher. Always run.
+- **Integration tests** in `test/phoenix_kit_staff/integration/` —
+  hit a real PostgreSQL database via the Ecto sandbox. Use
+  `PhoenixKitStaff.DataCase`.
+- **LiveView smoke tests** in `test/phoenix_kit_staff/web/` — drive
+  LVs via `Phoenix.LiveViewTest.live/2` against the test Endpoint
+  + Router. Use `PhoenixKitStaff.LiveCase`.
 
 Test infrastructure:
 
-- `test/support/test_repo.ex` — `PhoenixKitStaff.Test.Repo` (loaded explicitly in `test_helper.exs`)
-- `test/support/data_case.ex` — `PhoenixKitStaff.DataCase`, tags tests `:integration`, sets up the SQL Sandbox
-- `test/test_helper.exs` — runs `PhoenixKit.Migrations.up()` once at boot (creates `phoenix_kit_users`, `phoenix_kit_settings`, and all V100 staff tables), then puts the sandbox in `:manual` mode
-- `config/test.exs` — repo config (env-var driven via `PGUSER` / `PGPASSWORD` / `PGHOST`)
+- `test/support/test_repo.ex` — `PhoenixKitStaff.Test.Repo`
+- `test/support/test_endpoint.ex` — minimal `Phoenix.Endpoint` for
+  LV tests; `server: false`, no port opened
+- `test/support/test_router.ex` — minimal Router whose paths match
+  `PhoenixKitStaff.Paths.*` (base scope `/en/admin/staff`)
+- `test/support/test_layouts.ex` — root + app layouts; `app/1`
+  renders flash divs (`#flash-info`, `#flash-error`,
+  `#flash-warning`) so smoke tests can assert flash content via
+  `render(view) =~ "Saved."` after click events
+- `test/support/hooks.ex` — `:assign_scope` `on_mount` hook that
+  reads `"phoenix_kit_test_scope"` from session and assigns
+  `phoenix_kit_current_scope` + `phoenix_kit_current_user` (mirrors
+  what `live_session :phoenix_kit_admin` does in production)
+- `test/support/data_case.ex` — `PhoenixKitStaff.DataCase`, tags
+  tests `:integration`, sets up the SQL Sandbox; hosts shared
+  `fixture_department/1`, `fixture_team/1`, `fixture_person/1` and
+  `errors_on/1`
+- `test/support/live_case.ex` — `PhoenixKitStaff.LiveCase` with
+  `fake_scope/1` + `put_test_scope/2` for plugging a real
+  `%PhoenixKit.Users.Auth.Scope{}` into the test session; reuses
+  the fixtures from `DataCase`
+- `test/support/activity_log_assertions.ex` —
+  `assert_activity_logged/2` and `refute_activity_logged/2` query
+  `phoenix_kit_activities` directly with action / actor / metadata-
+  subset matching; imported into both `DataCase` and `LiveCase`
+- `test/support/postgres/migrations/<timestamp>_setup_phoenix_kit.exs`
+  — schema migration that calls `PhoenixKit.Migrations.up()` (V01..V96
+  prereqs from Hex) and inlines V100 staff DDL (idempotent — once
+  core publishes V100, the inline block becomes a no-op)
+- `test/test_helper.exs` — starts `PhoenixKit.PubSub.Manager`,
+  Hammer's `RateLimiter.Backend`, pins
+  `:persistent_term.put({PhoenixKit.Config, :url_prefix}, "/")`, and
+  starts `PhoenixKitStaff.Test.Endpoint`
+- `config/test.exs` — repo config + Test.Endpoint config (env-var
+  driven via `PGUSER` / `PGPASSWORD` / `PGHOST`)
 
 Commands:
 
 ```bash
 # First time only:
 createdb phoenix_kit_staff_test
+mix test.setup
 
 # All runs (unit + integration if DB is reachable):
 mix test
@@ -206,6 +290,10 @@ mix test
 # Unit tests only (DB not required):
 mix test --exclude integration
 ```
+
+`mix test.setup` runs the local migration so `mix test` doesn't
+depend on whatever V's the resolved `phoenix_kit` Hex package
+happens to ship.
 
 Integration tests are auto-excluded if the DB isn't reachable (the helper prints a note and `ExUnit.start(exclude: [:integration])`). `mix test` therefore never hard-fails on a missing DB.
 
