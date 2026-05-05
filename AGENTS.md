@@ -266,14 +266,13 @@ Test infrastructure:
   `assert_activity_logged/2` and `refute_activity_logged/2` query
   `phoenix_kit_activities` directly with action / actor / metadata-
   subset matching; imported into both `DataCase` and `LiveCase`
-- `test/support/postgres/migrations/<timestamp>_setup_phoenix_kit.exs`
-  — schema migration that calls `PhoenixKit.Migrations.up()` (V01..V96
-  prereqs from Hex) and inlines V100 staff DDL (idempotent — once
-  core publishes V100, the inline block becomes a no-op)
 - `test/test_helper.exs` — starts `PhoenixKit.PubSub.Manager`,
   Hammer's `RateLimiter.Backend`, pins
-  `:persistent_term.put({PhoenixKit.Config, :url_prefix}, "/")`, and
-  starts `PhoenixKitStaff.Test.Endpoint`
+  `:persistent_term.put({PhoenixKit.Config, :url_prefix}, "/")`,
+  starts `PhoenixKitStaff.Test.Endpoint`, and runs core's versioned
+  migrations via `PhoenixKit.Migration.ensure_current/2` (V40
+  extensions + uuid_generate_v7, V03 settings, V90 activities,
+  V100 staff tables) — no module-owned DDL anywhere
 - `config/test.exs` — repo config + Test.Endpoint config (env-var
   driven via `PGUSER` / `PGPASSWORD` / `PGHOST`)
 
@@ -282,7 +281,6 @@ Commands:
 ```bash
 # First time only:
 createdb phoenix_kit_staff_test
-mix test.setup
 
 # All runs (unit + integration if DB is reachable):
 mix test
@@ -291,9 +289,10 @@ mix test
 mix test --exclude integration
 ```
 
-`mix test.setup` runs the local migration so `mix test` doesn't
-depend on whatever V's the resolved `phoenix_kit` Hex package
-happens to ship.
+The test helper runs core's versioned migrations via
+`PhoenixKit.Migration.ensure_current/2` on every boot, so the schema
+re-applies any newly-shipped Vxxx migrations automatically. No
+`mix test.setup` step needed past the initial `createdb`.
 
 Integration tests are auto-excluded if the DB isn't reachable (the helper prints a note and `ExUnit.start(exclude: [:integration])`). `mix test` therefore never hard-fails on a missing DB.
 
