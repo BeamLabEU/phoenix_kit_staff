@@ -136,17 +136,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
       )
     end
 
-    # Phoenix LiveView 1.1.29 added stricter `<select>` option validation
-    # to `render_submit/2` — submitting `status: "bogus_status"` raises
-    # ArgumentError client-side before the LV ever sees the event. The
-    # test was passing pre-bump because LV 1.1.28's looser validation
-    # let the bogus value through to the LV's own changeset rejection.
-    # Out of migration-cleanup scope; the audit-row failure path needs a
-    # context-layer pin or a different invalid-input vector that survives
-    # LV's option allowlist (e.g., empty email triggering `:blank_email`,
-    # which is the sibling test above).
-    @tag :skip
-    test "create-form Save with invalid status writes a db_pending audit row (changeset)", %{
+    test "create-form Save with invalid attrs writes a db_pending audit row (changeset)", %{
       conn: conn,
       actor_uuid: actor_uuid
     } do
@@ -154,12 +144,19 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
 
       {:ok, view, _html} = live(conn, "/en/admin/staff/people/new")
 
-      # Valid email so find_or_create_user_by_email succeeds; bogus
-      # status fails validate_inclusion, so create_person/1 returns
-      # {:error, %Ecto.Changeset{}} and the placeholder user is rolled
-      # back — but the audit row records the failed attempt.
+      # Valid email so find_or_create_user_by_email succeeds; invalid
+      # `personal_email` format trips `validate_format/3`, so
+      # create_person/1 returns {:error, %Ecto.Changeset{}} and the
+      # placeholder user is rolled back — but the audit row records the
+      # failed attempt. (`personal_email` is a text input rather than a
+      # select, so it survives Phoenix LiveView 1.1.29's stricter
+      # render_submit/2 option-allowlist validation that blocks bogus
+      # status values client-side.)
       view
-      |> form("#person-form", person: %{status: "bogus_status"}, email: email)
+      |> form("#person-form",
+        person: %{status: "active", personal_email: "not-an-email"},
+        email: email
+      )
       |> render_submit()
 
       assert_activity_logged("staff.person_created",
@@ -173,9 +170,6 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
       )
     end
 
-    # Same LV 1.1.29 stricter <select> validation block as the create-form
-    # sibling above — see comment there. Out of migration-cleanup scope.
-    @tag :skip
     test "edit-form Save with invalid attrs keeps the original record uuid on the audit row", %{
       conn: conn,
       actor_uuid: actor_uuid
@@ -184,8 +178,15 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
 
       {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
 
+      # Same `personal_email` format-violation vector as the create-form
+      # sibling — text input rather than a select, so LV 1.1.29's
+      # stricter option-allowlist validation lets it through to the
+      # LV's changeset rejection. Edit form doesn't expose the top-level
+      # email field, so don't pass one.
       view
-      |> form("#person-form", person: %{status: "bogus_status"}, email: person.user.email)
+      |> form("#person-form",
+        person: %{status: "active", personal_email: "not-an-email"}
+      )
       |> render_submit()
 
       assert_activity_logged("staff.person_updated",
