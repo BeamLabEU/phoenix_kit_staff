@@ -199,15 +199,45 @@ The `phoenix_kit_projects` module depends on this plugin — `Assignment` and `T
 
 ### Planned: `Person.work_schedule` (JSONB)
 
-A future change (queued in `phoenix_kit_projects/AGENTS.md` — search
-"Planned: per-task work-hours toggle") will add a `work_schedule`
-JSONB column to `phoenix_kit_staff_people` so the projects module can
-look up an assignee's weekly Mon–Sun work windows when computing a
-task's planned end. Shape: `%{"monday" => %{"start" => "09:00", "end" => "17:00"}, ...}`
-with `null` for non-working days. Default empty map; consumers must
-fall back to the built-in Mon-Fri 09:00–17:00 schedule when the field
-is empty. This is borderline-HRIS but parallel to existing per-person
-fields (`work_location`, `work_phone`) — not a PTO ledger.
+A future change will add a `work_schedule` JSONB column to
+`phoenix_kit_staff_people` so the projects module can look up an
+assignee's weekly Mon–Sun work windows when computing a task's
+planned end. The consumer side (a per-task "count as work hours"
+toggle in `phoenix_kit_projects`) lands in a coordinated follow-up
+PR pair; this section is a heads-up so the next person editing
+`Person.changeset/2` doesn't bounce off the staff module's "no HRIS
+features" stance.
+
+**Shape (JSONB, string keys throughout):**
+
+```elixir
+%{
+  "monday"    => %{"start" => "09:00", "end" => "17:00"},
+  "tuesday"   => %{"start" => "09:00", "end" => "17:00"},
+  # ...
+  # Saturday and Sunday omitted = non-working days
+}
+```
+
+- **String keys, HH:MM strings** — not atoms, not `Time` structs.
+  JSONB round-trips as strings and consumers should parse on read.
+- **Canonical "non-working day" = key absent.** Do not write
+  `%{"saturday" => nil}` or `%{"saturday" => %{}}` — omit the key.
+  Readers should treat missing-key, `nil`, and empty-map identically
+  (non-working) to stay tolerant of older rows, but writers emit
+  only the omit-the-key form.
+- **Default empty map.** When `work_schedule == %{}` the row has
+  no per-person override; consumers fall back to the projects
+  module's default schedule. As of today that fallback is the
+  "5 workdays × 8 hours" approximation in
+  `phoenix_kit_projects` `work_hours_elapsed/2` — a Mon–Fri
+  09:00–17:00 windowed helper does not exist yet and is part of
+  the follow-up work, not something already shipped.
+
+This is availability metadata, parallel in spirit to existing
+per-person fields (`work_location`, `work_phone`) — not a PTO
+ledger and not the start of a leave-tracking subsystem (see the
+"What this module does NOT have" carve-out above).
 
 ## Conventions
 
