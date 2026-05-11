@@ -197,6 +197,18 @@ The `phoenix_kit_projects` module depends on this plugin — `Assignment` and `T
 - `PhoenixKitStaff.Teams.list/1`
 - `PhoenixKitStaff.Departments.list/1`
 
+### Planned: `Person.work_schedule` (JSONB)
+
+A future change (queued in `phoenix_kit_projects/AGENTS.md` — search
+"Planned: per-task work-hours toggle") will add a `work_schedule`
+JSONB column to `phoenix_kit_staff_people` so the projects module can
+look up an assignee's weekly Mon–Sun work windows when computing a
+task's planned end. Shape: `%{"monday" => %{"start" => "09:00", "end" => "17:00"}, ...}`
+with `null` for non-working days. Default empty map; consumers must
+fall back to the built-in Mon-Fri 09:00–17:00 schedule when the field
+is empty. This is borderline-HRIS but parallel to existing per-person
+fields (`work_location`, `work_phone`) — not a PTO ledger.
+
 ## Conventions
 
 - **Paths**: all through `PhoenixKitStaff.Paths.*` (which uses `PhoenixKit.Utils.Routes.path/1` for prefix/locale handling)
