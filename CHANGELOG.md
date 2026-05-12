@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.1] - 2026-05-12
+
+Maintenance release — dep bumps, migration-shim cleanup, test repair,
+and a documented heads-up for the upcoming `Person.work_schedule`
+JSONB column. No public-API changes.
+
+### Changed
+- Bumped `phoenix_kit` to `~> 1.7.108` (from `1.7.106`); refreshed
+  transitive deps (`postgrex` 0.22.2, `finch` 0.22.0, `ex_ast` 0.11.2,
+  `swoosh` 1.25.2, `telemetry` 1.4.2, plus new transitives
+  `tessera`/`fresco`).
+- Test infra: `test/test_helper.exs` and `config/test.exs` now lean on
+  `PhoenixKit.Migration.ensure_current/2` directly — no module-owned
+  DDL or hybrid migration shim.
+
+### Removed
+- `priv/repo/migrations/20260427000000_setup_phoenix_kit.exs` — the
+  hybrid migration shim is gone. Test setup applies core's versioned
+  migrations on every boot.
+
+### Fixed
+- `PersonFormLive` audit-row tests realigned for LiveView 1.1.29.
+
+### Docs
+- `AGENTS.md`: documented the planned `Person.work_schedule` JSONB
+  column (shape, canonical "non-working day" representation, default
+  empty map) as a heads-up for the cross-module `phoenix_kit_projects`
+  follow-up. No schema change in this release.
+
 ## [0.2.0] - 2026-04-30
 
 Quality sweep + re-validation pipeline (PRs #2 and #3) plus the
