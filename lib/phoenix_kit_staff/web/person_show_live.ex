@@ -129,47 +129,41 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <div>
-        <.link navigate={Paths.people()} class="link link-hover text-sm">
-          <.icon name="hero-arrow-left" class="w-4 h-4 inline" /> {gettext("Staff")}
-        </.link>
-      </div>
+      <.admin_page_header
+        title={full_name(@person) || person_label(@person)}
+        subtitle={@person.job_title}
+      >
+        <:actions>
+          <.link navigate={Paths.edit_person(@person.uuid)} class="btn btn-ghost btn-sm">
+            <.icon name="hero-pencil" class="w-4 h-4" /> {gettext("Edit")}
+          </.link>
+        </:actions>
+      </.admin_page_header>
 
       <%!-- Hero profile card --%>
       <div class="card bg-base-100 shadow">
         <div class="card-body">
-          <div class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <h1 class="text-2xl font-bold truncate">{full_name(@person) || person_label(@person)}</h1>
-                <%= if @person.job_title do %>
-                  <div class="text-base text-base-content/70">{@person.job_title}</div>
-                <% end %>
-                <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-base-content/60">
-                  <span class={"badge badge-sm #{if @person.status == "active", do: "badge-success", else: "badge-ghost"}"}>
-                    {Person.status_label(@person.status)}
-                  </span>
-                  <%= if @person.employment_type do %>
-                    <span class="badge badge-sm badge-ghost">
-                      {Person.employment_type_label(@person.employment_type)}
-                    </span>
-                  <% end %>
-                  <%= if @person.primary_department do %>
-                    <.link navigate={Paths.department(@person.primary_department.uuid)} class="link link-hover">
-                      <.icon name="hero-building-office-2" class="w-3 h-3 inline" />
-                      {@person.primary_department.name}
-                    </.link>
-                  <% end %>
-                  <%= if @person.work_location do %>
-                    <span>
-                      <.icon name="hero-map-pin" class="w-3 h-3 inline" />
-                      {@person.work_location}
-                    </span>
-                  <% end %>
-                </div>
-            </div>
-            <.link navigate={Paths.edit_person(@person.uuid)} class="btn btn-ghost btn-sm shrink-0">
-              <.icon name="hero-pencil" class="w-4 h-4" /> {gettext("Edit")}
-            </.link>
+          <div class="flex flex-wrap items-center gap-2 text-xs text-base-content/60">
+            <span class={"badge badge-sm #{if @person.status == "active", do: "badge-success", else: "badge-ghost"}"}>
+              {Person.status_label(@person.status)}
+            </span>
+            <%= if @person.employment_type do %>
+              <span class="badge badge-sm badge-ghost">
+                {Person.employment_type_label(@person.employment_type)}
+              </span>
+            <% end %>
+            <%= if @person.primary_department do %>
+              <.link navigate={Paths.department(@person.primary_department.uuid)} class="link link-hover">
+                <.icon name="hero-building-office-2" class="w-3 h-3 inline" />
+                {@person.primary_department.name}
+              </.link>
+            <% end %>
+            <%= if @person.work_location do %>
+              <span>
+                <.icon name="hero-map-pin" class="w-3 h-3 inline" />
+                {@person.work_location}
+              </span>
+            <% end %>
           </div>
 
           <%!-- Bio --%>

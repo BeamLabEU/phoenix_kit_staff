@@ -377,12 +377,14 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <div>
-        <.link navigate={Paths.people()} class="link link-hover text-sm">
-          <.icon name="hero-arrow-left" class="w-4 h-4 inline" /> {gettext("Staff")}
-        </.link>
-        <h1 class="text-2xl font-bold mt-1">{@page_title}</h1>
-      </div>
+      <.admin_page_header
+        title={@page_title}
+        subtitle={
+          if @live_action == :new,
+            do: gettext("Add a new person on staff."),
+            else: gettext("Update staff profile.")
+        }
+      />
 
       <div class="card bg-base-100 shadow max-w-3xl mx-auto w-full">
         <.form
