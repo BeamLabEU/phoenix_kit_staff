@@ -94,6 +94,11 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   defp location_options do
     if locations_module_enabled?() do
       try do
+        # `apply/3` is load-bearing: PhoenixKitLocations is a SOFT dep,
+        # so direct calls would fail to compile in installs that don't
+        # ship the module. `locations_module_enabled?/0` guards the
+        # runtime call; if the module isn't loaded we never reach here.
+        # credo:disable-for-next-line Credo.Check.Refactor.Apply
         apply(PhoenixKitLocations.Locations, :list_locations, [[status: "active"]])
         |> Enum.map(fn loc -> {loc.name, loc.uuid} end)
       rescue
@@ -107,9 +112,13 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   end
 
   defp locations_module_enabled? do
+    # `apply/3` keeps the reference soft for dialyzer too — PhoenixKitLocations
+    # is an optional dep, so a direct call would surface as `unknown_function`
+    # in installs that don't ship it. `function_exported?/3` already gates it.
     Code.ensure_loaded?(PhoenixKitLocations) and
       function_exported?(PhoenixKitLocations, :enabled?, 0) and
-      PhoenixKitLocations.enabled?()
+      # credo:disable-for-next-line Credo.Check.Refactor.Apply
+      apply(PhoenixKitLocations, :enabled?, [])
   end
 
   defp assign_form(socket, cs), do: assign(socket, form: to_form(cs))
