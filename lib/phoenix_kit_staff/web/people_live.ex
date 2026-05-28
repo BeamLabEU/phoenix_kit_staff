@@ -134,12 +134,9 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
                 </tr>
               </thead>
               <tbody>
-                <tr :for={p <- @people} class="row-hover">
+                <tr :for={p <- @people} class="hover">
                   <td>
-                    <.link
-                      navigate={Paths.person(p.uuid)}
-                      class="font-medium text-base-content hover:underline"
-                    >
+                    <.link navigate={Paths.person(p.uuid)} class="link link-hover font-medium">
                       {p.user && p.user.email || "—"}
                     </.link>
                   </td>
