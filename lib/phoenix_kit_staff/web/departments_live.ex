@@ -98,9 +98,12 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
                 </tr>
               </thead>
               <tbody>
-                <tr :for={dept <- @departments} class="hover">
+                <tr :for={dept <- @departments} class="row-hover">
                   <td>
-                    <.link navigate={Paths.department(dept.uuid)} class="link link-hover font-medium">
+                    <.link
+                      navigate={Paths.department(dept.uuid)}
+                      class="font-medium text-base-content hover:underline"
+                    >
                       {dept.name}
                     </.link>
                     <div :if={dept.description} class="text-xs text-base-content/60 truncate max-w-md">

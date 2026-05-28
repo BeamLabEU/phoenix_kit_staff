@@ -63,6 +63,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   defp person_label(%{user: %{email: email}}), do: email
   defp person_label(_), do: gettext("Staff")
 
+  defp full_name(%{name: name}) when is_binary(name) and name != "", do: name
+
   defp full_name(%{user: %{first_name: f, last_name: l}}) when is_binary(f) or is_binary(l) do
     [f, l]
     |> Enum.reject(&(&1 == nil or &1 == ""))

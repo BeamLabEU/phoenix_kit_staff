@@ -38,6 +38,38 @@ defmodule PhoenixKitStaff.L10n do
   def format_month_day(%Date{} = d),
     do: gettext("%{month} %{day}", month: short_month(d.month), day: d.day)
 
+  @doc """
+  True when `translations` matches the documented JSONB shape:
+
+      %{optional(String.t()) => %{optional(String.t()) => String.t()}}
+
+  i.e. an outer map keyed by language code (`"es-ES"`) whose values
+  are maps keyed by translatable field name (`"name"`) with string
+  values. `%{}` and `nil` are valid (empty / unset). Used by every
+  staff schema with a `translations` column so a programmatic caller
+  can't persist garbage that the read helpers would silently fall
+  back through.
+
+  Same contract as `PhoenixKitProjects.L10n.valid_translations_shape?/1`.
+  """
+  @spec valid_translations_shape?(any()) :: boolean()
+  def valid_translations_shape?(nil), do: true
+
+  def valid_translations_shape?(map) when is_map(map) do
+    Enum.all?(map, fn
+      {lang, fields} when is_binary(lang) and is_map(fields) ->
+        Enum.all?(fields, fn
+          {k, v} when is_binary(k) and (is_binary(v) or is_nil(v)) -> true
+          _ -> false
+        end)
+
+      _ ->
+        false
+    end)
+  end
+
+  def valid_translations_shape?(_), do: false
+
   @doc "Short 3-letter month name, translated (`Jan`, `Feb`, ...)."
   @spec short_month(1..12) :: String.t()
   def short_month(1), do: gettext("Jan")

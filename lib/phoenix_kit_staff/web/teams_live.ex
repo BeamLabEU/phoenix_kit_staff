@@ -96,9 +96,12 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
                 </tr>
               </thead>
               <tbody>
-                <tr :for={team <- @teams} class="hover">
+                <tr :for={team <- @teams} class="row-hover">
                   <td>
-                    <.link navigate={Paths.team(team.uuid)} class="link link-hover font-medium">
+                    <.link
+                      navigate={Paths.team(team.uuid)}
+                      class="font-medium text-base-content hover:underline"
+                    >
                       {team.name}
                     </.link>
                   </td>

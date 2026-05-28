@@ -12,6 +12,7 @@ defmodule PhoenixKitStaff.Schemas.Person do
   import Ecto.Changeset
 
   alias PhoenixKit.Users.Auth.User
+  alias PhoenixKitStaff.L10n
   alias PhoenixKitStaff.Schemas.{Department, TeamMembership}
 
   @primary_key {:uuid, UUIDv7, autogenerate: true}
@@ -19,6 +20,21 @@ defmodule PhoenixKitStaff.Schemas.Person do
 
   @statuses ~w(active inactive)
   @employment_types ~w(full_time part_time contractor intern temporary)
+
+  # Person carries a `translations` JSONB for the subset of free-text
+  # profile fields where a multilingual workforce realistically wants
+  # per-language overrides. Phone numbers, dates, enums, names of
+  # people, etc. stay primary-only — translating them rarely makes
+  # sense and the form bloat isn't worth it.
+  #
+  # `work_location` was originally translatable but is now a soft-FK
+  # reference to a `phoenix_kit_locations` row (UUID stored as string
+  # in the existing column to avoid a type-changing migration). It no
+  # longer needs per-language overrides because the location row
+  # owns its own translations.
+  @translatable_fields ~w(job_title bio skills notes)
+
+  @type translations_map :: %{optional(String.t()) => %{optional(String.t()) => String.t()}}
 
   @type t :: %__MODULE__{
           uuid: UUIDv7.t() | nil,
@@ -28,6 +44,7 @@ defmodule PhoenixKitStaff.Schemas.Person do
           primary_department: Department.t() | Ecto.Association.NotLoaded.t() | nil,
           team_memberships: [TeamMembership.t()] | Ecto.Association.NotLoaded.t(),
           status: String.t() | nil,
+          name: String.t() | nil,
           job_title: String.t() | nil,
           employment_type: String.t() | nil,
           employment_start_date: Date.t() | nil,
@@ -43,12 +60,14 @@ defmodule PhoenixKitStaff.Schemas.Person do
           emergency_contact_name: String.t() | nil,
           emergency_contact_phone: String.t() | nil,
           emergency_contact_relationship: String.t() | nil,
+          translations: translations_map(),
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
 
   schema "phoenix_kit_staff_people" do
     field(:status, :string, default: "active")
+    field(:name, :string)
     field(:job_title, :string)
     field(:employment_type, :string)
     field(:employment_start_date, :date)
@@ -64,6 +83,8 @@ defmodule PhoenixKitStaff.Schemas.Person do
     field(:emergency_contact_name, :string)
     field(:emergency_contact_phone, :string)
     field(:emergency_contact_relationship, :string)
+
+    field(:translations, :map, default: %{})
 
     belongs_to(:user, User, foreign_key: :user_uuid, references: :uuid)
 
@@ -81,12 +102,13 @@ defmodule PhoenixKitStaff.Schemas.Person do
   end
 
   @required ~w(user_uuid status)a
-  @optional ~w(primary_department_uuid job_title employment_type
+  @optional ~w(primary_department_uuid name
+               job_title employment_type
                employment_start_date employment_end_date work_location
                work_phone personal_phone bio skills notes
                date_of_birth personal_email
                emergency_contact_name emergency_contact_phone
-               emergency_contact_relationship)a
+               emergency_contact_relationship translations)a
 
   @spec changeset(t() | Ecto.Changeset.t(t()), map()) :: Ecto.Changeset.t(t())
   def changeset(person, attrs) do
@@ -97,6 +119,7 @@ defmodule PhoenixKitStaff.Schemas.Person do
     |> validate_inclusion(:employment_type, @employment_types,
       message: gettext("must be one of: %{values}", values: Enum.join(@employment_types, ", "))
     )
+    |> validate_length(:name, max: 255)
     |> validate_length(:job_title, max: 255)
     |> validate_length(:work_location, max: 255)
     |> validate_length(:work_phone, max: 50)
@@ -108,6 +131,7 @@ defmodule PhoenixKitStaff.Schemas.Person do
     |> validate_length(:emergency_contact_name, max: 255)
     |> validate_length(:emergency_contact_phone, max: 50)
     |> validate_length(:emergency_contact_relationship, max: 100)
+    |> validate_translations_shape()
     |> assoc_constraint(:user)
     |> unique_constraint(:user_uuid,
       name: :phoenix_kit_staff_people_user_index,
@@ -115,8 +139,58 @@ defmodule PhoenixKitStaff.Schemas.Person do
     )
   end
 
+  defp validate_translations_shape(changeset) do
+    case get_change(changeset, :translations) do
+      nil ->
+        changeset
+
+      val ->
+        if L10n.valid_translations_shape?(val) do
+          changeset
+        else
+          add_error(changeset, :translations, "is not a valid translations map")
+        end
+    end
+  end
+
   def statuses, do: @statuses
   def employment_types, do: @employment_types
+
+  @doc "DB-column field names that participate in the `translations` JSONB."
+  @spec translatable_fields() :: [String.t()]
+  def translatable_fields, do: @translatable_fields
+
+  @spec localized_job_title(t(), String.t() | nil) :: String.t() | nil
+  def localized_job_title(%__MODULE__{} = p, lang), do: localized_field(p, "job_title", lang)
+
+  @spec localized_bio(t(), String.t() | nil) :: String.t() | nil
+  def localized_bio(%__MODULE__{} = p, lang), do: localized_field(p, "bio", lang)
+
+  @spec localized_skills(t(), String.t() | nil) :: String.t() | nil
+  def localized_skills(%__MODULE__{} = p, lang), do: localized_field(p, "skills", lang)
+
+  @spec localized_notes(t(), String.t() | nil) :: String.t() | nil
+  def localized_notes(%__MODULE__{} = p, lang), do: localized_field(p, "notes", lang)
+
+  defp localized_field(p, field, lang) do
+    primary = Map.get(p, String.to_existing_atom(field))
+
+    case lookup_translation(p.translations, lang, field) do
+      nil -> primary
+      "" -> primary
+      val -> val
+    end
+  end
+
+  defp lookup_translation(translations, lang, field)
+       when is_map(translations) and is_binary(lang) do
+    case Map.get(translations, lang) do
+      %{} = lang_map -> Map.get(lang_map, field)
+      _ -> nil
+    end
+  end
+
+  defp lookup_translation(_translations, _lang, _field), do: nil
 
   @doc "Translated label for a status value (for UI display)."
   def status_label("active"), do: gettext("Active")

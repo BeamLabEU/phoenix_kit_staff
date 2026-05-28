@@ -4,7 +4,10 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitWeb.Gettext
 
+  import PhoenixKitWeb.Components.MultilangForm
+
   alias PhoenixKitStaff.{Activity, Departments, Paths, Teams}
+  alias PhoenixKitStaff.Schemas.Team
   alias PhoenixKitStaff.Web.Helpers
 
   @impl true
@@ -13,6 +16,7 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
 
     socket =
       socket
+      |> mount_multilang()
       |> assign(dept_options: Enum.map(departments, &{&1.name, &1.uuid}))
       |> apply_action(socket.assigns.live_action, params)
 
@@ -20,7 +24,7 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
   end
 
   defp apply_action(socket, :new, _params) do
-    team = %PhoenixKitStaff.Schemas.Team{}
+    team = %Team{}
 
     socket
     |> assign(page_title: gettext("New team"), team: team, live_action: :new)
@@ -48,13 +52,28 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
   defp assign_form(socket, cs), do: assign(socket, form: to_form(cs))
 
   @impl true
+  def handle_event("switch_language", %{"lang" => lang}, socket) do
+    {:noreply, handle_switch_language(socket, lang)}
+  end
+
   def handle_event("validate", %{"team" => attrs}, socket) do
-    cs = socket.assigns.team |> Teams.change(attrs) |> Map.put(:action, :validate)
+    attrs = merge_attrs(attrs, socket)
+
+    cs =
+      socket.assigns.team
+      |> Teams.change(attrs)
+      |> Map.put(:action, :validate)
+
     {:noreply, assign_form(socket, cs)}
   end
 
   def handle_event("save", %{"team" => attrs}, socket) do
-    save(socket, socket.assigns.live_action, attrs)
+    save(socket, socket.assigns.live_action, merge_attrs(attrs, socket))
+  end
+
+  defp merge_attrs(attrs, socket) do
+    in_flight = Helpers.in_flight_record(socket, :form, :team)
+    Helpers.merge_translations_attrs(attrs, in_flight, Team.translatable_fields())
   end
 
   defp save(socket, :new, attrs) do
@@ -82,7 +101,10 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
           }
         )
 
-        {:noreply, assign_form(socket, cs)}
+        {:noreply,
+         socket
+         |> Helpers.maybe_switch_to_primary_on_error(cs, [:name, :description])
+         |> assign_form(cs)}
     end
   end
 
@@ -109,7 +131,10 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
           metadata: %{"attempted_name" => attrs["name"]}
         )
 
-        {:noreply, assign_form(socket, cs)}
+        {:noreply,
+         socket
+         |> Helpers.maybe_switch_to_primary_on_error(cs, [:name, :description])
+         |> assign_form(cs)}
     end
   end
 
@@ -134,8 +159,17 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
         </div>
       <% else %>
         <div class="card bg-base-100 shadow">
-          <div class="card-body">
-            <.form for={@form} id="team-form" phx-change="validate" phx-submit="save" phx-debounce="300" class="flex flex-col gap-3">
+          <.form
+            for={@form}
+            id="team-form"
+            phx-change="validate"
+            phx-submit="save"
+            phx-debounce="300"
+          >
+            <%!-- Department picker is NOT translatable — stays
+                 outside the multilang_fields_wrapper so it doesn't
+                 re-mount on language switch and lose unsaved state. --%>
+            <div class="card-body pb-0">
               <.select
                 field={@form[:department_uuid]}
                 label={gettext("Department")}
@@ -143,16 +177,66 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
                 prompt={gettext("Select department")}
                 required
               />
-              <.input field={@form[:name]} label={gettext("Name")} required />
-              <.textarea field={@form[:description]} label={gettext("Description")} />
+            </div>
+
+            <.multilang_tabs
+              multilang_enabled={@multilang_enabled}
+              language_tabs={@language_tabs}
+              current_lang={@current_lang}
+            />
+
+            <.multilang_fields_wrapper
+              multilang_enabled={@multilang_enabled}
+              current_lang={@current_lang}
+            >
+              <div class="card-body pt-3 flex flex-col gap-3">
+                <.translatable_field
+                  field_name="name"
+                  form_prefix="team"
+                  changeset={@form.source}
+                  schema_field={:name}
+                  multilang_enabled={@multilang_enabled}
+                  current_lang={@current_lang}
+                  primary_language={@primary_language}
+                  lang_data={Helpers.lang_data(@form, @current_lang)}
+                  secondary_name={"team[translations][#{@current_lang}][name]"}
+                  lang_data_key="name"
+                  label={gettext("Name")}
+                  required
+                />
+
+                <.translatable_field
+                  field_name="description"
+                  form_prefix="team"
+                  changeset={@form.source}
+                  schema_field={:description}
+                  multilang_enabled={@multilang_enabled}
+                  current_lang={@current_lang}
+                  primary_language={@primary_language}
+                  lang_data={Helpers.lang_data(@form, @current_lang)}
+                  secondary_name={"team[translations][#{@current_lang}][description]"}
+                  lang_data_key="description"
+                  label={gettext("Description")}
+                  type="textarea"
+                />
+              </div>
+            </.multilang_fields_wrapper>
+
+            <div class="card-body pt-0">
               <div class="flex justify-end gap-2 mt-2">
-                <.link navigate={Paths.teams()} class="btn btn-ghost btn-sm">{gettext("Cancel")}</.link>
-                <button type="submit" phx-disable-with={gettext("Saving…")} class="btn btn-primary btn-sm">
+                <.link navigate={Paths.teams()} class="btn btn-ghost btn-sm">
+                  {gettext("Cancel")}
+                </.link>
+                <button
+                  type="submit"
+                  phx-disable-with={gettext("Saving…")}
+                  class="btn btn-primary btn-sm"
+                >
                   <%= if @live_action == :new, do: gettext("Create"), else: gettext("Save") %>
                 </button>
               </div>
-            </.form>
-          </div>
+            </div>
+          </.form>
         </div>
       <% end %>
     </div>
