@@ -128,7 +128,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col mx-auto max-w-4xl px-4 py-6 gap-4">
+    <div class="flex flex-col w-full px-4 py-6 gap-4">
       <div>
         <.link navigate={Paths.people()} class="link link-hover text-sm">
           <.icon name="hero-arrow-left" class="w-4 h-4 inline" /> {gettext("Staff")}
@@ -139,16 +139,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
       <div class="card bg-base-100 shadow">
         <div class="card-body">
           <div class="flex items-start justify-between gap-4">
-            <div class="flex items-start gap-3 min-w-0">
-              <div class="avatar placeholder">
-                <div class="bg-primary text-primary-content rounded-full w-14 h-14 grid place-items-center">
-                  <span class="text-xl">
-                    {String.first(person_label(@person)) |> String.upcase()}
-                  </span>
-                </div>
-              </div>
-              <div class="min-w-0">
-                <h1 class="text-2xl font-bold truncate">{full_name(@person) || person_label(@person)}</h1>
+            <div class="min-w-0">
+              <h1 class="text-2xl font-bold truncate">{full_name(@person) || person_label(@person)}</h1>
                 <%= if @person.job_title do %>
                   <div class="text-base text-base-content/70">{@person.job_title}</div>
                 <% end %>
@@ -174,7 +166,6 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
                     </span>
                   <% end %>
                 </div>
-              </div>
             </div>
             <.link navigate={Paths.edit_person(@person.uuid)} class="btn btn-ghost btn-sm shrink-0">
               <.icon name="hero-pencil" class="w-4 h-4" /> {gettext("Edit")}

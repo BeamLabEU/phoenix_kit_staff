@@ -132,7 +132,7 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col mx-auto max-w-4xl px-4 py-6 gap-4">
+    <div class="flex flex-col w-full px-4 py-6 gap-4">
       <div>
         <.link navigate={Paths.teams()} class="link link-hover text-sm">
           <.icon name="hero-arrow-left" class="w-4 h-4 inline" /> {gettext("Teams")}

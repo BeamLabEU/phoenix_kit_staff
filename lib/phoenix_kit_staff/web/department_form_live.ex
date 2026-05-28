@@ -137,7 +137,7 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col mx-auto max-w-xl px-4 py-6 gap-4">
+    <div class="flex flex-col w-full px-4 py-6 gap-4">
       <div>
         <.link navigate={Paths.departments()} class="link link-hover text-sm">
           <.icon name="hero-arrow-left" class="w-4 h-4 inline" /> {gettext("Departments")}
@@ -145,7 +145,7 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
         <h1 class="text-2xl font-bold mt-1">{@page_title}</h1>
       </div>
 
-      <div class="card bg-base-100 shadow">
+      <div class="card bg-base-100 shadow max-w-3xl mx-auto w-full">
         <.multilang_tabs
           multilang_enabled={@multilang_enabled}
           language_tabs={@language_tabs}

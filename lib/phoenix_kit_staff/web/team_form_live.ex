@@ -141,7 +141,7 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col mx-auto max-w-xl px-4 py-6 gap-4">
+    <div class="flex flex-col w-full px-4 py-6 gap-4">
       <div>
         <.link navigate={Paths.teams()} class="link link-hover text-sm">
           <.icon name="hero-arrow-left" class="w-4 h-4 inline" /> {gettext("Teams")}
@@ -150,7 +150,7 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
       </div>
 
       <%= if @dept_options == [] do %>
-        <div class="alert alert-warning">
+        <div class="alert alert-warning max-w-3xl mx-auto w-full">
           <.icon name="hero-exclamation-triangle" class="w-5 h-5" />
           <span>
             {gettext("You need at least one department first.")}
@@ -158,7 +158,7 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
           </span>
         </div>
       <% else %>
-        <div class="card bg-base-100 shadow">
+        <div class="card bg-base-100 shadow max-w-3xl mx-auto w-full">
           <.form
             for={@form}
             id="team-form"

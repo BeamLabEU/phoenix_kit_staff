@@ -47,15 +47,12 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col mx-auto max-w-6xl px-4 py-6 gap-6">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h1 class="text-2xl font-bold">{gettext("Staff")}</h1>
-          <p class="text-base-content/60 text-sm mt-1">
-            {gettext("Departments, teams, and the people in them.")}
-          </p>
-        </div>
-        <div class="flex flex-wrap gap-2">
+    <div class="flex flex-col w-full px-4 py-6 gap-6">
+      <.admin_page_header
+        title={gettext("Staff")}
+        subtitle={gettext("Departments, teams, and the people in them.")}
+      >
+        <:actions>
           <.link navigate={Paths.new_department()} class="btn btn-primary btn-sm">
             <.icon name="hero-plus" class="w-4 h-4" /> {gettext("Department")}
           </.link>
@@ -65,8 +62,8 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
           <.link navigate={Paths.new_person()} class="btn btn-ghost btn-sm">
             <.icon name="hero-plus" class="w-4 h-4" /> {gettext("Staff")}
           </.link>
-        </div>
-      </div>
+        </:actions>
+      </.admin_page_header>
 
       <%!-- Stats --%>
       <div class="grid grid-cols-3 gap-3">
