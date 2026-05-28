@@ -80,4 +80,56 @@ defmodule PhoenixKitStaff.L10nTest do
       assert L10n.format_month_day(dt) == "Nov 25"
     end
   end
+
+  describe "valid_translations_shape?/1" do
+    test "nil is valid (no translations stored)" do
+      assert L10n.valid_translations_shape?(nil) == true
+    end
+
+    test "empty map is valid" do
+      assert L10n.valid_translations_shape?(%{}) == true
+    end
+
+    test "well-formed single-language entry is valid" do
+      assert L10n.valid_translations_shape?(%{"es-ES" => %{"name" => "Hola"}}) == true
+    end
+
+    test "well-formed multi-language multi-field entry is valid" do
+      shape = %{
+        "es-ES" => %{"name" => "X", "description" => "Y"},
+        "de-DE" => %{"name" => "Z"}
+      }
+
+      assert L10n.valid_translations_shape?(shape) == true
+    end
+
+    test "nil field value is valid (signals 'fall back to primary')" do
+      assert L10n.valid_translations_shape?(%{"es-ES" => %{"name" => nil}}) == true
+    end
+
+    test "non-binary lang key is rejected" do
+      assert L10n.valid_translations_shape?(%{:es => %{"name" => "X"}}) == false
+    end
+
+    test "non-map field bag is rejected" do
+      assert L10n.valid_translations_shape?(%{"es-ES" => "not-a-map"}) == false
+      assert L10n.valid_translations_shape?(%{"es-ES" => [1, 2, 3]}) == false
+    end
+
+    test "non-binary field key is rejected" do
+      assert L10n.valid_translations_shape?(%{"es-ES" => %{:name => "X"}}) == false
+    end
+
+    test "non-binary non-nil field value is rejected" do
+      assert L10n.valid_translations_shape?(%{"es-ES" => %{"name" => 42}}) == false
+      assert L10n.valid_translations_shape?(%{"es-ES" => %{"name" => %{}}}) == false
+    end
+
+    test "non-map root is rejected (lists, strings, atoms)" do
+      assert L10n.valid_translations_shape?("string") == false
+      assert L10n.valid_translations_shape?(42) == false
+      assert L10n.valid_translations_shape?([1, 2, 3]) == false
+      assert L10n.valid_translations_shape?(:not_a_map) == false
+    end
+  end
 end
