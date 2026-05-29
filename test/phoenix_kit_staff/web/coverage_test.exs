@@ -75,10 +75,10 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
       assert html =~ "Internal admin notes"
     end
 
-    test "renders empty-state hero label when user has no email", %{conn: conn} do
-      # Build a person whose user has nil email — exercises `person_label/1`
-      # and `full_name/1` fall-through clauses. We stage via direct insert
-      # to bypass valid-email registration.
+    test "renders the hero without crashing for a name-less person", %{conn: conn} do
+      # Person has no `name` and the fixture user has no first/last name —
+      # exercises `Person.display_name/1`'s email/"Unnamed" fall-through
+      # path on a full mount.
       person = fixture_person()
       _view = live(conn, "/en/admin/staff/people/#{person.uuid}")
       :ok

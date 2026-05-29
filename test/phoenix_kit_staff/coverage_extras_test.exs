@@ -246,16 +246,15 @@ defmodule PhoenixKitStaff.CoverageExtrasTest do
 
   # ────────────────────────────────────────────────────────────────
   describe "PersonShowLive — render helpers via full mounts" do
-    test "renders 'Staff' fallback when user has no email", %{conn: conn} do
-      # Construct a user with empty email + no first/last name. Direct
-      # SQL bypasses the email regex validation. This exercises
-      # `person_label/1` fallback (line 64) and `full_name/1` fallback
-      # (line 76) in PersonShowLive.
+    test "falls back to the linked user's first/last name when person has no name", %{conn: conn} do
+      # Person has no `name`, but its linked user has first/last name set.
+      # This exercises `Person.display_name/1`'s user-name fallback clause
+      # (the `%User{}` branch → `user_display_name/1`).
       email = "with-name-#{System.unique_integer([:positive])}@example.com"
       {:ok, user} = Auth.register_user(%{"email" => email, "password" => "Aa1!stuffstuff"})
 
-      # Force first_name/last_name on the user record so the
-      # `full_name/1` `is_binary` clause fires.
+      # Force first_name/last_name on the user record so the join + reject
+      # branch in `user_display_name/1` fires.
       TestRepo.query!(
         "UPDATE phoenix_kit_users SET first_name = $1, last_name = $2 WHERE uuid = $3",
         ["Alice", "Smith", Ecto.UUID.dump!(user.uuid)]
@@ -265,18 +264,18 @@ defmodule PhoenixKitStaff.CoverageExtrasTest do
 
       {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
 
-      # full_name/1 produces "Alice Smith" — covers the join + reject branches.
+      # Person.display_name/1 produces "Alice Smith".
       assert html =~ "Alice Smith"
     end
 
-    test "renders fallback when first_name and last_name are both nil", %{conn: conn} do
+    test "falls back to the user's email when person has no name and user has no first/last name",
+         %{conn: conn} do
       person = fixture_person()
 
-      # The default fixture user has no first_name/last_name, so
-      # full_name/1 falls through to `defp full_name(_), do: nil`.
+      # The default fixture user has no first_name/last_name and the person
+      # has no `name`, so `Person.display_name/1` falls through to the email.
       {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
 
-      # The hero falls back to person_label (the email).
       assert html =~ person.user.email
     end
 
