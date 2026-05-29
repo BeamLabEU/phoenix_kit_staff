@@ -4,6 +4,58 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0] - 2026-05-29
+
+Feature release — multilingual free-text fields, a single full-name
+column, and a soft dependency on `phoenix_kit_locations` for the work
+location. All changes are additive and backward-compatible with the
+documented public API (`Staff.list_people/1`,
+`Staff.get_person_by_user_uuid/2`, `Teams.list/1`, `Departments.list/1`).
+
+**Requires `phoenix_kit ~> 1.7.125`** for the V122 migration that ships
+the `translations` JSONB columns and `phoenix_kit_staff_people.name`.
+
+### Added
+- **Multilang translations** on Department, Team, and Person. Each
+  schema carries a `translations` JSONB column for non-primary-language
+  overrides on a subset of free-text fields (Department/Team: `name`,
+  `description`; Person: `job_title`, `bio`, `skills`, `notes`).
+  `<Schema>.localized_<field>/2` read helpers apply primary-fallback
+  semantics; forms use the shared `<.multilang_tabs>` /
+  `<.multilang_fields_wrapper>` / `<.translatable_field>` components.
+- **`Person.name`** — a single nullable `VARCHAR(255)` full display
+  name, consistent with `Department.name` / `Team.name`. Owned by the
+  staff profile so placeholder users stay anonymous until claimed.
+- **`Person.display_name/1`** — canonical people label (name → linked
+  user's first/last → email → "Unnamed"), used across the people list,
+  org overview, birthdays, person show, and team show.
+- **`PhoenixKitStaff.L10n.validate_translations/1` and
+  `localized_field/3`** — shared translation read/validate helpers
+  (the schemas now delegate instead of carrying private copies).
+- `Staff.list_people/1` search now matches `name` in addition to the
+  linked user's email.
+
+### Changed
+- **`Person.work_location` is now a soft dependency on
+  `phoenix_kit_locations`.** The form renders a Location picker sourced
+  via a runtime guard (`Code.ensure_loaded?/1` + `function_exported?/3`
+  + `apply/3`) and hides the field entirely when the locations module
+  isn't installed or is disabled. The column stays `VARCHAR` (UUID
+  stored as a string) to avoid a type-changing migration.
+- `Person.skills` is now a free-form textarea (was single-line).
+- **Style sweep** across all 10 admin LiveViews: full-width
+  (`w-full px-4 py-N`) layout with `<.admin_page_header>` + `<:actions>`,
+  forms capped at `max-w-3xl mx-auto`; fixed an invisible
+  hover-badge bug on the Overview page on light themes.
+- Tightened the `phoenix_kit` constraint to `~> 1.7.125` (was `~> 1.7`)
+  so installs can't resolve a pre-V122 core; refreshed the dependency
+  lock (`phoenix_kit` 1.7.125, `phoenix_live_view` 1.1.31,
+  `ecto_sql` 3.14.0).
+
+### Fixed
+- Overview / Person show now display the person's name rather than
+  always falling back to the linked user's email.
+
 ## [0.2.1] - 2026-05-12
 
 Maintenance release — dep bumps, migration-shim cleanup, test repair,

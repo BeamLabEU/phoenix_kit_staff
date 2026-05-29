@@ -1,7 +1,7 @@
 defmodule PhoenixKitStaff.MixProject do
   use Mix.Project
 
-  @version "0.2.1"
+  @version "0.3.0"
   @source_url "https://github.com/BeamLabEU/phoenix_kit_staff"
 
   def project do
@@ -46,7 +46,11 @@ defmodule PhoenixKitStaff.MixProject do
     [
       quality: ["format", "credo --strict", "dialyzer"],
       "quality.ci": ["format --check-formatted", "credo --strict", "dialyzer"],
-      precommit: ["compile --force --warnings-as-errors", "deps.unlock --check-unused", "quality.ci"],
+      precommit: [
+        "compile --force --warnings-as-errors",
+        "deps.unlock --check-unused",
+        "quality.ci"
+      ],
       "test.setup": [
         "ecto.create --quiet -r PhoenixKitStaff.Test.Repo"
       ],
@@ -59,7 +63,7 @@ defmodule PhoenixKitStaff.MixProject do
 
   defp deps do
     [
-      {:phoenix_kit, "~> 1.7"},
+      {:phoenix_kit, "~> 1.7.125"},
       {:phoenix_live_view, "~> 1.1"},
       {:ecto_sql, "~> 3.13"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
