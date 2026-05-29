@@ -92,17 +92,15 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   # that case. Rescues DB errors so a transient outage on the
   # locations side doesn't take this form down with it.
   defp location_options do
-    if locations_module_enabled?() do
-      # Bind the module to a variable so the call is a runtime dispatch,
-      # not a compile-time reference: PhoenixKitLocations is a SOFT dep,
-      # so a literal `PhoenixKitLocations.Locations.list_locations(...)`
-      # would warn as undefined (and trip `--warnings-as-errors`) on
-      # installs that don't ship it. `locations_module_enabled?/0` has
-      # already gated the call.
-      locations = PhoenixKitLocations.Locations
-
+    # Resolve the optional module through `Code.ensure_loaded/1`: binding
+    # `mod` to the runtime result keeps PhoenixKitLocations out of
+    # compile-time analysis, so a missing dep neither trips the compiler's
+    # undefined-function warning (`--warnings-as-errors`) nor dialyzer —
+    # and we avoid `apply/3` (and the credo finding that comes with it).
+    with true <- locations_module_enabled?(),
+         {:module, mod} <- Code.ensure_loaded(PhoenixKitLocations.Locations) do
       try do
-        locations.list_locations(status: "active")
+        mod.list_locations(status: "active")
         |> Enum.map(fn loc -> {loc.name, loc.uuid} end)
       rescue
         e in [Postgrex.Error, DBConnection.ConnectionError, Ecto.QueryError] ->
@@ -110,19 +108,18 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
           []
       end
     else
-      []
+      _ -> []
     end
   end
 
   defp locations_module_enabled? do
-    # Same soft-dep dispatch: bind to a variable so the optional
-    # PhoenixKitLocations is never referenced at compile time (keeps both
-    # the compiler and dialyzer quiet); `function_exported?/3` gates it.
-    module = PhoenixKitLocations
-
-    Code.ensure_loaded?(module) and
-      function_exported?(module, :enabled?, 0) and
-      module.enabled?()
+    # Same soft-dep dispatch: `mod` comes from a runtime lookup, so the
+    # optional PhoenixKitLocations is never named at compile time;
+    # `function_exported?/3` gates the call.
+    case Code.ensure_loaded(PhoenixKitLocations) do
+      {:module, mod} -> function_exported?(mod, :enabled?, 0) and mod.enabled?()
+      {:error, _} -> false
+    end
   end
 
   defp assign_form(socket, cs), do: assign(socket, form: to_form(cs))
