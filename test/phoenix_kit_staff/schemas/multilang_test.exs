@@ -14,7 +14,9 @@ defmodule PhoenixKitStaff.Schemas.MultilangTest do
       d = %Department{
         name: "Engineering",
         description: "Builds the product.",
-        translations: %{"es-ES" => %{"name" => "Ingeniería", "description" => "Construye el producto."}}
+        translations: %{
+          "es-ES" => %{"name" => "Ingeniería", "description" => "Construye el producto."}
+        }
       }
 
       assert Department.localized_name(d, "es-ES") == "Ingeniería"
