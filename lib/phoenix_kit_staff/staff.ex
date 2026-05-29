@@ -166,7 +166,7 @@ defmodule PhoenixKitStaff.Staff do
 
   # ── People ─────────────────────────────────────────────────────────
 
-  @doc "Lists people. Accepts `:preload`, `:status` filter, and `:search` (matches user email)."
+  @doc "Lists people. Accepts `:preload`, `:status` filter, and `:search` (matches name or user email)."
   @spec list_people(keyword()) :: [Person.t()]
   def list_people(opts \\ []) do
     preload = Keyword.get(opts, :preload, [:user, :primary_department])
@@ -192,7 +192,7 @@ defmodule PhoenixKitStaff.Staff do
 
     from(p in query,
       join: u in assoc(p, :user),
-      where: ilike(u.email, ^like)
+      where: ilike(u.email, ^like) or ilike(p.name, ^like)
     )
   end
 

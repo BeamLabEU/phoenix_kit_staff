@@ -8,6 +8,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
 
   alias PhoenixKitStaff.{Departments, L10n, Paths, Staff, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
+  alias PhoenixKitStaff.Schemas.Person
 
   @impl true
   def mount(_params, _session, socket) do
@@ -38,7 +39,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
     {:noreply, socket}
   end
 
-  defp person_label(%{user: %{email: email}}), do: email
+  defp person_label(%Person{} = person), do: Person.display_name(person)
   defp person_label(_), do: "—"
 
   defp person_tooltip(%{job_title: t}) when is_binary(t) and t != "", do: t

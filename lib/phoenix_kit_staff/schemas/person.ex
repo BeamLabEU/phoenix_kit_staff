@@ -131,26 +131,12 @@ defmodule PhoenixKitStaff.Schemas.Person do
     |> validate_length(:emergency_contact_name, max: 255)
     |> validate_length(:emergency_contact_phone, max: 50)
     |> validate_length(:emergency_contact_relationship, max: 100)
-    |> validate_translations_shape()
+    |> L10n.validate_translations()
     |> assoc_constraint(:user)
     |> unique_constraint(:user_uuid,
       name: :phoenix_kit_staff_people_user_index,
       message: gettext("already linked to a person on staff")
     )
-  end
-
-  defp validate_translations_shape(changeset) do
-    case get_change(changeset, :translations) do
-      nil ->
-        changeset
-
-      val ->
-        if L10n.valid_translations_shape?(val) do
-          changeset
-        else
-          add_error(changeset, :translations, "is not a valid translations map")
-        end
-    end
   end
 
   def statuses, do: @statuses
@@ -161,36 +147,44 @@ defmodule PhoenixKitStaff.Schemas.Person do
   def translatable_fields, do: @translatable_fields
 
   @spec localized_job_title(t(), String.t() | nil) :: String.t() | nil
-  def localized_job_title(%__MODULE__{} = p, lang), do: localized_field(p, "job_title", lang)
+  def localized_job_title(%__MODULE__{} = p, lang), do: L10n.localized_field(p, "job_title", lang)
 
   @spec localized_bio(t(), String.t() | nil) :: String.t() | nil
-  def localized_bio(%__MODULE__{} = p, lang), do: localized_field(p, "bio", lang)
+  def localized_bio(%__MODULE__{} = p, lang), do: L10n.localized_field(p, "bio", lang)
 
   @spec localized_skills(t(), String.t() | nil) :: String.t() | nil
-  def localized_skills(%__MODULE__{} = p, lang), do: localized_field(p, "skills", lang)
+  def localized_skills(%__MODULE__{} = p, lang), do: L10n.localized_field(p, "skills", lang)
 
   @spec localized_notes(t(), String.t() | nil) :: String.t() | nil
-  def localized_notes(%__MODULE__{} = p, lang), do: localized_field(p, "notes", lang)
+  def localized_notes(%__MODULE__{} = p, lang), do: L10n.localized_field(p, "notes", lang)
 
-  defp localized_field(p, field, lang) do
-    primary = Map.get(p, String.to_existing_atom(field))
+  @doc """
+  Best human label for a staff person, in priority order:
 
-    case lookup_translation(p.translations, lang, field) do
-      nil -> primary
-      "" -> primary
-      val -> val
+  1. the explicit `name` column (the staff profile owns identity),
+  2. the linked user's `first_name`/`last_name`,
+  3. the linked user's email,
+  4. a generic `"Unnamed"` fallback.
+
+  Used by every people-listing surface (people list, org overview,
+  birthdays, show page) so the display is consistent. Expects `:user`
+  to be preloaded for the email/user-name fallbacks; an unloaded
+  association just skips to the generic fallback.
+  """
+  @spec display_name(t()) :: String.t()
+  def display_name(%__MODULE__{name: name}) when is_binary(name) and name != "", do: name
+  def display_name(%__MODULE__{user: %User{} = user}), do: user_display_name(user)
+  def display_name(%__MODULE__{}), do: gettext("Unnamed")
+
+  defp user_display_name(%User{} = user) do
+    [user.first_name, user.last_name]
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.join(" ")
+    |> case do
+      "" -> user.email || gettext("Unnamed")
+      full -> full
     end
   end
-
-  defp lookup_translation(translations, lang, field)
-       when is_map(translations) and is_binary(lang) do
-    case Map.get(translations, lang) do
-      %{} = lang_map -> Map.get(lang_map, field)
-      _ -> nil
-    end
-  end
-
-  defp lookup_translation(_translations, _lang, _field), do: nil
 
   @doc "Translated label for a status value (for UI display)."
   def status_label("active"), do: gettext("Active")

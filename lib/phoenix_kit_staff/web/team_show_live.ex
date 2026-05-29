@@ -8,6 +8,7 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
 
   alias PhoenixKitStaff.{Activity, Paths, Staff, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
+  alias PhoenixKitStaff.Schemas.Person
   alias PhoenixKitStaff.Web.Helpers
 
   @impl true
@@ -213,6 +214,6 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
     """
   end
 
-  defp person_label(%{user: %{email: email}}), do: email
+  defp person_label(%Person{} = person), do: Person.display_name(person)
   defp person_label(_), do: "—"
 end

@@ -149,7 +149,7 @@ defmodule PhoenixKitStaff.Web.Helpers do
 
   `primary_fields` is the list of DB column names (as strings) that are
   translatable — e.g. `["name", "description"]` for Department,
-  `["job_title", "work_location", "bio", "skills", "notes"]` for Person.
+  `["job_title", "bio", "skills", "notes"]` for Person.
   """
   @spec merge_translations_attrs(map(), struct(), [String.t()]) :: map()
   def merge_translations_attrs(attrs, record, primary_fields) do

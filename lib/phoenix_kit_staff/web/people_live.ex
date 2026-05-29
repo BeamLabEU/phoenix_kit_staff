@@ -104,7 +104,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
             label={gettext("Search")}
             type="search"
             value={@search}
-            placeholder={gettext("search by email")}
+            placeholder={gettext("search by name or email")}
           />
           <.select
             name="status"
@@ -127,7 +127,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
             <table class="table">
               <thead>
                 <tr>
-                  <th>{gettext("User")}</th>
+                  <th>{gettext("Name")}</th>
                   <th>{gettext("Title")}</th>
                   <th>{gettext("Primary dept")}</th>
                   <th>{gettext("Status")}</th>
@@ -138,8 +138,11 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
                 <tr :for={p <- @people} class="hover">
                   <td>
                     <.link navigate={Paths.person(p.uuid)} class="link link-hover font-medium">
-                      {p.user && p.user.email || "—"}
+                      {Person.display_name(p)}
                     </.link>
+                    <div :if={p.user && p.user.email} class="text-xs text-base-content/50 font-mono">
+                      {p.user.email}
+                    </div>
                   </td>
                   <td class="text-sm">{p.job_title || "—"}</td>
                   <td>{p.primary_department && p.primary_department.name || "—"}</td>

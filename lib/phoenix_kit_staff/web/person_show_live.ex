@@ -26,7 +26,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
       person ->
         {:ok,
          assign(socket,
-           page_title: person_label(person),
+           page_title: Person.display_name(person),
            person: person,
            memberships: Staff.list_memberships_for_person(person.uuid)
          )}
@@ -59,23 +59,6 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     Logger.debug("[Staff] PersonShowLive: unexpected handle_info #{inspect(msg)}")
     {:noreply, socket}
   end
-
-  defp person_label(%{user: %{email: email}}), do: email
-  defp person_label(_), do: gettext("Staff")
-
-  defp full_name(%{name: name}) when is_binary(name) and name != "", do: name
-
-  defp full_name(%{user: %{first_name: f, last_name: l}}) when is_binary(f) or is_binary(l) do
-    [f, l]
-    |> Enum.reject(&(&1 == nil or &1 == ""))
-    |> Enum.join(" ")
-    |> case do
-      "" -> nil
-      s -> s
-    end
-  end
-
-  defp full_name(_), do: nil
 
   defp has_any?(m, fields) do
     Enum.any?(fields, fn f -> present?(Map.get(m, f)) end)
@@ -130,7 +113,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
       <.admin_page_header
-        title={full_name(@person) || person_label(@person)}
+        title={Person.display_name(@person)}
         subtitle={@person.job_title}
       >
         <:actions>

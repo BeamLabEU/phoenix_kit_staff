@@ -70,6 +70,61 @@ defmodule PhoenixKitStaff.L10n do
 
   def valid_translations_shape?(_), do: false
 
+  @doc """
+  Changeset guard for a `translations` JSONB column. When the cast
+  produced a `:translations` change that doesn't match
+  `valid_translations_shape?/1`, adds an error; otherwise returns the
+  changeset untouched. Shared by every staff schema so the shape
+  contract lives in one place.
+  """
+  @spec validate_translations(Ecto.Changeset.t()) :: Ecto.Changeset.t()
+  def validate_translations(changeset) do
+    case Ecto.Changeset.get_change(changeset, :translations) do
+      nil ->
+        changeset
+
+      val ->
+        if valid_translations_shape?(val) do
+          changeset
+        else
+          Ecto.Changeset.add_error(
+            changeset,
+            :translations,
+            gettext("is not a valid translations map")
+          )
+        end
+    end
+  end
+
+  @doc """
+  Reads a translatable `field` (a DB-column name string) off `record`
+  in the requested `lang`, with primary-fallback semantics: a missing
+  or empty (`""`) language override returns the primary-column value.
+  `lang` may be `nil` (multilang disabled), in which case the primary
+  column is returned directly. Shared by every staff schema's
+  `localized_<field>/2` helpers.
+  """
+  @spec localized_field(struct(), String.t(), String.t() | nil) :: String.t() | nil
+  def localized_field(record, field, lang) do
+    primary = Map.get(record, String.to_existing_atom(field))
+
+    case lookup_translation(Map.get(record, :translations), lang, field) do
+      nil -> primary
+      "" -> primary
+      val -> val
+    end
+  end
+
+  defp lookup_translation(translations, lang, field)
+       when is_map(translations) and is_binary(lang) do
+    case Map.get(translations, lang) do
+      %{} = lang_map -> Map.get(lang_map, field)
+      _ -> nil
+    end
+  end
+
+  defp lookup_translation(_translations, _lang, _field), do: nil
+
   @doc "Short 3-letter month name, translated (`Jan`, `Feb`, ...)."
   @spec short_month(1..12) :: String.t()
   def short_month(1), do: gettext("Jan")
