@@ -47,15 +47,12 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col mx-auto max-w-6xl px-4 py-6 gap-6">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <h1 class="text-2xl font-bold">{gettext("Staff")}</h1>
-          <p class="text-base-content/60 text-sm mt-1">
-            {gettext("Departments, teams, and the people in them.")}
-          </p>
-        </div>
-        <div class="flex flex-wrap gap-2">
+    <div class="flex flex-col w-full px-4 py-6 gap-6">
+      <.admin_page_header
+        title={gettext("Staff")}
+        subtitle={gettext("Departments, teams, and the people in them.")}
+      >
+        <:actions>
           <.link navigate={Paths.new_department()} class="btn btn-primary btn-sm">
             <.icon name="hero-plus" class="w-4 h-4" /> {gettext("Department")}
           </.link>
@@ -65,8 +62,8 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
           <.link navigate={Paths.new_person()} class="btn btn-ghost btn-sm">
             <.icon name="hero-plus" class="w-4 h-4" /> {gettext("Staff")}
           </.link>
-        </div>
-      </div>
+        </:actions>
+      </.admin_page_header>
 
       <%!-- Stats --%>
       <div class="grid grid-cols-3 gap-3">
@@ -107,7 +104,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
               <.link
                 :for={b <- @upcoming_birthdays}
                 navigate={Paths.person(b.person.uuid)}
-                class={"badge gap-1 py-3 cursor-pointer hover:badge-primary #{if b.days_until == 0, do: "badge-primary", else: "badge-outline"}"}
+                class={"badge gap-1 py-3 cursor-pointer hover:bg-primary hover:text-primary-content hover:border-primary transition-colors #{if b.days_until == 0, do: "badge-primary", else: "badge-outline"}"}
               >
                 <span class="font-medium">{person_label(b.person)}</span>
                 <span class="text-xs opacity-70">
@@ -186,7 +183,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
                       :for={m <- t.people}
                       navigate={Paths.person(m.uuid)}
                       title={person_tooltip(m)}
-                      class="badge badge-outline badge-sm gap-1 hover:badge-primary cursor-pointer"
+                      class="badge badge-outline badge-sm gap-1 cursor-pointer hover:bg-primary hover:text-primary-content hover:border-primary transition-colors"
                     >
                       <.icon name="hero-user-circle" class="w-3 h-3" />
                       {person_label(m)}
@@ -206,7 +203,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
                     <.link
                       :for={m <- node.dept_only_people}
                       navigate={Paths.person(m.uuid)}
-                      class="badge badge-ghost badge-sm gap-1 hover:badge-primary cursor-pointer"
+                      class="badge badge-ghost badge-sm gap-1 cursor-pointer hover:bg-primary hover:text-primary-content hover:border-primary transition-colors"
                     >
                       <.icon name="hero-user-circle" class="w-3 h-3" />
                       {person_label(m)}
@@ -232,7 +229,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
                   <.link
                     :for={m <- @org_tree.unassigned_people}
                     navigate={Paths.person(m.uuid)}
-                    class="badge badge-warning badge-sm gap-1 cursor-pointer hover:badge-primary"
+                    class="badge badge-warning badge-sm gap-1 cursor-pointer hover:bg-primary hover:text-primary-content hover:border-primary transition-colors"
                   >
                     <.icon name="hero-user-circle" class="w-3 h-3" />
                     {person_label(m)}

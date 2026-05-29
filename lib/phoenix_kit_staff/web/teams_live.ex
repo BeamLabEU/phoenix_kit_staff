@@ -65,16 +65,17 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col mx-auto max-w-5xl px-4 py-6 gap-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold">{gettext("Teams")}</h1>
-          <p class="text-sm text-base-content/60">{gettext("Teams across all departments.")}</p>
-        </div>
-        <.link navigate={Paths.new_team()} class="btn btn-primary btn-sm">
-          <.icon name="hero-plus" class="w-4 h-4" /> {gettext("New team")}
-        </.link>
-      </div>
+    <div class="flex flex-col w-full px-4 py-6 gap-4">
+      <.admin_page_header
+        title={gettext("Teams")}
+        subtitle={gettext("Teams across all departments.")}
+      >
+        <:actions>
+          <.link navigate={Paths.new_team()} class="btn btn-primary btn-sm">
+            <.icon name="hero-plus" class="w-4 h-4" /> {gettext("New team")}
+          </.link>
+        </:actions>
+      </.admin_page_header>
 
       <%= if @teams == [] do %>
         <div class="text-center py-16 text-base-content/60">

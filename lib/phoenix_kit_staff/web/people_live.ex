@@ -85,16 +85,17 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col mx-auto max-w-5xl px-4 py-6 gap-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold">{gettext("Staff")}</h1>
-          <p class="text-sm text-base-content/60">{gettext("Everyone on staff, linked to their PhoenixKit user.")}</p>
-        </div>
-        <.link navigate={Paths.new_person()} class="btn btn-primary btn-sm">
-          <.icon name="hero-plus" class="w-4 h-4" /> {gettext("New staff")}
-        </.link>
-      </div>
+    <div class="flex flex-col w-full px-4 py-6 gap-4">
+      <.admin_page_header
+        title={gettext("Staff")}
+        subtitle={gettext("Everyone on staff, linked to their PhoenixKit user.")}
+      >
+        <:actions>
+          <.link navigate={Paths.new_person()} class="btn btn-primary btn-sm">
+            <.icon name="hero-plus" class="w-4 h-4" /> {gettext("New staff")}
+          </.link>
+        </:actions>
+      </.admin_page_header>
 
       <div class="bg-base-200 rounded-lg p-3">
         <.form for={%{}} phx-change="filter" class="flex flex-wrap gap-3 items-end">

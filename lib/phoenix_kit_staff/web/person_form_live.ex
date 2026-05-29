@@ -4,6 +4,8 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitWeb.Gettext
 
+  import PhoenixKitWeb.Components.MultilangForm
+
   require Logger
 
   alias PhoenixKit.Users.Auth
@@ -11,9 +13,14 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   alias PhoenixKitStaff.Schemas.Person
   alias PhoenixKitStaff.Web.Helpers
 
+  @translatable_field_atoms [:job_title, :bio, :skills, :notes]
+
   @impl true
   def mount(params, _session, socket) do
-    {:ok, apply_action(socket, socket.assigns.live_action, params)}
+    {:ok,
+     socket
+     |> mount_multilang()
+     |> apply_action(socket.assigns.live_action, params)}
   end
 
   defp apply_action(socket, :new, _params) do
@@ -30,7 +37,8 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
       email_editable?: true,
       dept_options: dept_options(),
       team_options: [],
-      selected_team_uuid: nil
+      selected_team_uuid: nil,
+      location_options: location_options()
     )
     |> assign_form(Staff.change_person(person))
   end
@@ -54,7 +62,8 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
           email_editable?: placeholder_user?(person.user),
           dept_options: dept_options(),
           team_options: team_options_for(person.primary_department_uuid),
-          selected_team_uuid: nil
+          selected_team_uuid: nil,
+          location_options: location_options()
         )
         |> assign_form(Staff.change_person(person))
     end
@@ -77,11 +86,64 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     Teams.list(department_uuid: dept_uuid) |> Enum.map(&{&1.name, &1.uuid})
   end
 
+  # Soft dep on `phoenix_kit_locations` — staff has no compile-time
+  # link to that package. Returns `[]` when the module isn't installed
+  # or is toggled off in Admin > Modules; the form hides the picker in
+  # that case. Rescues DB errors so a transient outage on the
+  # locations side doesn't take this form down with it.
+  defp location_options do
+    if locations_module_enabled?() do
+      try do
+        # `apply/3` is load-bearing: PhoenixKitLocations is a SOFT dep,
+        # so direct calls would fail to compile in installs that don't
+        # ship the module. `locations_module_enabled?/0` guards the
+        # runtime call; if the module isn't loaded we never reach here.
+        # credo:disable-for-next-line Credo.Check.Refactor.Apply
+        apply(PhoenixKitLocations.Locations, :list_locations, [[status: "active"]])
+        |> Enum.map(fn loc -> {loc.name, loc.uuid} end)
+      rescue
+        e in [Postgrex.Error, DBConnection.ConnectionError, Ecto.QueryError] ->
+          Logger.warning("[Staff] locations lookup failed: #{Exception.message(e)}")
+          []
+      end
+    else
+      []
+    end
+  end
+
+  defp locations_module_enabled? do
+    # `apply/3` keeps the reference soft for dialyzer too — PhoenixKitLocations
+    # is an optional dep, so a direct call would surface as `unknown_function`
+    # in installs that don't ship it. `function_exported?/3` already gates it.
+    Code.ensure_loaded?(PhoenixKitLocations) and
+      function_exported?(PhoenixKitLocations, :enabled?, 0) and
+      # credo:disable-for-next-line Credo.Check.Refactor.Apply
+      apply(PhoenixKitLocations, :enabled?, [])
+  end
+
   defp assign_form(socket, cs), do: assign(socket, form: to_form(cs))
 
+  # Folds in-flight secondary-tab translations into attrs and
+  # preserves primary-tab column values that the current secondary-tab
+  # DOM didn't include. Same shape as Department / Team forms.
+  defp merge_attrs(attrs, socket) do
+    in_flight = Helpers.in_flight_record(socket, :form, :person)
+    Helpers.merge_translations_attrs(attrs, in_flight, Person.translatable_fields())
+  end
+
   @impl true
+  def handle_event("switch_language", %{"lang" => lang}, socket) do
+    {:noreply, handle_switch_language(socket, lang)}
+  end
+
   def handle_event("validate", %{"person" => attrs} = params, socket) do
-    cs = socket.assigns.person |> Staff.change_person(attrs) |> Map.put(:action, :validate)
+    attrs = merge_attrs(attrs, socket)
+
+    cs =
+      socket.assigns.person
+      |> Staff.change_person(attrs)
+      |> Map.put(:action, :validate)
+
     dept_uuid = attrs["primary_department_uuid"]
     team_uuid = params["team_uuid"]
     email = Map.get(params, "email", socket.assigns.email) |> String.trim()
@@ -98,6 +160,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   end
 
   def handle_event("save", %{"person" => attrs} = params, socket) do
+    attrs = merge_attrs(attrs, socket)
     email = Map.get(params, "email", "") |> String.trim()
     team_uuid = blank_to_nil(params["team_uuid"])
     save(socket, socket.assigns.live_action, attrs, email, team_uuid)
@@ -166,7 +229,10 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
           metadata: %{"attempted_email" => email}
         )
 
-        {:noreply, assign_form(socket, cs)}
+        {:noreply,
+         socket
+         |> Helpers.maybe_switch_to_primary_on_error(cs, @translatable_field_atoms)
+         |> assign_form(cs)}
     end
   end
 
@@ -247,7 +313,10 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
           target_uuid: socket.assigns.person.user_uuid
         )
 
-        {:noreply, assign_form(socket, cs)}
+        {:noreply,
+         socket
+         |> Helpers.maybe_switch_to_primary_on_error(cs, @translatable_field_atoms)
+         |> assign_form(cs)}
     end
   end
 
@@ -316,17 +385,116 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col mx-auto max-w-xl px-4 py-6 gap-4">
-      <div>
-        <.link navigate={Paths.people()} class="link link-hover text-sm">
-          <.icon name="hero-arrow-left" class="w-4 h-4 inline" /> {gettext("Staff")}
-        </.link>
-        <h1 class="text-2xl font-bold mt-1">{@page_title}</h1>
-      </div>
+    <div class="flex flex-col w-full px-4 py-6 gap-4">
+      <.admin_page_header
+        title={@page_title}
+        subtitle={
+          if @live_action == :new,
+            do: gettext("Add a new person on staff."),
+            else: gettext("Update staff profile.")
+        }
+      />
 
-      <div class="card bg-base-100 shadow">
-        <div class="card-body">
-          <.form for={@form} id="person-form" phx-change="validate" phx-submit="save" phx-debounce="300" class="flex flex-col gap-3">
+      <div class="card bg-base-100 shadow max-w-3xl mx-auto w-full">
+        <.form
+          for={@form}
+          id="person-form"
+          phx-change="validate"
+          phx-submit="save"
+          phx-debounce="300"
+        >
+          <%!-- All translatable fields grouped together at the top
+               so the user can see at a glance what's translatable.
+               The wrapper re-mounts everything inside on language
+               switch — fine here because the whole block IS
+               translatable; non-translatable fields live below as
+               siblings outside the wrapper. --%>
+          <.multilang_tabs
+            multilang_enabled={@multilang_enabled}
+            language_tabs={@language_tabs}
+            current_lang={@current_lang}
+          />
+
+          <.multilang_fields_wrapper
+            multilang_enabled={@multilang_enabled}
+            current_lang={@current_lang}
+          >
+            <div class="card-body pt-3 pb-6 flex flex-col gap-3">
+              <.translatable_field
+                field_name="job_title"
+                form_prefix="person"
+                changeset={@form.source}
+                schema_field={:job_title}
+                multilang_enabled={@multilang_enabled}
+                current_lang={@current_lang}
+                primary_language={@primary_language}
+                lang_data={Helpers.lang_data(@form, @current_lang)}
+                secondary_name={"person[translations][#{@current_lang}][job_title]"}
+                lang_data_key="job_title"
+                label={gettext("Job title")}
+                placeholder={gettext("e.g. Senior Engineer")}
+              />
+
+              <.translatable_field
+                field_name="bio"
+                form_prefix="person"
+                changeset={@form.source}
+                schema_field={:bio}
+                multilang_enabled={@multilang_enabled}
+                current_lang={@current_lang}
+                primary_language={@primary_language}
+                lang_data={Helpers.lang_data(@form, @current_lang)}
+                secondary_name={"person[translations][#{@current_lang}][bio]"}
+                lang_data_key="bio"
+                label={gettext("Bio")}
+                type="textarea"
+                placeholder={gettext("A short summary about this person")}
+              />
+
+              <.translatable_field
+                field_name="skills"
+                form_prefix="person"
+                changeset={@form.source}
+                schema_field={:skills}
+                multilang_enabled={@multilang_enabled}
+                current_lang={@current_lang}
+                primary_language={@primary_language}
+                lang_data={Helpers.lang_data(@form, @current_lang)}
+                secondary_name={"person[translations][#{@current_lang}][skills]"}
+                lang_data_key="skills"
+                label={gettext("Skills")}
+                type="textarea"
+                placeholder={gettext("Languages, technologies, certifications, anything else worth noting…")}
+              />
+
+              <.translatable_field
+                field_name="notes"
+                form_prefix="person"
+                changeset={@form.source}
+                schema_field={:notes}
+                multilang_enabled={@multilang_enabled}
+                current_lang={@current_lang}
+                primary_language={@primary_language}
+                lang_data={Helpers.lang_data(@form, @current_lang)}
+                secondary_name={"person[translations][#{@current_lang}][notes]"}
+                lang_data_key="notes"
+                label={gettext("Internal notes")}
+                type="textarea"
+                placeholder={gettext("Only visible to admins editing this profile")}
+              />
+            </div>
+          </.multilang_fields_wrapper>
+
+          <%!-- Visual gap between the translatable block above and
+               the non-translatable section below. daisyUI's
+               `.divider` reliably renders a horizontal line with its
+               own breathing room, no Tailwind class-extraction
+               surprises. --%>
+          <div class="divider mx-6 my-0"></div>
+
+          <%!-- Non-translatable fields: email, employment metadata,
+               organization, contact, personal, emergency contact. --%>
+          <div class="card-body pt-2 flex flex-col gap-3">
             <%= if @email_editable? do %>
               <div>
                 <label class="label mb-2">
@@ -396,9 +564,17 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
               </div>
             <% end %>
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Employment")}</div>
+            <%!-- Name lives on Person (not User) — staff profiles
+                 have their own lifecycle and placeholder users
+                 created via `find_or_create_user_by_email/1` are
+                 anonymous until claimed. --%>
+            <.input
+              field={@form[:name]}
+              label={gettext("Full name")}
+              placeholder={gettext("e.g. Jane Smith")}
+            />
 
-            <.input field={@form[:job_title]} label={gettext("Job title")} placeholder={gettext("e.g. Senior Engineer")} />
+            <div class="divider text-xs text-base-content/50 my-0">{gettext("Employment")}</div>
 
             <.select
               field={@form[:employment_type]}
@@ -418,10 +594,17 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
               <.input field={@form[:employment_end_date]} label={gettext("End date")} type="date" />
             </div>
 
-            <.input
+            <%!-- Work location is a soft-FK to a `phoenix_kit_locations`
+                 row (UUID stored as a plain string in the column). The
+                 whole field is hidden when the locations module isn't
+                 installed or is toggled off — single-location
+                 deployments don't need it. --%>
+            <.select
+              :if={@location_options != []}
               field={@form[:work_location]}
               label={gettext("Work location")}
-              placeholder={gettext("e.g. Remote, Tallinn HQ, Hybrid - Berlin")}
+              options={@location_options}
+              prompt={gettext("—")}
             />
 
             <.select
@@ -448,20 +631,12 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
               />
             <% end %>
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Contact & bio")}</div>
+            <div class="divider text-xs text-base-content/50 my-0">{gettext("Contact")}</div>
 
             <div class="grid grid-cols-2 gap-2">
               <.input field={@form[:work_phone]} label={gettext("Work phone")} placeholder={gettext("+372 ...")} />
               <.input field={@form[:personal_phone]} label={gettext("Personal phone")} placeholder={gettext("+372 ...")} />
             </div>
-
-            <.textarea field={@form[:bio]} label={gettext("Bio")} placeholder={gettext("A short summary about this person")} />
-
-            <.input
-              field={@form[:skills]}
-              label={gettext("Skills")}
-              placeholder={gettext("comma-separated, e.g. Elixir, Phoenix, PostgreSQL")}
-            />
 
             <div class="divider text-xs text-base-content/50 my-0">{gettext("Personal")}</div>
 
@@ -485,22 +660,14 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             </div>
             <.input field={@form[:emergency_contact_phone]} label={gettext("Phone")} placeholder={gettext("+372 ...")} />
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Admin notes")}</div>
-
-            <.textarea
-              field={@form[:notes]}
-              label={gettext("Internal notes")}
-              placeholder={gettext("Only visible to admins editing this profile")}
-            />
-
             <div class="flex justify-end gap-2 mt-4">
               <.link navigate={Paths.people()} class="btn btn-ghost btn-sm">{gettext("Cancel")}</.link>
               <button type="submit" phx-disable-with={gettext("Saving…")} class="btn btn-primary btn-sm">
                 <%= if @live_action == :new, do: gettext("Create"), else: gettext("Save") %>
               </button>
             </div>
-          </.form>
-        </div>
+          </div>
+        </.form>
       </div>
     </div>
     """

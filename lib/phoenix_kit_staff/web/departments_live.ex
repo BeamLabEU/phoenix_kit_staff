@@ -67,16 +67,17 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col mx-auto max-w-5xl px-4 py-6 gap-4">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold">{gettext("Departments")}</h1>
-          <p class="text-sm text-base-content/60">{gettext("Top-level organizational units.")}</p>
-        </div>
-        <.link navigate={Paths.new_department()} class="btn btn-primary btn-sm">
-          <.icon name="hero-plus" class="w-4 h-4" /> {gettext("New department")}
-        </.link>
-      </div>
+    <div class="flex flex-col w-full px-4 py-6 gap-4">
+      <.admin_page_header
+        title={gettext("Departments")}
+        subtitle={gettext("Top-level organizational units.")}
+      >
+        <:actions>
+          <.link navigate={Paths.new_department()} class="btn btn-primary btn-sm">
+            <.icon name="hero-plus" class="w-4 h-4" /> {gettext("New department")}
+          </.link>
+        </:actions>
+      </.admin_page_header>
 
       <%= if @departments == [] do %>
         <div class="text-center py-16 text-base-content/60">

@@ -59,21 +59,14 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col mx-auto max-w-4xl px-4 py-6 gap-4">
-      <div>
-        <.link navigate={Paths.departments()} class="link link-hover text-sm">
-          <.icon name="hero-arrow-left" class="w-4 h-4 inline" /> {gettext("Departments")}
-        </.link>
-        <div class="flex items-center justify-between mt-1">
-          <h1 class="text-2xl font-bold">{@dept.name}</h1>
+    <div class="flex flex-col w-full px-4 py-6 gap-4">
+      <.admin_page_header title={@dept.name} subtitle={@dept.description}>
+        <:actions>
           <.link navigate={Paths.edit_department(@dept.uuid)} class="btn btn-ghost btn-sm">
             <.icon name="hero-pencil" class="w-4 h-4" /> {gettext("Edit")}
           </.link>
-        </div>
-        <div :if={@dept.description} class="text-sm text-base-content/60 mt-1">
-          {@dept.description}
-        </div>
-      </div>
+        </:actions>
+      </.admin_page_header>
 
       <div class="card bg-base-100 shadow">
         <div class="card-body">

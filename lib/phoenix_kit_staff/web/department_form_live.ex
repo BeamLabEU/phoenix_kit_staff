@@ -4,16 +4,22 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitWeb.Gettext
 
+  import PhoenixKitWeb.Components.MultilangForm
+
   alias PhoenixKitStaff.{Activity, Departments, Paths}
+  alias PhoenixKitStaff.Schemas.Department
   alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def mount(params, _session, socket) do
-    {:ok, apply_action(socket, socket.assigns.live_action, params)}
+    {:ok,
+     socket
+     |> mount_multilang()
+     |> apply_action(socket.assigns.live_action, params)}
   end
 
   defp apply_action(socket, :new, _params) do
-    dept = %PhoenixKitStaff.Schemas.Department{}
+    dept = %Department{}
 
     socket
     |> assign(page_title: gettext("New department"), dept: dept, live_action: :new)
@@ -41,13 +47,32 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
   defp assign_form(socket, changeset), do: assign(socket, form: to_form(changeset))
 
   @impl true
+  def handle_event("switch_language", %{"lang" => lang}, socket) do
+    {:noreply, handle_switch_language(socket, lang)}
+  end
+
   def handle_event("validate", %{"department" => attrs}, socket) do
-    cs = socket.assigns.dept |> Departments.change(attrs) |> Map.put(:action, :validate)
+    attrs = merge_attrs(attrs, socket)
+
+    cs =
+      socket.assigns.dept
+      |> Departments.change(attrs)
+      |> Map.put(:action, :validate)
+
     {:noreply, assign_form(socket, cs)}
   end
 
   def handle_event("save", %{"department" => attrs}, socket) do
-    save(socket, socket.assigns.live_action, attrs)
+    save(socket, socket.assigns.live_action, merge_attrs(attrs, socket))
+  end
+
+  # Folds in-flight secondary-tab translations into attrs and
+  # preserves primary-tab column values that the current secondary-tab
+  # DOM didn't include. Same shape projects uses; see the helper docs
+  # for the contract.
+  defp merge_attrs(attrs, socket) do
+    in_flight = Helpers.in_flight_record(socket, :form, :dept)
+    Helpers.merge_translations_attrs(attrs, in_flight, Department.translatable_fields())
   end
 
   defp save(socket, :new, attrs) do
@@ -72,7 +97,10 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
           metadata: %{"attempted_name" => attrs["name"]}
         )
 
-        {:noreply, assign_form(socket, cs)}
+        {:noreply,
+         socket
+         |> Helpers.maybe_switch_to_primary_on_error(cs, [:name, :description])
+         |> assign_form(cs)}
     end
   end
 
@@ -99,34 +127,91 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
           metadata: %{"attempted_name" => attrs["name"]}
         )
 
-        {:noreply, assign_form(socket, cs)}
+        {:noreply,
+         socket
+         |> Helpers.maybe_switch_to_primary_on_error(cs, [:name, :description])
+         |> assign_form(cs)}
     end
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="flex flex-col mx-auto max-w-xl px-4 py-6 gap-4">
-      <div>
-        <.link navigate={Paths.departments()} class="link link-hover text-sm">
-          <.icon name="hero-arrow-left" class="w-4 h-4 inline" /> {gettext("Departments")}
-        </.link>
-        <h1 class="text-2xl font-bold mt-1">{@page_title}</h1>
-      </div>
+    <div class="flex flex-col w-full px-4 py-6 gap-4">
+      <.admin_page_header
+        title={@page_title}
+        subtitle={
+          if @live_action == :new,
+            do: gettext("Create a new department."),
+            else: gettext("Update department details.")
+        }
+      />
 
-      <div class="card bg-base-100 shadow">
-        <div class="card-body">
-          <.form for={@form} id="department-form" phx-change="validate" phx-submit="save" phx-debounce="300" class="flex flex-col gap-3">
-            <.input field={@form[:name]} label={gettext("Name")} required />
-            <.textarea field={@form[:description]} label={gettext("Description")} />
-            <div class="flex justify-end gap-2 mt-2">
-              <.link navigate={Paths.departments()} class="btn btn-ghost btn-sm">{gettext("Cancel")}</.link>
-              <button type="submit" phx-disable-with={gettext("Saving…")} class="btn btn-primary btn-sm">
-                <%= if @live_action == :new, do: gettext("Create"), else: gettext("Save") %>
-              </button>
-            </div>
-          </.form>
-        </div>
+      <div class="card bg-base-100 shadow max-w-3xl mx-auto w-full">
+        <.multilang_tabs
+          multilang_enabled={@multilang_enabled}
+          language_tabs={@language_tabs}
+          current_lang={@current_lang}
+        />
+
+        <.multilang_fields_wrapper
+          multilang_enabled={@multilang_enabled}
+          current_lang={@current_lang}
+        >
+          <div class="card-body">
+            <.form
+              for={@form}
+              id="department-form"
+              phx-change="validate"
+              phx-submit="save"
+              phx-debounce="300"
+              class="flex flex-col gap-3"
+            >
+              <.translatable_field
+                field_name="name"
+                form_prefix="department"
+                changeset={@form.source}
+                schema_field={:name}
+                multilang_enabled={@multilang_enabled}
+                current_lang={@current_lang}
+                primary_language={@primary_language}
+                lang_data={Helpers.lang_data(@form, @current_lang)}
+                secondary_name={"department[translations][#{@current_lang}][name]"}
+                lang_data_key="name"
+                label={gettext("Name")}
+                required
+              />
+
+              <.translatable_field
+                field_name="description"
+                form_prefix="department"
+                changeset={@form.source}
+                schema_field={:description}
+                multilang_enabled={@multilang_enabled}
+                current_lang={@current_lang}
+                primary_language={@primary_language}
+                lang_data={Helpers.lang_data(@form, @current_lang)}
+                secondary_name={"department[translations][#{@current_lang}][description]"}
+                lang_data_key="description"
+                label={gettext("Description")}
+                type="textarea"
+              />
+
+              <div class="flex justify-end gap-2 mt-2">
+                <.link navigate={Paths.departments()} class="btn btn-ghost btn-sm">
+                  {gettext("Cancel")}
+                </.link>
+                <button
+                  type="submit"
+                  phx-disable-with={gettext("Saving…")}
+                  class="btn btn-primary btn-sm"
+                >
+                  <%= if @live_action == :new, do: gettext("Create"), else: gettext("Save") %>
+                </button>
+              </div>
+            </.form>
+          </div>
+        </.multilang_fields_wrapper>
       </div>
     </div>
     """

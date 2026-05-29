@@ -112,7 +112,54 @@ All under `/admin/staff/*`: `departments`, `teams`, `people`, plus `.../new`, `.
 
 ## Database
 
-**Migrations live in `phoenix_kit` core** (versioned system). Current migration: `V100` creates all four staff tables. When changing the schema, add the next `VNN` migration in `/www/phoenix_kit/lib/phoenix_kit/migrations/postgres/`.
+**Migrations live in `phoenix_kit` core** (versioned system). The four staff tables ship in `V100`. Later cross-cut changes:
+
+- `V122` bundles `translations JSONB NOT NULL DEFAULT '{}'` on all three top-level staff tables (`phoenix_kit_staff_departments`, `phoenix_kit_staff_teams`, `phoenix_kit_staff_people`) plus a single `name VARCHAR` on `phoenix_kit_staff_people` for the person's full display name.
+
+When changing the schema, add the next `VNN` migration in `/www/phoenix_kit/lib/phoenix_kit/migrations/postgres/`.
+
+## Multilang translations
+
+Department, Team, and Person all carry a `translations` JSONB column for non-primary-language overrides on a subset of free-text fields. Primary-language values stay denormalized in their dedicated columns; the JSONB holds only language-prefixed overrides:
+
+```elixir
+%{"es-ES" => %{"name" => "...", "description" => "..."}}
+```
+
+Translatable fields by schema:
+
+- **Department:** `name`, `description`
+- **Team:** `name`, `description`
+- **Person:** `job_title`, `bio`, `skills`, `notes` (NOT `name` — it's a single full-name field, see below; NOT `work_location` — soft-FK to a Location row that owns its own translations)
+
+Read paths use `<Schema>.localized_<field>/2` helpers (e.g. `Person.localized_job_title(person, "es-ES")`) with primary-fallback semantics: if a language-specific value is missing or empty, returns the primary-column value.
+
+Forms use `<.multilang_tabs>` + `<.multilang_fields_wrapper>` + `<.translatable_field>` from `PhoenixKitWeb.Components.MultilangForm`. The wrapper re-mounts on language switch, so non-translatable fields must render as siblings outside the wrapper or they lose state on every switch.
+
+`L10n.valid_translations_shape?/1` validates the JSONB structure in each schema's changeset (`%{lang_code => %{field => value}}` shape).
+
+## Person.name
+
+A single `name` field (VARCHAR, nullable, max 255) holds the staff person's full display name — consistent with `Department.name`, `Team.name`, `Space.name`, and `Location.name` in the broader plugin ecosystem. The field lives on Person (not on the linked User) because:
+
+- Staff profiles have a defined lifecycle (hire / leave) separate from the underlying auth account.
+- Placeholder users created via `Staff.find_or_create_user_by_email/1` are anonymous (email-only); the staff profile owns the human identity until the placeholder is claimed.
+
+An earlier sketch tried `first_name` / `middle_name` / `last_name` as three columns; the migration was reshaped to a single `name` because most staff systems just want a display name and per-cultural name parsing is out of scope.
+
+## Work location — soft dep on phoenix_kit_locations
+
+`Person.work_location` is a soft FK to a `phoenix_kit_locations` Location row. The column stays VARCHAR (the UUID is stored as a string) to avoid a type-changing migration; the form picks from a select sourced from `PhoenixKitLocations.list_locations/0` when the locations module is enabled.
+
+Hidden when locations is not available:
+
+```elixir
+defp locations_module_enabled? do
+  Code.ensure_loaded?(PhoenixKitLocations) and PhoenixKitLocations.enabled?()
+end
+```
+
+Form-level: the `<.select>` block is rendered with `:if={@location_options != []}` so the field disappears entirely when the soft dep isn't present. Person show falls back to the raw stored value (the UUID or any pre-existing free-text address) when the locations module is unreachable.
 
 ## Placeholder user flow
 
