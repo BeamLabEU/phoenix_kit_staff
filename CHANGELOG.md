@@ -39,7 +39,8 @@ the `translations` JSONB columns and `phoenix_kit_staff_people.name`.
 - **`Person.work_location` is now a soft dependency on
   `phoenix_kit_locations`.** The form renders a Location picker sourced
   via a runtime guard (`Code.ensure_loaded?/1` + `function_exported?/3`
-  + `apply/3`) and hides the field entirely when the locations module
+  + variable-module dispatch, so the optional dep is never referenced at
+  compile time) and hides the field entirely when the locations module
   isn't installed or is disabled. The column stays `VARCHAR` (UUID
   stored as a string) to avoid a type-changing migration.
 - `Person.skills` is now a free-form textarea (was single-line).
