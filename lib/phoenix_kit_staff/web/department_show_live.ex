@@ -16,7 +16,7 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
     # The URL `id` is the UUID, so the topic key is identical either way.
     if connected?(socket), do: StaffPubSub.subscribe(StaffPubSub.topic_department(id))
 
-    case Departments.get(id, preload: [:teams]) do
+    case Departments.get(id) do
       nil ->
         {:ok,
          socket
@@ -42,7 +42,7 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
   end
 
   def handle_info({:staff, _event, _payload}, socket) do
-    case Departments.get(socket.assigns.dept.uuid, preload: [:teams]) do
+    case Departments.get(socket.assigns.dept.uuid) do
       nil ->
         {:noreply, push_navigate(socket, to: Paths.departments())}
 

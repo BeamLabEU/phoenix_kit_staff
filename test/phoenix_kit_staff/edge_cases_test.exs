@@ -228,11 +228,11 @@ defmodule PhoenixKitStaff.EdgeCasesTest do
 
   describe "Person.{status,employment_type}_label fall-through" do
     test "status_label returns translated string for known values" do
-      # The actual translated string varies by gettext config, but the
-      # function MUST return a non-nil binary for known atoms (no
-      # variable-arg leak through gettext).
-      assert is_binary(Person.status_label("active"))
-      assert is_binary(Person.status_label("inactive"))
+      # Pin the exact default-locale (en) output — a `gettext("Active")`
+      # clause, not a variable-arg leak. Under the test's default locale
+      # these are the literal English msgids.
+      assert Person.status_label("active") == "Active"
+      assert Person.status_label("inactive") == "Inactive"
     end
 
     test "status_label returns the original value for unknown statuses" do

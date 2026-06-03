@@ -32,9 +32,9 @@ msgstr "+372 ..."
 #, elixir-autogen, elixir-format
 msgid "1 team"
 msgid_plural "%{count} teams"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%{count} команда"
+msgstr[1] "%{count} команды"
+msgstr[2] "%{count} команд"
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:452
 #, elixir-autogen, elixir-format
@@ -733,9 +733,9 @@ msgstr "завтра"
 #, elixir-autogen, elixir-format
 msgid "🎂 in 1 day"
 msgid_plural "🎂 in %{count} days"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "🎂 через %{count} день"
+msgstr[1] "🎂 через %{count} дня"
+msgstr[2] "🎂 через %{count} дней"
 
 #: lib/phoenix_kit_staff/web/overview_live.ex:114
 #: lib/phoenix_kit_staff/web/person_show_live.ex:87
