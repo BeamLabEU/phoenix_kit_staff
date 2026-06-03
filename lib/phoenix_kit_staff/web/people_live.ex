@@ -2,7 +2,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
   @moduledoc "List staff."
 
   use PhoenixKitWeb, :live_view
-  use Gettext, backend: PhoenixKitWeb.Gettext
+  use Gettext, backend: PhoenixKitStaff.Gettext
 
   require Logger
 
@@ -17,7 +17,11 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
 
     {:ok,
      socket
-     |> assign(page_title: gettext("Staff"), search: "", status: "")
+     |> assign(
+       page_title: Gettext.gettext(PhoenixKitWeb.Gettext, "Staff"),
+       search: "",
+       status: ""
+     )
      |> load_people()}
   end
 
@@ -87,7 +91,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
       <.admin_page_header
-        title={gettext("Staff")}
+        title={Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}
         subtitle={gettext("Everyone on staff, linked to their PhoenixKit user.")}
       >
         <:actions>
@@ -101,18 +105,18 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
         <.form for={%{}} phx-change="filter" class="flex flex-wrap gap-3 items-end">
           <.input
             name="search"
-            label={gettext("Search")}
+            label={Gettext.gettext(PhoenixKitWeb.Gettext, "Search")}
             type="search"
             value={@search}
             placeholder={gettext("search by name or email")}
           />
           <.select
             name="status"
-            label={gettext("Status")}
+            label={Gettext.gettext(PhoenixKitWeb.Gettext, "Status")}
             value={@status}
-            options={[{gettext("All"), ""}, {gettext("Active"), "active"}, {gettext("Inactive"), "inactive"}]}
+            options={[{Gettext.gettext(PhoenixKitWeb.Gettext, "All"), ""}, {Gettext.gettext(PhoenixKitWeb.Gettext, "Active"), "active"}, {Gettext.gettext(PhoenixKitWeb.Gettext, "Inactive"), "inactive"}]}
           />
-          <button type="button" phx-click="clear" class="btn btn-ghost btn-sm">{gettext("Clear")}</button>
+          <button type="button" phx-click="clear" class="btn btn-ghost btn-sm">{Gettext.gettext(PhoenixKitWeb.Gettext, "Clear")}</button>
         </.form>
       </div>
 
@@ -127,11 +131,11 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
             <table class="table">
               <thead>
                 <tr>
-                  <th>{gettext("Name")}</th>
-                  <th>{gettext("Title")}</th>
+                  <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}</th>
+                  <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Title")}</th>
                   <th>{gettext("Primary dept")}</th>
-                  <th>{gettext("Status")}</th>
-                  <th class="text-right">{gettext("Actions")}</th>
+                  <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Status")}</th>
+                  <th class="text-right">{Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}</th>
                 </tr>
               </thead>
               <tbody>

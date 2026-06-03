@@ -294,7 +294,7 @@ ledger and not the start of a leave-tracking subsystem (see the
 - **Tab IDs**: prefix with `:admin_staff_*`
 - **LiveView assigns**: `@phoenix_kit_current_scope`, `@phoenix_kit_current_user`, `@current_locale`, `@url_path` are injected by PhoenixKit's on_mount hooks
 - **LiveView layout**: `use PhoenixKitWeb, :live_view` (in `phoenix_kit_web.ex`) injects `layout: PhoenixKit.LayoutConfig.get_layout()` automatically. No need to wrap templates in `<PhoenixKitWeb.Components.LayoutWrapper.app_layout>` — that wrapper is for LiveViews served outside the admin live_session
-- **Gettext**: all user-visible strings wrapped via `use Gettext, backend: PhoenixKitWeb.Gettext` then `gettext(...)` — shares the parent app's backend, no separate domain
+- **Gettext**: hybrid backends. Staff-**specific** (domain) strings — staff, person, department, team, membership UI — use this module's own backend: `use Gettext, backend: PhoenixKitStaff.Gettext` then `gettext(...)`, with translations in `priv/gettext/` (run `mix gettext.extract` + `mix gettext.merge priv/gettext` here). **Generic** strings already translated workspace-wide (`Save`, `Cancel`, `Edit`, `Name`, `Status`, etc.) stay on core via `Gettext.gettext(PhoenixKitWeb.Gettext, "...")`. Date/time helpers in `l10n.ex` stay on core too. Admin `%Tab{}` labels carry `gettext_backend: PhoenixKitStaff.Gettext` and are kept extractable via `__tab_label_strings__/0` (`gettext_noop`). Rule of thumb: if core's `.po` already has the string, call it on core; otherwise it's domain → staff backend.
 
 ## Pre-commit commands
 

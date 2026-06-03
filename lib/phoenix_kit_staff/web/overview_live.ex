@@ -2,7 +2,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
   @moduledoc "Staff org overview — departments, teams, and people."
 
   use PhoenixKitWeb, :live_view
-  use Gettext, backend: PhoenixKitWeb.Gettext
+  use Gettext, backend: PhoenixKitStaff.Gettext
 
   require Logger
 
@@ -18,7 +18,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
       StaffPubSub.subscribe(StaffPubSub.topic_people())
     end
 
-    {:ok, assign(socket, page_title: gettext("Staff")) |> reload()}
+    {:ok, assign(socket, page_title: Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")) |> reload()}
   end
 
   defp reload(socket) do
@@ -50,7 +50,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-6">
       <.admin_page_header
-        title={gettext("Staff")}
+        title={Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}
         subtitle={gettext("Departments, teams, and the people in them.")}
       >
         <:actions>
@@ -61,7 +61,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
             <.icon name="hero-plus" class="w-4 h-4" /> {gettext("Team")}
           </.link>
           <.link navigate={Paths.new_person()} class="btn btn-ghost btn-sm">
-            <.icon name="hero-plus" class="w-4 h-4" /> {gettext("Staff")}
+            <.icon name="hero-plus" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}
           </.link>
         </:actions>
       </.admin_page_header>
@@ -87,7 +87,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
         <.link navigate={Paths.people()} class="card bg-base-100 shadow-sm border border-base-200 hover:shadow-md transition">
           <div class="card-body p-4">
             <div class="flex items-center gap-2 text-base-content/60 text-xs">
-              <.icon name="hero-identification" class="w-4 h-4" /> {gettext("Staff")}
+              <.icon name="hero-identification" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}
             </div>
             <div class="text-2xl font-bold">{@person_count}</div>
           </div>

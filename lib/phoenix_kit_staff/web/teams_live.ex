@@ -2,7 +2,7 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
   @moduledoc "List teams across all departments."
 
   use PhoenixKitWeb, :live_view
-  use Gettext, backend: PhoenixKitWeb.Gettext
+  use Gettext, backend: PhoenixKitStaff.Gettext
 
   require Logger
 
@@ -91,9 +91,9 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
             <table class="table">
               <thead>
                 <tr>
-                  <th>{gettext("Name")}</th>
+                  <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}</th>
                   <th>{gettext("Department")}</th>
-                  <th class="text-right">{gettext("Actions")}</th>
+                  <th class="text-right">{Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -119,7 +119,7 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
                       type="button"
                       phx-click="delete"
                       phx-value-uuid={team.uuid}
-                      phx-disable-with={gettext("Deleting…")}
+                      phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
                       data-confirm={gettext("Delete team %{name}? This removes all memberships.", name: team.name)}
                       class="btn btn-ghost btn-xs text-error"
                     >

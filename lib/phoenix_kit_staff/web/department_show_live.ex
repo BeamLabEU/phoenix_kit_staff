@@ -2,7 +2,7 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
   @moduledoc "Show a department with its teams."
 
   use PhoenixKitWeb, :live_view
-  use Gettext, backend: PhoenixKitWeb.Gettext
+  use Gettext, backend: PhoenixKitStaff.Gettext
 
   require Logger
 
@@ -63,7 +63,7 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
       <.admin_page_header title={@dept.name} subtitle={@dept.description}>
         <:actions>
           <.link navigate={Paths.edit_department(@dept.uuid)} class="btn btn-ghost btn-sm">
-            <.icon name="hero-pencil" class="w-4 h-4" /> {gettext("Edit")}
+            <.icon name="hero-pencil" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
           </.link>
         </:actions>
       </.admin_page_header>
@@ -84,7 +84,7 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
               <table class="table table-sm">
                 <thead>
                   <tr>
-                    <th>{gettext("Name")}</th>
+                    <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -11,6 +11,27 @@ defmodule PhoenixKitStaff do
   """
 
   use PhoenixKit.Module
+  use Gettext, backend: PhoenixKitStaff.Gettext
+
+  # Tab labels are translated at render time via each `%Tab{}`'s
+  # `gettext_backend`, so they aren't `gettext/1` call sites and wouldn't be
+  # picked up by `mix gettext.extract`. List them through `gettext_noop/1`
+  # (extracts the msgid without translating here) so they stay in the staff
+  # domain `.po`. Title-case here mirrors the nav labels; the sentence-case
+  # page titles (`"New department"`, etc.) are separate LV strings.
+  @doc false
+  def __tab_label_strings__ do
+    [
+      gettext_noop("Staff"),
+      gettext_noop("Overview"),
+      gettext_noop("New Department"),
+      gettext_noop("Edit Department"),
+      gettext_noop("New Team"),
+      gettext_noop("Edit Team"),
+      gettext_noop("New Staff"),
+      gettext_noop("Edit Staff")
+    ]
+  end
 
   alias PhoenixKit.Dashboard.Tab
   alias PhoenixKit.Settings
@@ -66,6 +87,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff,
         label: "Staff",
+        gettext_backend: PhoenixKitStaff.Gettext,
         icon: "hero-users",
         path: "staff",
         priority: 650,
@@ -83,6 +105,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff_overview,
         label: "Overview",
+        gettext_backend: PhoenixKitStaff.Gettext,
         icon: "hero-home",
         path: "staff",
         priority: 651,
@@ -95,6 +118,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff_departments,
         label: "Departments",
+        gettext_backend: PhoenixKitStaff.Gettext,
         icon: "hero-building-office-2",
         path: "staff/departments",
         priority: 652,
@@ -107,6 +131,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff_teams,
         label: "Teams",
+        gettext_backend: PhoenixKitStaff.Gettext,
         icon: "hero-user-group",
         path: "staff/teams",
         priority: 653,
@@ -119,6 +144,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff_people,
         label: "Staff",
+        gettext_backend: PhoenixKitStaff.Gettext,
         icon: "hero-identification",
         path: "staff/people",
         priority: 654,
@@ -134,6 +160,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff_department_new,
         label: "New Department",
+        gettext_backend: PhoenixKitStaff.Gettext,
         path: "staff/departments/new",
         level: :admin,
         permission: module_key(),
@@ -144,6 +171,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff_department_edit,
         label: "Edit Department",
+        gettext_backend: PhoenixKitStaff.Gettext,
         path: "staff/departments/:id/edit",
         level: :admin,
         permission: module_key(),
@@ -154,6 +182,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff_department_show,
         label: "Department",
+        gettext_backend: PhoenixKitStaff.Gettext,
         path: "staff/departments/:id",
         level: :admin,
         permission: module_key(),
@@ -164,6 +193,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff_team_new,
         label: "New Team",
+        gettext_backend: PhoenixKitStaff.Gettext,
         path: "staff/teams/new",
         level: :admin,
         permission: module_key(),
@@ -174,6 +204,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff_team_edit,
         label: "Edit Team",
+        gettext_backend: PhoenixKitStaff.Gettext,
         path: "staff/teams/:id/edit",
         level: :admin,
         permission: module_key(),
@@ -184,6 +215,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff_team_show,
         label: "Team",
+        gettext_backend: PhoenixKitStaff.Gettext,
         path: "staff/teams/:id",
         level: :admin,
         permission: module_key(),
@@ -194,6 +226,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff_person_new,
         label: "New Staff",
+        gettext_backend: PhoenixKitStaff.Gettext,
         path: "staff/people/new",
         level: :admin,
         permission: module_key(),
@@ -204,6 +237,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff_person_edit,
         label: "Edit Staff",
+        gettext_backend: PhoenixKitStaff.Gettext,
         path: "staff/people/:id/edit",
         level: :admin,
         permission: module_key(),
@@ -214,6 +248,7 @@ defmodule PhoenixKitStaff do
       %Tab{
         id: :admin_staff_person_show,
         label: "Staff",
+        gettext_backend: PhoenixKitStaff.Gettext,
         path: "staff/people/:id",
         level: :admin,
         permission: module_key(),
