@@ -66,6 +66,10 @@ defmodule PhoenixKitStaff.MixProject do
       {:phoenix_kit, "~> 1.7.125"},
       {:phoenix_live_view, "~> 1.1"},
       {:ecto_sql, "~> 3.13"},
+      # Own Gettext backend for staff-specific (domain) UI strings; generic
+      # strings stay on core's `PhoenixKitWeb.Gettext`. `mix gettext.extract`
+      # / `gettext.merge` run against this app's `priv/gettext`.
+      {:gettext, "~> 0.26 or ~> 1.0"},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},

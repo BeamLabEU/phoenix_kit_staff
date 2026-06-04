@@ -2,7 +2,7 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
   @moduledoc "Show a team and manage its memberships."
 
   use PhoenixKitWeb, :live_view
-  use Gettext, backend: PhoenixKitWeb.Gettext
+  use Gettext, backend: PhoenixKitStaff.Gettext
 
   require Logger
 
@@ -144,7 +144,7 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
         </p>
         <:actions>
           <.link navigate={Paths.edit_team(@team.uuid)} class="btn btn-ghost btn-sm">
-            <.icon name="hero-pencil" class="w-4 h-4" /> {gettext("Edit")}
+            <.icon name="hero-pencil" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
           </.link>
         </:actions>
       </.admin_page_header>
@@ -160,12 +160,12 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
             <.form for={@add_form} phx-submit="add_person" class="flex flex-wrap gap-2 items-end">
               <.select
                 field={@add_form[:staff_person_uuid]}
-                label={gettext("Staff")}
+                label={Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}
                 options={Enum.map(@available_people, &{person_label(&1), &1.uuid})}
                 prompt={gettext("Select staff")}
               />
               <button type="submit" phx-disable-with={gettext("Adding…")} class="btn btn-primary btn-sm">
-                <.icon name="hero-plus" class="w-4 h-4" /> {gettext("Add")}
+                <.icon name="hero-plus" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Add")}
               </button>
             </.form>
           <% end %>
@@ -174,14 +174,14 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
 
       <div class="card bg-base-100 shadow">
         <div class="card-body">
-          <h2 class="card-title text-lg">{gettext("Staff")} ({length(@memberships)})</h2>
+          <h2 class="card-title text-lg">{Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")} ({length(@memberships)})</h2>
           <%= if @memberships == [] do %>
             <p class="text-sm text-base-content/60 py-4">{gettext("No staff on this team yet.")}</p>
           <% else %>
             <table class="table table-sm">
               <thead>
                 <tr>
-                  <th>{gettext("Staff")}</th>
+                  <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}</th>
                   <th class="text-right"></th>
                 </tr>
               </thead>

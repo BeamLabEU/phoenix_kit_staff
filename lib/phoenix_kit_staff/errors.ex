@@ -19,7 +19,7 @@ defmodule PhoenixKitStaff.Errors do
      conditions get a new atom + a new branch here.
   """
 
-  use Gettext, backend: PhoenixKitWeb.Gettext
+  use Gettext, backend: PhoenixKitStaff.Gettext
 
   require Logger
 

@@ -2,7 +2,7 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
   @moduledoc "Create or edit a department."
 
   use PhoenixKitWeb, :live_view
-  use Gettext, backend: PhoenixKitWeb.Gettext
+  use Gettext, backend: PhoenixKitStaff.Gettext
 
   import PhoenixKitWeb.Components.MultilangForm
 
@@ -178,7 +178,7 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
                 lang_data={Helpers.lang_data(@form, @current_lang)}
                 secondary_name={"department[translations][#{@current_lang}][name]"}
                 lang_data_key="name"
-                label={gettext("Name")}
+                label={Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}
                 required
               />
 
@@ -193,20 +193,20 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
                 lang_data={Helpers.lang_data(@form, @current_lang)}
                 secondary_name={"department[translations][#{@current_lang}][description]"}
                 lang_data_key="description"
-                label={gettext("Description")}
+                label={Gettext.gettext(PhoenixKitWeb.Gettext, "Description")}
                 type="textarea"
               />
 
               <div class="flex justify-end gap-2 mt-2">
                 <.link navigate={Paths.departments()} class="btn btn-ghost btn-sm">
-                  {gettext("Cancel")}
+                  {Gettext.gettext(PhoenixKitWeb.Gettext, "Cancel")}
                 </.link>
                 <button
                   type="submit"
-                  phx-disable-with={gettext("Saving…")}
+                  phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Saving…")}
                   class="btn btn-primary btn-sm"
                 >
-                  <%= if @live_action == :new, do: gettext("Create"), else: gettext("Save") %>
+                  <%= if @live_action == :new, do: gettext("Create"), else: Gettext.gettext(PhoenixKitWeb.Gettext, "Save") %>
                 </button>
               </div>
             </.form>

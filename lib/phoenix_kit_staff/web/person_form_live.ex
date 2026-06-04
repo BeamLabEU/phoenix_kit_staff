@@ -2,7 +2,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   @moduledoc "Create or edit a staff person."
 
   use PhoenixKitWeb, :live_view
-  use Gettext, backend: PhoenixKitWeb.Gettext
+  use Gettext, backend: PhoenixKitStaff.Gettext
 
   import PhoenixKitWeb.Components.MultilangForm
 
@@ -499,7 +499,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             <%= if @email_editable? do %>
               <div>
                 <label class="label mb-2">
-                  <span class="label-text font-semibold">{gettext("Email")}</span>
+                  <span class="label-text font-semibold">{Gettext.gettext(PhoenixKitWeb.Gettext, "Email")}</span>
                   <%= if @live_action == :edit do %>
                     <span class="label-text-alt text-base-content/50 font-normal">
                       {gettext("(editable — account not yet claimed)")}
@@ -554,7 +554,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             <% else %>
               <div>
                 <label class="label mb-2">
-                  <span class="label-text font-semibold">{gettext("User")}</span>
+                  <span class="label-text font-semibold">{Gettext.gettext(PhoenixKitWeb.Gettext, "User")}</span>
                   <span class="label-text-alt text-base-content/50 font-normal">
                     <.icon name="hero-lock-closed" class="w-3 h-3 inline" /> {gettext("locked")}
                   </span>
@@ -587,7 +587,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
                 {gettext("Intern"), "intern"},
                 {gettext("Temporary"), "temporary"}
               ]}
-              prompt={gettext("—")}
+              prompt={Gettext.gettext(PhoenixKitWeb.Gettext, "—")}
             />
 
             <div class="grid grid-cols-2 gap-2">
@@ -605,22 +605,22 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
               field={@form[:work_location]}
               label={gettext("Work location")}
               options={@location_options}
-              prompt={gettext("—")}
+              prompt={Gettext.gettext(PhoenixKitWeb.Gettext, "—")}
             />
 
             <.select
               field={@form[:status]}
-              label={gettext("Status")}
-              options={[{gettext("Active"), "active"}, {gettext("Inactive"), "inactive"}]}
+              label={Gettext.gettext(PhoenixKitWeb.Gettext, "Status")}
+              options={[{Gettext.gettext(PhoenixKitWeb.Gettext, "Active"), "active"}, {Gettext.gettext(PhoenixKitWeb.Gettext, "Inactive"), "inactive"}]}
             />
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Organization")}</div>
+            <div class="divider text-xs text-base-content/50 my-0">{Gettext.gettext(PhoenixKitWeb.Gettext, "Organization")}</div>
 
             <.select
               field={@form[:primary_department_uuid]}
               label={gettext("Primary department")}
               options={@dept_options}
-              prompt={gettext("None")}
+              prompt={Gettext.gettext(PhoenixKitWeb.Gettext, "None")}
             />
             <%= if @team_options != [] do %>
               <.select
@@ -628,7 +628,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
                 label={gettext("Team")}
                 value={@selected_team_uuid}
                 options={@team_options}
-                prompt={gettext("None")}
+                prompt={Gettext.gettext(PhoenixKitWeb.Gettext, "None")}
               />
             <% end %>
 
@@ -652,7 +652,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             <div class="divider text-xs text-base-content/50 my-0">{gettext("Emergency contact")}</div>
 
             <div class="grid grid-cols-2 gap-2">
-              <.input field={@form[:emergency_contact_name]} label={gettext("Name")} placeholder={gettext("Contact's full name")} />
+              <.input field={@form[:emergency_contact_name]} label={Gettext.gettext(PhoenixKitWeb.Gettext, "Name")} placeholder={gettext("Contact's full name")} />
               <.input
                 field={@form[:emergency_contact_relationship]}
                 label={gettext("Relationship")}
@@ -662,9 +662,9 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             <.input field={@form[:emergency_contact_phone]} label={gettext("Phone")} placeholder={gettext("+372 ...")} />
 
             <div class="flex justify-end gap-2 mt-4">
-              <.link navigate={Paths.people()} class="btn btn-ghost btn-sm">{gettext("Cancel")}</.link>
-              <button type="submit" phx-disable-with={gettext("Saving…")} class="btn btn-primary btn-sm">
-                <%= if @live_action == :new, do: gettext("Create"), else: gettext("Save") %>
+              <.link navigate={Paths.people()} class="btn btn-ghost btn-sm">{Gettext.gettext(PhoenixKitWeb.Gettext, "Cancel")}</.link>
+              <button type="submit" phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Saving…")} class="btn btn-primary btn-sm">
+                <%= if @live_action == :new, do: gettext("Create"), else: Gettext.gettext(PhoenixKitWeb.Gettext, "Save") %>
               </button>
             </div>
           </div>

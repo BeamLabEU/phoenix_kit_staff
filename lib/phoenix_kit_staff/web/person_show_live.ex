@@ -2,7 +2,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   @moduledoc "Show a staff person's full profile and team memberships."
 
   use PhoenixKitWeb, :live_view
-  use Gettext, backend: PhoenixKitWeb.Gettext
+  use Gettext, backend: PhoenixKitStaff.Gettext
 
   require Logger
 
@@ -118,7 +118,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
       >
         <:actions>
           <.link navigate={Paths.edit_person(@person.uuid)} class="btn btn-ghost btn-sm">
-            <.icon name="hero-pencil" class="w-4 h-4" /> {gettext("Edit")}
+            <.icon name="hero-pencil" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
           </.link>
         </:actions>
       </.admin_page_header>
@@ -178,7 +178,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
               </h2>
               <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-2">
                 <%= if @person.employment_type do %>
-                  <dt class="text-base-content/60">{gettext("Type")}</dt>
+                  <dt class="text-base-content/60">{Gettext.gettext(PhoenixKitWeb.Gettext, "Type")}</dt>
                   <dd>{Person.employment_type_label(@person.employment_type)}</dd>
                 <% end %>
                 <%= if @person.employment_start_date do %>
@@ -251,7 +251,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
               </h2>
               <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-2">
                 <%= if @person.emergency_contact_name do %>
-                  <dt class="text-base-content/60">{gettext("Name")}</dt>
+                  <dt class="text-base-content/60">{Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}</dt>
                   <dd>{@person.emergency_contact_name}</dd>
                 <% end %>
                 <%= if @person.emergency_contact_relationship do %>
