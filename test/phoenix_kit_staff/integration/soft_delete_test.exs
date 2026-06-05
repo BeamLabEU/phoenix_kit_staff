@@ -8,8 +8,8 @@ defmodule PhoenixKitStaff.Integration.SoftDeleteTest do
 
   use PhoenixKitStaff.DataCase, async: false
 
-  alias PhoenixKitStaff.Staff
   alias PhoenixKitStaff.Schemas.Person
+  alias PhoenixKitStaff.Staff
 
   describe "trash_person/1" do
     test "sets status to trashed and stashes the prior status" do
