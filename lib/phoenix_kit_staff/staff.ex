@@ -512,21 +512,30 @@ defmodule PhoenixKitStaff.Staff do
 
     from(p in Person,
       where: p.status == "active" and not is_nil(p.date_of_birth),
+      # `today` is bound as a UTC date param (not Postgres `CURRENT_DATE`,
+      # which is the DB session timezone) so the SQL window matches the
+      # Elixir `days_until` computation below exactly, regardless of the
+      # connection's TimeZone setting.
       where:
         fragment(
           """
           ((CASE
-             WHEN (? + (EXTRACT(YEAR FROM CURRENT_DATE)::int - EXTRACT(YEAR FROM ?)::int) * INTERVAL '1 year')::date < CURRENT_DATE
-               THEN (? + (EXTRACT(YEAR FROM CURRENT_DATE)::int - EXTRACT(YEAR FROM ?)::int + 1) * INTERVAL '1 year')::date
-             ELSE (? + (EXTRACT(YEAR FROM CURRENT_DATE)::int - EXTRACT(YEAR FROM ?)::int) * INTERVAL '1 year')::date
-           END) - CURRENT_DATE) <= ?
+             WHEN (? + (EXTRACT(YEAR FROM ?)::int - EXTRACT(YEAR FROM ?)::int) * INTERVAL '1 year')::date < ?
+               THEN (? + (EXTRACT(YEAR FROM ?)::int - EXTRACT(YEAR FROM ?)::int + 1) * INTERVAL '1 year')::date
+             ELSE (? + (EXTRACT(YEAR FROM ?)::int - EXTRACT(YEAR FROM ?)::int) * INTERVAL '1 year')::date
+           END) - ?) <= ?
           """,
           p.date_of_birth,
+          type(^today, :date),
+          p.date_of_birth,
+          type(^today, :date),
+          p.date_of_birth,
+          type(^today, :date),
           p.date_of_birth,
           p.date_of_birth,
+          type(^today, :date),
           p.date_of_birth,
-          p.date_of_birth,
-          p.date_of_birth,
+          type(^today, :date),
           ^window_days
         ),
       preload: [:user]
