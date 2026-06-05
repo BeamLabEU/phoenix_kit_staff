@@ -18,7 +18,12 @@ defmodule PhoenixKitStaff.Schemas.Person do
   @primary_key {:uuid, UUIDv7, autogenerate: true}
   @foreign_key_type UUIDv7
 
+  # User-selectable lifecycle statuses (the form's status dropdown).
   @statuses ~w(active inactive)
+  # Soft-delete sentinel — set via `Staff.trash_person/2`, never offered
+  # in the form. Kept out of `@statuses` so the form dropdown stays
+  # active/inactive, but allowed by the changeset's status validation.
+  @soft_delete_status "trashed"
   @employment_types ~w(full_time part_time contractor intern temporary)
 
   # Person carries a `translations` JSONB for the subset of free-text
@@ -61,6 +66,7 @@ defmodule PhoenixKitStaff.Schemas.Person do
           emergency_contact_phone: String.t() | nil,
           emergency_contact_relationship: String.t() | nil,
           translations: translations_map(),
+          metadata: map(),
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
@@ -85,6 +91,7 @@ defmodule PhoenixKitStaff.Schemas.Person do
     field(:emergency_contact_relationship, :string)
 
     field(:translations, :map, default: %{})
+    field(:metadata, :map, default: %{})
 
     belongs_to(:user, User, foreign_key: :user_uuid, references: :uuid)
 
@@ -108,14 +115,14 @@ defmodule PhoenixKitStaff.Schemas.Person do
                work_phone personal_phone bio skills notes
                date_of_birth personal_email
                emergency_contact_name emergency_contact_phone
-               emergency_contact_relationship translations)a
+               emergency_contact_relationship translations metadata)a
 
   @spec changeset(t() | Ecto.Changeset.t(t()), map()) :: Ecto.Changeset.t(t())
   def changeset(person, attrs) do
     person
     |> cast(attrs, @required ++ @optional)
     |> validate_required(@required)
-    |> validate_inclusion(:status, @statuses)
+    |> validate_inclusion(:status, @statuses ++ [@soft_delete_status])
     |> validate_inclusion(:employment_type, @employment_types,
       message: gettext("must be one of: %{values}", values: Enum.join(@employment_types, ", "))
     )
@@ -141,6 +148,15 @@ defmodule PhoenixKitStaff.Schemas.Person do
 
   def statuses, do: @statuses
   def employment_types, do: @employment_types
+
+  @doc "The soft-delete sentinel value stored in `status`."
+  @spec soft_delete_status() :: String.t()
+  def soft_delete_status, do: @soft_delete_status
+
+  @doc "Whether the person is soft-deleted (trashed)."
+  @spec trashed?(t()) :: boolean()
+  def trashed?(%__MODULE__{status: @soft_delete_status}), do: true
+  def trashed?(%__MODULE__{}), do: false
 
   @doc "DB-column field names that participate in the `translations` JSONB."
   @spec translatable_fields() :: [String.t()]
@@ -189,6 +205,7 @@ defmodule PhoenixKitStaff.Schemas.Person do
   @doc "Translated label for a status value (for UI display)."
   def status_label("active"), do: gettext("Active")
   def status_label("inactive"), do: gettext("Inactive")
+  def status_label("trashed"), do: gettext("Trashed")
   def status_label(other), do: other
 
   def employment_type_label("full_time"), do: gettext("Full-time")

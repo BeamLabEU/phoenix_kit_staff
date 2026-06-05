@@ -94,6 +94,17 @@ defmodule PhoenixKitStaff.PubSub do
     Manager.broadcast(topic_person(uuid), msg)
   end
 
+  @doc """
+  Broadcasts a bulk person-change to the people topic only (no single
+  uuid). Used by `bulk_trash`/`bulk_restore`/`bulk_delete` where many
+  rows change at once — list views reload, and per-person show views
+  re-fetch via their catch-all `{:staff, _, _}` clause.
+  """
+  @spec broadcast_people_bulk(event()) :: :ok
+  def broadcast_people_bulk(event) do
+    Manager.broadcast(topic_people(), {:staff, event, %{bulk: true}})
+  end
+
   @doc "Broadcasts a team-membership event to the teams, team, people, and person topics."
   @spec broadcast_team_membership(event(), %{
           required(:team_uuid) => UUIDv7.t() | String.t(),

@@ -18,6 +18,10 @@ defmodule PhoenixKitStaff.Staff do
 
   defp repo, do: PhoenixKit.RepoHelper.repo()
 
+  # Soft-delete sentinel, mirrors `Person.soft_delete_status/0`. Defined
+  # here too so it's usable in guards and compile-time query pins.
+  @soft_delete_status "trashed"
+
   @email_regex ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
   @doc "Returns the regex used to validate emails throughout the staff module."
@@ -166,24 +170,44 @@ defmodule PhoenixKitStaff.Staff do
 
   # ── People ─────────────────────────────────────────────────────────
 
-  @doc "Lists people. Accepts `:preload`, `:status` filter, and `:search` (matches name or user email)."
+  @doc """
+  Lists people. Accepts `:preload`, `:status` filter, `:search` (matches
+  name or user email), and `:include_trashed` (default `false`).
+
+  Trashed (soft-deleted) people are **excluded by default**. Pass
+  `status: "trashed"` for the Trash view, or `include_trashed: true` to
+  list everything regardless of status.
+  """
   @spec list_people(keyword()) :: [Person.t()]
   def list_people(opts \\ []) do
     preload = Keyword.get(opts, :preload, [:user, :primary_department])
     status = Keyword.get(opts, :status)
+    include_trashed = Keyword.get(opts, :include_trashed, false)
     search = opts |> Keyword.get(:search) |> normalize_search()
 
     Person
-    |> maybe_filter_status(status)
+    |> scope_status(status, include_trashed)
     |> maybe_filter_search(search)
     |> order_by([p], asc: p.status, desc: p.inserted_at)
     |> preload(^preload)
     |> repo().all()
   end
 
-  defp maybe_filter_status(query, nil), do: query
-  defp maybe_filter_status(query, ""), do: query
-  defp maybe_filter_status(query, status), do: where(query, [p], p.status == ^status)
+  # Status scoping with trashed-exclusion by default:
+  #   * "trashed"           → only trashed (the Trash view)
+  #   * "active"/"inactive" → that status (inherently excludes trashed)
+  #   * nil/"" + include?   → everything
+  #   * nil/"" (default)    → everything except trashed
+  defp scope_status(query, @soft_delete_status, _include),
+    do: where(query, [p], p.status == ^@soft_delete_status)
+
+  defp scope_status(query, status, _include) when status in ["active", "inactive"],
+    do: where(query, [p], p.status == ^status)
+
+  defp scope_status(query, _blank, true), do: query
+
+  defp scope_status(query, _blank, false),
+    do: where(query, [p], p.status != ^@soft_delete_status)
 
   defp maybe_filter_search(query, nil), do: query
 
@@ -235,13 +259,40 @@ defmodule PhoenixKitStaff.Staff do
   @spec change_person(Person.t(), map()) :: Ecto.Changeset.t(Person.t())
   def change_person(%Person{} = p, attrs \\ %{}), do: Person.changeset(p, attrs)
 
-  @doc "Inserts a person and broadcasts `:person_created` on success."
-  @spec create_person(map()) :: {:ok, Person.t()} | {:error, Ecto.Changeset.t(Person.t())}
+  @doc """
+  Inserts a person and broadcasts `:person_created` on success.
+
+  Guards the strict 1:1 `user_uuid` unique constraint against a confusing
+  failure: if the target user already has a **trashed** staff profile,
+  re-adding them would trip the unique index. Instead this returns
+  `{:error, {:trashed_person_exists, trashed_person}}` so the caller can
+  offer to restore the existing record rather than creating a duplicate.
+  """
+  @spec create_person(map()) ::
+          {:ok, Person.t()}
+          | {:error, Ecto.Changeset.t(Person.t())}
+          | {:error, {:trashed_person_exists, Person.t()}}
   def create_person(attrs) do
-    with {:ok, person} <- %Person{} |> Person.changeset(attrs) |> repo().insert() do
-      StaffPubSub.broadcast_person(:person_created, %{uuid: person.uuid})
-      {:ok, person}
+    case trashed_person_for_user(user_uuid_from(attrs)) do
+      %Person{} = trashed ->
+        {:error, {:trashed_person_exists, trashed}}
+
+      nil ->
+        with {:ok, person} <- %Person{} |> Person.changeset(attrs) |> repo().insert() do
+          StaffPubSub.broadcast_person(:person_created, %{uuid: person.uuid})
+          {:ok, person}
+        end
     end
+  end
+
+  defp user_uuid_from(attrs), do: attrs["user_uuid"] || attrs[:user_uuid]
+
+  defp trashed_person_for_user(nil), do: nil
+
+  defp trashed_person_for_user(user_uuid) do
+    Person
+    |> where([p], p.user_uuid == ^user_uuid and p.status == ^@soft_delete_status)
+    |> repo().one()
   end
 
   @doc "Updates a person and broadcasts `:person_updated` on success."
@@ -254,18 +305,197 @@ defmodule PhoenixKitStaff.Staff do
     end
   end
 
-  @doc "Deletes a person and broadcasts `:person_deleted` on success."
-  @spec delete_person(Person.t()) :: {:ok, Person.t()} | {:error, Ecto.Changeset.t(Person.t())}
+  @doc """
+  Soft-deletes a person: sets `status` to `"trashed"` and stashes the
+  prior lifecycle status under `metadata["trashed_from_status"]` so
+  `restore_person/1` can return them to active/inactive. Broadcasts
+  `:person_updated`. Returns `{:error, :already_trashed}` if it's
+  already trashed.
+
+  Project assignments and team memberships are deliberately left intact
+  (the FK rows survive), so the person — and their assignments — come
+  back cleanly on restore. This is the whole point over hard delete,
+  which would silently NULL out project assignments (FK is SET NULL).
+  """
+  @spec trash_person(Person.t()) ::
+          {:ok, Person.t()} | {:error, :already_trashed | Ecto.Changeset.t(Person.t())}
+  def trash_person(%Person{status: @soft_delete_status}), do: {:error, :already_trashed}
+
+  def trash_person(%Person{} = p) do
+    metadata = Map.put(p.metadata || %{}, "trashed_from_status", p.status)
+
+    with {:ok, updated} <-
+           p
+           |> Person.changeset(%{"status" => @soft_delete_status, "metadata" => metadata})
+           |> repo().update() do
+      StaffPubSub.broadcast_person(:person_updated, %{uuid: updated.uuid})
+      {:ok, updated}
+    end
+  end
+
+  @doc """
+  Restores a trashed person to the status they had before trashing
+  (read from `metadata["trashed_from_status"]`, validated against
+  `Person.statuses/0`, defaulting to `"active"`). Clears the stash key
+  but preserves any other metadata. Broadcasts `:person_updated`.
+  Returns `{:error, :not_trashed}` if the person isn't trashed.
+  """
+  @spec restore_person(Person.t()) ::
+          {:ok, Person.t()} | {:error, :not_trashed | Ecto.Changeset.t(Person.t())}
+  def restore_person(%Person{status: @soft_delete_status} = p) do
+    prior = restore_target_status(p.metadata)
+    metadata = Map.delete(p.metadata || %{}, "trashed_from_status")
+
+    with {:ok, updated} <-
+           p
+           |> Person.changeset(%{"status" => prior, "metadata" => metadata})
+           |> repo().update() do
+      StaffPubSub.broadcast_person(:person_updated, %{uuid: updated.uuid})
+      {:ok, updated}
+    end
+  end
+
+  def restore_person(%Person{}), do: {:error, :not_trashed}
+
+  defp restore_target_status(metadata) do
+    case metadata do
+      %{"trashed_from_status" => s} -> if s in Person.statuses(), do: s, else: "active"
+      _ -> "active"
+    end
+  end
+
+  @doc """
+  Permanently deletes a person (hard `Repo.delete`) and broadcasts
+  `:person_deleted`. Intended for the Trash view only.
+
+  The rescue clauses guard a *hypothetical* future `ON DELETE RESTRICT`
+  FK into `phoenix_kit_staff_people`. Today none exist — the projects
+  assignee FK is `ON DELETE SET NULL` and team memberships are
+  `ON DELETE CASCADE` — so a delete won't raise; it succeeds and the
+  caller is expected to have warned that project-assignment links get
+  cleared. The rescue stays as cheap insurance against a future
+  restricting consumer.
+  """
+  @spec delete_person(Person.t()) ::
+          {:ok, Person.t()} | {:error, :referenced_by_external | Ecto.Changeset.t(Person.t())}
   def delete_person(%Person{} = p) do
     with {:ok, deleted} <- repo().delete(p) do
       StaffPubSub.broadcast_person(:person_deleted, %{uuid: deleted.uuid})
       {:ok, deleted}
     end
+  rescue
+    e in Ecto.ConstraintError ->
+      if e.type == :foreign_key,
+        do: {:error, :referenced_by_external},
+        else: reraise(e, __STACKTRACE__)
+
+    e in Postgrex.Error ->
+      if fk_or_not_null_violation?(e),
+        do: {:error, :referenced_by_external},
+        else: reraise(e, __STACKTRACE__)
   end
 
-  @doc "Total number of people."
+  defp fk_or_not_null_violation?(%Postgrex.Error{postgres: %{code: code}}),
+    do: code in [:foreign_key_violation, :not_null_violation]
+
+  defp fk_or_not_null_violation?(_), do: false
+
+  # ── Bulk soft-delete operations ────────────────────────────────────
+
+  @doc """
+  Bulk-trashes the given people. Per-row stashes the prior status into
+  `metadata["trashed_from_status"]` (in a single UPDATE — the SET
+  expressions read the pre-update row, so `status` there is still the
+  old value). Skips rows already trashed. Broadcasts one bulk event.
+  Returns `{:ok, trashed_count}`.
+  """
+  @spec bulk_trash([UUIDv7.t() | String.t()]) :: {:ok, non_neg_integer()}
+  def bulk_trash(uuids) when is_list(uuids) do
+    {count, _} =
+      from(p in Person,
+        where: p.uuid in ^uuids and p.status != ^@soft_delete_status,
+        update: [
+          set: [
+            status: ^@soft_delete_status,
+            metadata:
+              fragment(
+                "jsonb_set(coalesce(?, '{}'::jsonb), '{trashed_from_status}', to_jsonb(?::text))",
+                p.metadata,
+                p.status
+              ),
+            updated_at: ^DateTime.truncate(DateTime.utc_now(), :second)
+          ]
+        ]
+      )
+      |> repo().update_all([])
+
+    if count > 0, do: StaffPubSub.broadcast_people_bulk(:person_updated)
+    {:ok, count}
+  end
+
+  @doc """
+  Bulk-restores trashed people to their stashed prior status (validated
+  to `active`/`inactive`, else `active`), clearing the stash key.
+  Broadcasts one bulk event. Returns `{:ok, restored_count}`.
+  """
+  @spec bulk_restore([UUIDv7.t() | String.t()]) :: {:ok, non_neg_integer()}
+  def bulk_restore(uuids) when is_list(uuids) do
+    {count, _} =
+      from(p in Person,
+        where: p.uuid in ^uuids and p.status == ^@soft_delete_status,
+        update: [
+          set: [
+            status:
+              fragment(
+                "CASE WHEN (?->>'trashed_from_status') IN ('active','inactive') THEN (?->>'trashed_from_status') ELSE 'active' END",
+                p.metadata,
+                p.metadata
+              ),
+            metadata: fragment("(? - 'trashed_from_status')", p.metadata),
+            updated_at: ^DateTime.truncate(DateTime.utc_now(), :second)
+          ]
+        ]
+      )
+      |> repo().update_all([])
+
+    if count > 0, do: StaffPubSub.broadcast_people_bulk(:person_updated)
+    {:ok, count}
+  end
+
+  @doc """
+  Bulk permanent-deletes people. Broadcasts one bulk event. Returns
+  `{:ok, deleted_count}` or `{:error, :referenced_by_external}` if a
+  (hypothetical future) RESTRICT FK blocks the delete.
+  """
+  @spec bulk_delete([UUIDv7.t() | String.t()]) ::
+          {:ok, non_neg_integer()} | {:error, :referenced_by_external}
+  def bulk_delete(uuids) when is_list(uuids) do
+    {count, _} =
+      from(p in Person, where: p.uuid in ^uuids)
+      |> repo().delete_all()
+
+    if count > 0, do: StaffPubSub.broadcast_people_bulk(:person_deleted)
+    {:ok, count}
+  rescue
+    e in [Ecto.ConstraintError, Postgrex.Error] ->
+      if match?(%Ecto.ConstraintError{type: :foreign_key}, e) or fk_or_not_null_violation?(e),
+        do: {:error, :referenced_by_external},
+        else: reraise(e, __STACKTRACE__)
+  end
+
+  @doc "Number of non-trashed people (the active roster size)."
   @spec count_people() :: non_neg_integer()
-  def count_people, do: repo().aggregate(Person, :count, :uuid)
+  def count_people do
+    from(p in Person, where: p.status != ^@soft_delete_status)
+    |> repo().aggregate(:count, :uuid)
+  end
+
+  @doc "Number of trashed (soft-deleted) people."
+  @spec count_trashed() :: non_neg_integer()
+  def count_trashed do
+    from(p in Person, where: p.status == ^@soft_delete_status)
+    |> repo().aggregate(:count, :uuid)
+  end
 
   # ── Upcoming birthdays ─────────────────────────────────────────────
 
@@ -355,9 +585,13 @@ defmodule PhoenixKitStaff.Staff do
     departments = Departments.list(preload: [:teams])
     all_people = list_people()
 
+    # `list_people/0` already excludes trashed, so dept-only and
+    # unassigned buckets are clean. Team rosters come straight from
+    # memberships, so drop memberships whose person is trashed here.
     all_memberships =
       from(tm in TeamMembership, preload: [staff_person: [:user]])
       |> repo().all()
+      |> Enum.reject(&(&1.staff_person.status == @soft_delete_status))
 
     people_by_team =
       Enum.group_by(all_memberships, & &1.team_uuid, & &1.staff_person)
@@ -475,7 +709,9 @@ defmodule PhoenixKitStaff.Staff do
       )
 
     from(p in Person,
-      where: p.uuid not in subquery(person_uuids_on_team),
+      where:
+        p.uuid not in subquery(person_uuids_on_team) and
+          p.status != ^@soft_delete_status,
       preload: [:user],
       order_by: [asc: p.inserted_at]
     )

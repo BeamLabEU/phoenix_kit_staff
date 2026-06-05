@@ -115,6 +115,7 @@ All under `/admin/staff/*`: `departments`, `teams`, `people`, plus `.../new`, `.
 **Migrations live in `phoenix_kit` core** (versioned system). The four staff tables ship in `V100`. Later cross-cut changes:
 
 - `V122` bundles `translations JSONB NOT NULL DEFAULT '{}'` on all three top-level staff tables (`phoenix_kit_staff_departments`, `phoenix_kit_staff_teams`, `phoenix_kit_staff_people`) plus a single `name VARCHAR` on `phoenix_kit_staff_people` for the person's full display name.
+- `V130` adds `metadata JSONB NOT NULL DEFAULT '{}'` on `phoenix_kit_staff_people` (general-purpose, mirrors `entity_data`). Soft-delete uses it to stash `trashed_from_status` so restore returns the person to active/inactive. **Gated**: the module's behavior depends on V130 being in the pinned core Hex release — until core ships it and the `~> 1.7` pin bumps, the module's tests/CI run against a core without the column and go red by design (works locally via the `phoenix_kit_parent` path-override).
 
 When changing the schema, add the next `VNN` migration in `/www/phoenix_kit/lib/phoenix_kit/migrations/postgres/`.
 
@@ -169,11 +170,55 @@ The staff form accepts any email. If the user doesn't exist, `Staff.find_or_crea
 
 The form allows renaming a placeholder's email until it's claimed (via `Staff.rename_placeholder_email/2`, which refuses if the user is confirmed or isn't tagged as a placeholder).
 
+## Soft-delete (people)
+
+`Person` follows the workspace soft-delete convention — a sentinel
+`status = "trashed"` on the existing status column, **never** a
+`deleted_at`. This is mandatory here because `Person.uuid` is an FK
+target from `phoenix_kit_projects` (`Assignment.assigned_person_uuid`,
+core V128, `ON DELETE SET NULL`): a hard delete would silently NULL out
+a person's project assignments. Soft-delete keeps the row (and the
+assignment/membership FK rows) intact.
+
+Context API (`PhoenixKitStaff.Staff`):
+
+- `trash_person/1` — `status` → `"trashed"`, stashing the prior status
+  in `metadata["trashed_from_status"]` (V130 column). `{:error, :already_trashed}` if already trashed.
+- `restore_person/1` — restores to the stashed status (validated against
+  `Person.statuses/0`, else `"active"`), clearing the stash key.
+  `{:error, :not_trashed}` otherwise.
+- `delete_person/1` — **permanent** hard delete (Trash view only).
+  Returns `{:error, :referenced_by_external}` on a FK/NOT-NULL violation
+  — defensive only; today no RESTRICT FK targets people, so it succeeds
+  and clears assignment links (the UI confirm says so).
+- `bulk_trash/1` / `bulk_restore/1` / `bulk_delete/1` — set-based; trash
+  stashes per-row prior status via a single `jsonb_set` UPDATE.
+- `create_person/1` detects an existing **trashed** profile for the same
+  `user_uuid` and returns `{:error, {:trashed_person_exists, person}}`
+  (the strict 1:1 unique constraint is kept; the form offers Restore
+  instead of erroring).
+
+Scoping: `list_people/1` **excludes trashed by default** (pass
+`status: "trashed"` for the Trash view or `include_trashed: true` for
+all); `count_people/0` excludes trashed (`count_trashed/0` is separate);
+`org_tree/0`, `people_not_on_team/1`, and `upcoming_birthdays/1` all
+exclude trashed. `eligible_users/1` deliberately still excludes a
+trashed person's user (they flow through Restore, not re-create).
+
+UI: `PeopleLive` has a "Trashed (N)" status filter, a per-row kebab that
+swaps to Restore / Delete-permanently in the Trash view, and core
+bulk-select (`<.bulk_select_scope>`); bulk permanent-delete routes
+through a `<.confirm_modal>` because the `BulkSelectScope` hook can't
+carry a `data-confirm`. `PersonShowLive` shows a trashed banner +
+Restore / Delete-permanently.
+
 ## Activity logging
 
 Every mutation logs via the `PhoenixKitStaff.Activity` wrapper — **never call `PhoenixKit.Activity.log/1` directly from this plugin**. The wrapper centralizes the `Code.ensure_loaded?(PhoenixKit.Activity)` guard, rescue, and default metadata (module key, actor_role) so every call site stays consistent. Action strings follow `"staff.<resource>_<verb>"`:
 
 - `staff.person_created/updated/deleted`
+- `staff.person_trashed/restored` (soft-delete; `deleted` is now the *permanent* delete)
+- `staff.people_bulk_trashed/restored/deleted` (bulk soft-delete actions)
 - `staff.department_created/updated/deleted`
 - `staff.team_created/updated/deleted`
 - `staff.team_person_added/removed`

@@ -214,6 +214,17 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
          |> put_flash(kind, flash)
          |> push_navigate(to: Paths.person(person.uuid))}
 
+      {:error, {:trashed_person_exists, trashed}} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :error,
+           gettext(
+             "A trashed staff profile already exists for this email — restore it instead of creating a new one."
+           )
+         )
+         |> push_navigate(to: Paths.person(trashed.uuid))}
+
       {:error, atom} when is_atom(atom) ->
         Helpers.log_operation_error("staff.person_created", socket,
           reason: atom,

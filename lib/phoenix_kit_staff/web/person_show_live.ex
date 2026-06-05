@@ -6,9 +6,10 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
   require Logger
 
-  alias PhoenixKitStaff.{L10n, Paths, Staff}
+  alias PhoenixKitStaff.{Activity, L10n, Paths, Staff}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
   alias PhoenixKitStaff.Schemas.Person
+  alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -58,6 +59,87 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   def handle_info(msg, socket) do
     Logger.debug("[Staff] PersonShowLive: unexpected handle_info #{inspect(msg)}")
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("trash", _params, socket) do
+    person = socket.assigns.person
+
+    case Staff.trash_person(person) do
+      {:ok, updated} ->
+        Activity.log("staff.person_trashed",
+          actor_uuid: Activity.actor_uuid(socket),
+          resource_type: "staff_person",
+          resource_uuid: person.uuid,
+          target_uuid: person.user_uuid,
+          metadata: %{}
+        )
+
+        {:noreply,
+         socket |> assign(person: updated) |> put_flash(:info, gettext("Staff moved to trash."))}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, gettext("Could not move staff to trash."))}
+    end
+  end
+
+  def handle_event("restore", _params, socket) do
+    person = socket.assigns.person
+
+    case Staff.restore_person(person) do
+      {:ok, updated} ->
+        Activity.log("staff.person_restored",
+          actor_uuid: Activity.actor_uuid(socket),
+          resource_type: "staff_person",
+          resource_uuid: person.uuid,
+          target_uuid: person.user_uuid,
+          metadata: %{}
+        )
+
+        {:noreply,
+         socket |> assign(person: updated) |> put_flash(:info, gettext("Staff restored."))}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, gettext("Could not restore staff."))}
+    end
+  end
+
+  def handle_event("permanent_delete", _params, socket) do
+    person = socket.assigns.person
+
+    case Staff.delete_person(person) do
+      {:ok, _} ->
+        Activity.log("staff.person_deleted",
+          actor_uuid: Activity.actor_uuid(socket),
+          resource_type: "staff_person",
+          resource_uuid: person.uuid,
+          target_uuid: person.user_uuid,
+          metadata: %{}
+        )
+
+        {:noreply,
+         socket
+         |> put_flash(:info, gettext("Staff permanently deleted."))
+         |> push_navigate(to: Paths.people())}
+
+      {:error, :referenced_by_external} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           gettext("This staff is still referenced elsewhere and couldn't be deleted.")
+         )}
+
+      {:error, reason} ->
+        Helpers.log_operation_error("staff.person_deleted", socket,
+          reason: reason,
+          resource_type: "staff_person",
+          resource_uuid: person.uuid,
+          target_uuid: person.user_uuid
+        )
+
+        {:noreply, put_flash(socket, :error, gettext("Could not delete staff."))}
+    end
   end
 
   defp has_any?(m, fields) do
@@ -117,11 +199,49 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         subtitle={@person.job_title}
       >
         <:actions>
-          <.link navigate={Paths.edit_person(@person.uuid)} class="btn btn-ghost btn-sm">
-            <.icon name="hero-pencil" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
-          </.link>
+          <%= if Person.trashed?(@person) do %>
+            <button
+              type="button"
+              phx-click="restore"
+              phx-disable-with={gettext("Restoring…")}
+              class="btn btn-success btn-sm"
+            >
+              <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> {gettext("Restore")}
+            </button>
+            <button
+              type="button"
+              phx-click="permanent_delete"
+              phx-disable-with={gettext("Deleting…")}
+              data-confirm={gettext("Permanently delete this staff? This cannot be undone and will clear their project-assignment links.")}
+              class="btn btn-error btn-outline btn-sm"
+            >
+              <.icon name="hero-x-circle" class="w-4 h-4" /> {gettext("Delete permanently")}
+            </button>
+          <% else %>
+            <.link navigate={Paths.edit_person(@person.uuid)} class="btn btn-ghost btn-sm">
+              <.icon name="hero-pencil" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
+            </.link>
+            <button
+              type="button"
+              phx-click="trash"
+              phx-disable-with={gettext("Moving…")}
+              data-confirm={gettext("Move this staff to the trash? The user account stays; restore anytime from the Trash filter.")}
+              class="btn btn-ghost btn-sm text-error"
+            >
+              <.icon name="hero-trash" class="w-4 h-4" /> {gettext("Move to trash")}
+            </button>
+          <% end %>
         </:actions>
       </.admin_page_header>
+
+      <div
+        :if={Person.trashed?(@person)}
+        class="alert alert-warning"
+        role="alert"
+      >
+        <.icon name="hero-trash" class="w-5 h-5" />
+        <span>{gettext("This staff is in the trash. Restore to bring them back to the active roster.")}</span>
+      </div>
 
       <%!-- Hero profile card --%>
       <div class="card bg-base-100 shadow">
