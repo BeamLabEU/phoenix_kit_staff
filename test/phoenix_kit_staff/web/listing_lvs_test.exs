@@ -118,7 +118,7 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
       assert html =~ person.user.email
     end
 
-    test "delete event logs activity with actor_uuid + resource_uuid + target_uuid threaded", %{
+    test "trash event logs activity with actor_uuid + resource_uuid + target_uuid threaded", %{
       conn: conn,
       actor_uuid: actor_uuid
     } do
@@ -127,25 +127,25 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
       {:ok, view, _html} = live(conn, "/en/admin/staff/people")
 
       view
-      |> element("button[phx-click='delete'][phx-value-uuid='#{person.uuid}']")
+      |> element("button[phx-click='trash'][phx-value-uuid='#{person.uuid}']")
       |> render_click()
 
-      assert_activity_logged("staff.person_deleted",
+      assert_activity_logged("staff.person_trashed",
         actor_uuid: actor_uuid,
         resource_uuid: person.uuid
       )
 
-      assert render(view) =~ "Staff removed"
+      assert render(view) =~ "Staff moved to trash"
     end
 
-    test "delete with bogus uuid flashes not-found and does NOT log activity", %{conn: conn} do
+    test "trash with bogus uuid flashes not-found and does NOT log activity", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/en/admin/staff/people")
 
       bogus = Ecto.UUID.generate()
 
-      render_click(view, "delete", %{"uuid" => bogus})
+      render_click(view, "trash", %{"uuid" => bogus})
 
-      refute_activity_logged("staff.person_deleted", resource_uuid: bogus)
+      refute_activity_logged("staff.person_trashed", resource_uuid: bogus)
       assert render(view) =~ "Staff not found"
     end
   end
