@@ -50,6 +50,15 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
         |> put_flash(:error, gettext("Staff not found."))
         |> push_navigate(to: Paths.people())
 
+      %Person{status: "trashed"} = person ->
+        # A trashed profile can't be edited in place — that would
+        # un-trash it through the normal update path, skipping the
+        # restore semantics (prior-status + metadata cleanup). Send the
+        # admin to the show page, which offers an explicit Restore.
+        socket
+        |> put_flash(:error, gettext("Restore this staff before editing."))
+        |> push_navigate(to: Paths.person(person.uuid))
+
       person ->
         socket
         |> assign(
@@ -298,7 +307,30 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   end
 
   defp do_update_person(socket, attrs, team_uuid) do
-    case Staff.update_person(socket.assigns.person, attrs) do
+    # Re-fetch before saving: the edit LV may have been open since before
+    # another admin trashed (or deleted) this person. Editing a trashed
+    # row would un-trash it through the normal update path, bypassing the
+    # restore semantics — so re-check the *current* DB state and bail.
+    case Staff.get_person(socket.assigns.person.uuid) do
+      nil ->
+        {:noreply,
+         socket
+         |> put_flash(:error, gettext("Staff not found."))
+         |> push_navigate(to: Paths.people())}
+
+      %Person{status: "trashed"} = person ->
+        {:noreply,
+         socket
+         |> put_flash(:error, gettext("Restore this staff before editing."))
+         |> push_navigate(to: Paths.person(person.uuid))}
+
+      current ->
+        do_update_person(socket, current, attrs, team_uuid)
+    end
+  end
+
+  defp do_update_person(socket, current, attrs, team_uuid) do
+    case Staff.update_person(current, attrs) do
       {:ok, person} ->
         team_result = maybe_add_to_team(socket, person, team_uuid)
 

@@ -207,5 +207,33 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
       assert {:error, {:live_redirect, %{to: "/en/admin/staff/people"}}} =
                live(conn, "/en/admin/staff/people/#{bogus}/edit")
     end
+
+    # Regression: editing a trashed person must not be possible in place
+    # (it would un-trash via the normal update path). Redirect to show.
+    test "edit of a trashed person redirects to the show page", %{conn: conn} do
+      person = fixture_person()
+      {:ok, trashed} = PhoenixKitStaff.Staff.trash_person(person)
+
+      assert {:error, {:live_redirect, %{to: to}}} =
+               live(conn, "/en/admin/staff/people/#{trashed.uuid}/edit")
+
+      assert to == "/en/admin/staff/people/#{trashed.uuid}"
+    end
+
+    # Regression: the save path re-checks current DB status, so a save
+    # from an edit LV opened before a concurrent trash can't un-trash
+    # the person (the mount guard alone wouldn't catch this race).
+    test "save after a concurrent trash refuses and leaves the person trashed", %{conn: conn} do
+      person = fixture_person()
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      # Another admin trashes the person while this edit LV is open.
+      {:ok, _} = PhoenixKitStaff.Staff.trash_person(person)
+
+      render_submit(view, "save", %{"person" => %{"status" => "active"}})
+
+      assert_redirect(view, "/en/admin/staff/people/#{person.uuid}")
+      assert PhoenixKitStaff.Staff.get_person(person.uuid).status == "trashed"
+    end
   end
 end

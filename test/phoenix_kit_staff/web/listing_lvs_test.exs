@@ -148,6 +148,42 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
       refute_activity_logged("staff.person_trashed", resource_uuid: bogus)
       assert render(view) =~ "Staff not found"
     end
+
+    # Regression for a Codex finding: the bulk-select hook supplies the
+    # uuids client-side, so a malformed/adversarial payload must not crash
+    # the LV — `sanitize_uuids/1` drops anything that isn't a valid UUID.
+    test "bulk_trash ignores malformed uuids and trashes only the valid ones", %{conn: conn} do
+      person = fixture_person()
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people")
+
+      render_click(view, "bulk_trash", %{
+        "uuids" => [person.uuid, "not-a-uuid", 42, %{"k" => "v"}]
+      })
+
+      assert Process.alive?(view.pid)
+      assert PhoenixKitStaff.Staff.get_person(person.uuid).status == "trashed"
+    end
+
+    # Regression for a Codex finding: a zero-count bulk op (stale/already-
+    # trashed selection) must NOT write an audit row; a real one must.
+    test "bulk_trash logs activity only when it actually trashes someone", %{
+      conn: conn,
+      actor_uuid: actor_uuid
+    } do
+      already = fixture_person()
+      {:ok, already_trashed} = PhoenixKitStaff.Staff.trash_person(already)
+      fresh = fixture_person()
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people")
+
+      # No-op: the row is already trashed → count 0 → no log.
+      render_click(view, "bulk_trash", %{"uuids" => [already_trashed.uuid]})
+      refute_activity_logged("staff.people_bulk_trashed", actor_uuid: actor_uuid)
+
+      # Real action: count 1 → audit row present.
+      render_click(view, "bulk_trash", %{"uuids" => [fresh.uuid]})
+      assert_activity_logged("staff.people_bulk_trashed", actor_uuid: actor_uuid)
+    end
   end
 
   describe "DepartmentShowLive" do

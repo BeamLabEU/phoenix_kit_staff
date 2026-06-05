@@ -382,10 +382,20 @@ defmodule PhoenixKitStaff.Staff do
   @spec delete_person(Person.t()) ::
           {:ok, Person.t()}
           | {:error, :not_trashed | :referenced_by_external | Ecto.Changeset.t(Person.t())}
-  def delete_person(%Person{status: @soft_delete_status} = p) do
-    with {:ok, deleted} <- repo().delete(p) do
-      StaffPubSub.broadcast_person(:person_deleted, %{uuid: deleted.uuid})
-      {:ok, deleted}
+  def delete_person(%Person{uuid: uuid} = p) do
+    # DB-scoped delete keyed on the *current* status, not the in-memory
+    # struct — a stale `%Person{status: "trashed"}` can't delete a row
+    # that was restored to active in the meantime (TOCTOU-safe). 0 rows
+    # affected ⇒ not currently trashed (or already gone) ⇒ :not_trashed.
+    {count, _} =
+      from(x in Person, where: x.uuid == ^uuid and x.status == ^@soft_delete_status)
+      |> repo().delete_all()
+
+    if count == 1 do
+      StaffPubSub.broadcast_person(:person_deleted, %{uuid: uuid})
+      {:ok, p}
+    else
+      {:error, :not_trashed}
     end
   rescue
     e in Ecto.ConstraintError ->
@@ -398,8 +408,6 @@ defmodule PhoenixKitStaff.Staff do
         do: {:error, :referenced_by_external},
         else: reraise(e, __STACKTRACE__)
   end
-
-  def delete_person(%Person{}), do: {:error, :not_trashed}
 
   defp fk_or_not_null_violation?(%Postgrex.Error{postgres: %{code: code}}),
     do: code in [:foreign_key_violation, :not_null_violation]
@@ -649,11 +657,16 @@ defmodule PhoenixKitStaff.Staff do
 
   # ── Team memberships ───────────────────────────────────────────────
 
-  @doc "Memberships on a given team, preloaded with staff_person and user."
+  @doc """
+  Memberships on a given team, preloaded with staff_person and user.
+  Trashed people are excluded — the team roster shows the active members
+  only (the membership row survives a trash, so restore brings them back).
+  """
   @spec list_team_memberships(UUIDv7.t() | String.t()) :: [TeamMembership.t()]
   def list_team_memberships(team_uuid) do
     TeamMembership
-    |> where([tm], tm.team_uuid == ^team_uuid)
+    |> join(:inner, [tm], p in assoc(tm, :staff_person))
+    |> where([tm, p], tm.team_uuid == ^team_uuid and p.status != ^@soft_delete_status)
     |> preload(staff_person: [:user])
     |> order_by([tm], asc: tm.inserted_at)
     |> repo().all()

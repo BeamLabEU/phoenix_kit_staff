@@ -70,6 +70,16 @@ defmodule PhoenixKitStaff.Integration.SoftDeleteTest do
       assert {:error, :not_trashed} = Staff.delete_person(person)
       assert Staff.get_person(person.uuid) != nil
     end
+
+    test "refuses a stale trashed struct whose DB row is now active (TOCTOU)" do
+      person = fixture_person()
+      {:ok, trashed} = Staff.trash_person(person)
+      {:ok, _restored} = Staff.restore_person(trashed)
+
+      # `trashed` still says status: "trashed", but the row is active now.
+      assert {:error, :not_trashed} = Staff.delete_person(trashed)
+      assert Staff.get_person(person.uuid).status == "active"
+    end
   end
 
   describe "changeset hardening" do
@@ -185,6 +195,16 @@ defmodule PhoenixKitStaff.Integration.SoftDeleteTest do
       refute person.uuid in roster_uuids
       # Still excluded from the picker (trashed, not "available").
       refute person.uuid in (Staff.people_not_on_team(team.uuid) |> Enum.map(& &1.uuid))
+    end
+
+    test "list_team_memberships excludes a trashed member from the team roster" do
+      team = fixture_team()
+      person = fixture_person()
+      {:ok, _} = Staff.add_team_person(team.uuid, person.uuid)
+      assert [_] = Staff.list_team_memberships(team.uuid)
+
+      {:ok, _} = Staff.trash_person(person)
+      assert [] = Staff.list_team_memberships(team.uuid)
     end
   end
 end
