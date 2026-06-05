@@ -176,13 +176,17 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
         <div class="card-body">
           <h2 class="card-title text-lg">{Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")} ({length(@memberships)})</h2>
           <%= if @memberships == [] do %>
-            <p class="text-sm text-base-content/60 py-4">{gettext("No staff on this team yet.")}</p>
+            <.empty_state
+              icon="hero-identification"
+              title={gettext("No staff on this team yet.")}
+              class="py-6"
+            />
           <% else %>
             <table class="table table-sm">
               <thead>
                 <tr>
                   <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}</th>
-                  <th class="text-right"></th>
+                  <th class="text-right w-px whitespace-nowrap">{Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -192,17 +196,24 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
                       {person_label(tm.staff_person)}
                     </.link>
                   </td>
-                  <td class="text-right">
-                    <button
-                      type="button"
-                      phx-click="remove_person"
-                      phx-value-uuid={tm.uuid}
-                      phx-disable-with={gettext("Removing…")}
-                      data-confirm={gettext("Remove this staff from the team?")}
-                      class="btn btn-ghost btn-xs text-error"
-                    >
-                      <.icon name="hero-x-mark" class="w-3.5 h-3.5" />
-                    </button>
+                  <td class="text-right w-px whitespace-nowrap">
+                    <.table_row_menu id={"membership-menu-#{tm.uuid}"}>
+                      <.table_row_menu_link
+                        navigate={Paths.person(tm.staff_person.uuid)}
+                        icon="hero-eye"
+                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "View")}
+                      />
+                      <.table_row_menu_divider />
+                      <.table_row_menu_button
+                        phx-click="remove_person"
+                        phx-value-uuid={tm.uuid}
+                        phx-disable-with={gettext("Removing…")}
+                        data-confirm={gettext("Remove this staff from the team?")}
+                        icon="hero-x-mark"
+                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
+                        variant="error"
+                      />
+                    </.table_row_menu>
                   </td>
                 </tr>
               </tbody>

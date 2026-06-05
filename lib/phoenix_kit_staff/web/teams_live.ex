@@ -78,13 +78,13 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
       </.admin_page_header>
 
       <%= if @teams == [] do %>
-        <div class="text-center py-16 text-base-content/60">
-          <.icon name="hero-user-group" class="w-12 h-12 mx-auto mb-2 opacity-40" />
-          <p>{gettext("No teams yet.")}</p>
-          <.link navigate={Paths.new_team()} class="link link-primary text-sm">
-            {gettext("Create your first")}
-          </.link>
-        </div>
+        <.empty_state icon="hero-user-group" title={gettext("No teams yet.")}>
+          <:cta>
+            <.link navigate={Paths.new_team()} class="link link-primary text-sm">
+              {gettext("Create your first")}
+            </.link>
+          </:cta>
+        </.empty_state>
       <% else %>
         <div class="card bg-base-100 shadow">
           <div class="card-body p-0">
@@ -93,7 +93,7 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
                 <tr>
                   <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}</th>
                   <th>{gettext("Department")}</th>
-                  <th class="text-right">{Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}</th>
+                  <th class="text-right w-px whitespace-nowrap">{Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -108,23 +108,30 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
                       {team.department.name}
                     </.link>
                   </td>
-                  <td class="text-right">
-                    <.link
-                      navigate={Paths.edit_team(team.uuid)}
-                      class="btn btn-ghost btn-xs"
-                    >
-                      <.icon name="hero-pencil" class="w-3.5 h-3.5" />
-                    </.link>
-                    <button
-                      type="button"
-                      phx-click="delete"
-                      phx-value-uuid={team.uuid}
-                      phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
-                      data-confirm={gettext("Delete team %{name}? This removes all memberships.", name: team.name)}
-                      class="btn btn-ghost btn-xs text-error"
-                    >
-                      <.icon name="hero-trash" class="w-3.5 h-3.5" />
-                    </button>
+                  <td class="text-right w-px whitespace-nowrap">
+                    <.table_row_menu id={"team-menu-#{team.uuid}"}>
+                      <.table_row_menu_link
+                        navigate={Paths.team(team.uuid)}
+                        icon="hero-eye"
+                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "View")}
+                      />
+                      <.table_row_menu_link
+                        navigate={Paths.edit_team(team.uuid)}
+                        icon="hero-pencil"
+                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
+                        variant="secondary"
+                      />
+                      <.table_row_menu_divider />
+                      <.table_row_menu_button
+                        phx-click="delete"
+                        phx-value-uuid={team.uuid}
+                        phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
+                        data-confirm={gettext("Delete team %{name}? This removes all memberships.", name: team.name)}
+                        icon="hero-trash"
+                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "Delete")}
+                        variant="error"
+                      />
+                    </.table_row_menu>
                   </td>
                 </tr>
               </tbody>

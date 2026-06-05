@@ -121,10 +121,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
       </div>
 
       <%= if @people == [] do %>
-        <div class="text-center py-16 text-base-content/60">
-          <.icon name="hero-identification" class="w-12 h-12 mx-auto mb-2 opacity-40" />
-          <p>{gettext("No staff match.")}</p>
-        </div>
+        <.empty_state icon="hero-identification" title={gettext("No staff match.")} />
       <% else %>
         <div class="card bg-base-100 shadow">
           <div class="card-body p-0">
@@ -135,7 +132,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
                   <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Title")}</th>
                   <th>{gettext("Primary dept")}</th>
                   <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Status")}</th>
-                  <th class="text-right">{Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}</th>
+                  <th class="text-right w-px whitespace-nowrap">{Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -153,20 +150,30 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
                   <td>
                     <span class={"badge badge-sm #{status_badge_class(p.status)}"}>{Person.status_label(p.status)}</span>
                   </td>
-                  <td class="text-right">
-                    <.link navigate={Paths.edit_person(p.uuid)} class="btn btn-ghost btn-xs">
-                      <.icon name="hero-pencil" class="w-3.5 h-3.5" />
-                    </.link>
-                    <button
-                      type="button"
-                      phx-click="delete"
-                      phx-value-uuid={p.uuid}
-                      phx-disable-with={gettext("Removing…")}
-                      data-confirm={gettext("Remove this staff? The user account stays; only the staff profile is removed.")}
-                      class="btn btn-ghost btn-xs text-error"
-                    >
-                      <.icon name="hero-trash" class="w-3.5 h-3.5" />
-                    </button>
+                  <td class="text-right w-px whitespace-nowrap">
+                    <.table_row_menu id={"person-menu-#{p.uuid}"}>
+                      <.table_row_menu_link
+                        navigate={Paths.person(p.uuid)}
+                        icon="hero-eye"
+                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "View")}
+                      />
+                      <.table_row_menu_link
+                        navigate={Paths.edit_person(p.uuid)}
+                        icon="hero-pencil"
+                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
+                        variant="secondary"
+                      />
+                      <.table_row_menu_divider />
+                      <.table_row_menu_button
+                        phx-click="delete"
+                        phx-value-uuid={p.uuid}
+                        phx-disable-with={gettext("Removing…")}
+                        data-confirm={gettext("Remove this staff? The user account stays; only the staff profile is removed.")}
+                        icon="hero-trash"
+                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
+                        variant="error"
+                      />
+                    </.table_row_menu>
                   </td>
                 </tr>
               </tbody>

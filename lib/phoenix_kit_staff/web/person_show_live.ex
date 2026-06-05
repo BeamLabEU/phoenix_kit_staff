@@ -279,7 +279,11 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
             <.icon name="hero-user-group" class="w-5 h-5" /> {gettext("Teams")} ({length(@memberships)})
           </h2>
           <%= if @memberships == [] do %>
-            <p class="text-sm text-base-content/60 py-4">{gettext("Not on any teams yet.")}</p>
+            <.empty_state
+              icon="hero-user-group"
+              title={gettext("Not on any teams yet.")}
+              class="py-6"
+            />
           <% else %>
             <table class="table table-sm">
               <thead>
