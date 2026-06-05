@@ -72,11 +72,13 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
   def handle_event("bulk_trash", %{"uuids" => uuids}, socket) do
     {:ok, count} = Staff.bulk_trash(sanitize_uuids(uuids))
 
-    Activity.log("staff.people_bulk_trashed",
-      actor_uuid: Activity.actor_uuid(socket),
-      resource_type: "staff_person",
-      metadata: %{"count" => count}
-    )
+    if count > 0 do
+      Activity.log("staff.people_bulk_trashed",
+        actor_uuid: Activity.actor_uuid(socket),
+        resource_type: "staff_person",
+        metadata: %{"count" => count}
+      )
+    end
 
     {:noreply,
      socket
@@ -90,11 +92,13 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
   def handle_event("bulk_restore", %{"uuids" => uuids}, socket) do
     {:ok, count} = Staff.bulk_restore(sanitize_uuids(uuids))
 
-    Activity.log("staff.people_bulk_restored",
-      actor_uuid: Activity.actor_uuid(socket),
-      resource_type: "staff_person",
-      metadata: %{"count" => count}
-    )
+    if count > 0 do
+      Activity.log("staff.people_bulk_restored",
+        actor_uuid: Activity.actor_uuid(socket),
+        resource_type: "staff_person",
+        metadata: %{"count" => count}
+      )
+    end
 
     {:noreply,
      socket
@@ -120,11 +124,13 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
 
     case Staff.bulk_delete(uuids) do
       {:ok, count} ->
-        Activity.log("staff.people_bulk_deleted",
-          actor_uuid: Activity.actor_uuid(socket),
-          resource_type: "staff_person",
-          metadata: %{"count" => count}
-        )
+        if count > 0 do
+          Activity.log("staff.people_bulk_deleted",
+            actor_uuid: Activity.actor_uuid(socket),
+            resource_type: "staff_person",
+            metadata: %{"count" => count}
+          )
+        end
 
         {:noreply,
          socket
@@ -241,7 +247,22 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
     end
   end
 
-  defp sanitize_uuids(uuids) when is_list(uuids), do: Enum.filter(uuids, &is_binary/1)
+  # Keep only well-formed UUID strings — a malformed value in the
+  # client-supplied payload would otherwise crash the bulk query on a
+  # cast/encoding error.
+  defp sanitize_uuids(uuids) when is_list(uuids) do
+    Enum.flat_map(uuids, fn
+      u when is_binary(u) ->
+        case Ecto.UUID.cast(u) do
+          {:ok, valid} -> [valid]
+          :error -> []
+        end
+
+      _ ->
+        []
+    end)
+  end
+
   defp sanitize_uuids(_), do: []
 
   # ── Render ─────────────────────────────────────────────────────────

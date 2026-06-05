@@ -819,7 +819,8 @@ defmodule PhoenixKitStaff.CoverageExtrasTest do
 
       # Delete the staff profile but keep the user — so the email
       # already exists in phoenix_kit_users but no person links to it.
-      {:ok, _} = Staff.delete_person(existing)
+      {:ok, trashed} = Staff.trash_person(existing)
+      {:ok, _} = Staff.delete_person(trashed)
 
       {:ok, view, _html} = live(conn, "/en/admin/staff/people/new")
 

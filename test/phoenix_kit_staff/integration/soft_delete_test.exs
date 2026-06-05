@@ -57,10 +57,31 @@ defmodule PhoenixKitStaff.Integration.SoftDeleteTest do
   end
 
   describe "delete_person/1 (permanent)" do
-    test "hard-deletes the row" do
+    test "hard-deletes a trashed row" do
       person = fixture_person()
-      assert {:ok, _} = Staff.delete_person(person)
+      {:ok, trashed} = Staff.trash_person(person)
+
+      assert {:ok, _} = Staff.delete_person(trashed)
       assert Staff.get_person(person.uuid) == nil
+    end
+
+    test "refuses to permanently delete a non-trashed person" do
+      person = fixture_person()
+      assert {:error, :not_trashed} = Staff.delete_person(person)
+      assert Staff.get_person(person.uuid) != nil
+    end
+  end
+
+  describe "changeset hardening" do
+    test "the public changeset rejects the trashed sentinel from params" do
+      person = fixture_person()
+      cs = Staff.change_person(person, %{"status" => "trashed"})
+      refute cs.valid?
+      assert %{status: _} = errors_on(cs)
+
+      # Editing via the public update path can't soft-delete out-of-band.
+      assert {:error, _} = Staff.update_person(person, %{"status" => "trashed"})
+      assert Staff.get_person(person.uuid).status == "active"
     end
   end
 
@@ -130,12 +151,17 @@ defmodule PhoenixKitStaff.Integration.SoftDeleteTest do
       assert Staff.count_trashed() == 0
     end
 
-    test "bulk_delete permanently removes rows" do
+    test "bulk_delete permanently removes trashed rows only" do
       a = fixture_person()
       b = fixture_person()
-      assert {:ok, 2} = Staff.bulk_delete([a.uuid, b.uuid])
+      active = fixture_person()
+      {:ok, 2} = Staff.bulk_trash([a.uuid, b.uuid])
+
+      # active row in the selection is left untouched; only the 2 trashed go.
+      assert {:ok, 2} = Staff.bulk_delete([a.uuid, b.uuid, active.uuid])
       assert Staff.get_person(a.uuid) == nil
       assert Staff.get_person(b.uuid) == nil
+      assert Staff.get_person(active.uuid) != nil
     end
   end
 

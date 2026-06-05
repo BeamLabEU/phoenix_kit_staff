@@ -122,7 +122,11 @@ defmodule PhoenixKitStaff.Schemas.Person do
     person
     |> cast(attrs, @required ++ @optional)
     |> validate_required(@required)
-    |> validate_inclusion(:status, @statuses ++ [@soft_delete_status])
+    # Only user-selectable statuses pass the public changeset. The
+    # "trashed" sentinel is set exclusively by `Staff.trash_person/1`
+    # via a controlled `Ecto.Changeset.change/2` (not cast from params),
+    # so a crafted create/edit payload can't soft-delete out-of-band.
+    |> validate_inclusion(:status, @statuses)
     |> validate_inclusion(:employment_type, @employment_types,
       message: gettext("must be one of: %{values}", values: Enum.join(@employment_types, ", "))
     )

@@ -326,7 +326,7 @@ defmodule PhoenixKitStaff.Staff do
 
     with {:ok, updated} <-
            p
-           |> Person.changeset(%{"status" => @soft_delete_status, "metadata" => metadata})
+           |> Ecto.Changeset.change(status: @soft_delete_status, metadata: metadata)
            |> repo().update() do
       StaffPubSub.broadcast_person(:person_updated, %{uuid: updated.uuid})
       {:ok, updated}
@@ -348,7 +348,7 @@ defmodule PhoenixKitStaff.Staff do
 
     with {:ok, updated} <-
            p
-           |> Person.changeset(%{"status" => prior, "metadata" => metadata})
+           |> Ecto.Changeset.change(status: prior, metadata: metadata)
            |> repo().update() do
       StaffPubSub.broadcast_person(:person_updated, %{uuid: updated.uuid})
       {:ok, updated}
@@ -366,7 +366,10 @@ defmodule PhoenixKitStaff.Staff do
 
   @doc """
   Permanently deletes a person (hard `Repo.delete`) and broadcasts
-  `:person_deleted`. Intended for the Trash view only.
+  `:person_deleted`. **Trash-only**: refuses a non-trashed person with
+  `{:error, :not_trashed}` so permanent deletion is always a deliberate
+  two-step (trash, then delete) — a stray direct call can't nuke an
+  active person.
 
   The rescue clauses guard a *hypothetical* future `ON DELETE RESTRICT`
   FK into `phoenix_kit_staff_people`. Today none exist — the projects
@@ -377,8 +380,9 @@ defmodule PhoenixKitStaff.Staff do
   restricting consumer.
   """
   @spec delete_person(Person.t()) ::
-          {:ok, Person.t()} | {:error, :referenced_by_external | Ecto.Changeset.t(Person.t())}
-  def delete_person(%Person{} = p) do
+          {:ok, Person.t()}
+          | {:error, :not_trashed | :referenced_by_external | Ecto.Changeset.t(Person.t())}
+  def delete_person(%Person{status: @soft_delete_status} = p) do
     with {:ok, deleted} <- repo().delete(p) do
       StaffPubSub.broadcast_person(:person_deleted, %{uuid: deleted.uuid})
       {:ok, deleted}
@@ -394,6 +398,8 @@ defmodule PhoenixKitStaff.Staff do
         do: {:error, :referenced_by_external},
         else: reraise(e, __STACKTRACE__)
   end
+
+  def delete_person(%Person{}), do: {:error, :not_trashed}
 
   defp fk_or_not_null_violation?(%Postgrex.Error{postgres: %{code: code}}),
     do: code in [:foreign_key_violation, :not_null_violation]
@@ -470,8 +476,10 @@ defmodule PhoenixKitStaff.Staff do
   @spec bulk_delete([UUIDv7.t() | String.t()]) ::
           {:ok, non_neg_integer()} | {:error, :referenced_by_external}
   def bulk_delete(uuids) when is_list(uuids) do
+    # Trash-only, same contract as delete_person/1 — active rows in the
+    # selection are left untouched.
     {count, _} =
-      from(p in Person, where: p.uuid in ^uuids)
+      from(p in Person, where: p.uuid in ^uuids and p.status == ^@soft_delete_status)
       |> repo().delete_all()
 
     if count > 0, do: StaffPubSub.broadcast_people_bulk(:person_deleted)

@@ -130,7 +130,8 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
 
       # Delete the person, then broadcast. The reload branch sees nil
       # and push_navigates back to the list.
-      {:ok, _} = Staff.delete_person(person)
+      {:ok, trashed} = Staff.trash_person(person)
+      {:ok, _} = Staff.delete_person(trashed)
       send(view.pid, {:staff, :stale_event, %{uuid: person.uuid}})
 
       assert_redirect(view, "/en/admin/staff/people")
