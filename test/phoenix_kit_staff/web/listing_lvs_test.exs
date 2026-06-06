@@ -225,6 +225,34 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
 
       assert_redirect(view, "/en/admin/staff/people")
     end
+
+    test "renders the Overview tab; Comments tab is gated on the optional comments module",
+         %{conn: conn} do
+      person = fixture_person()
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
+
+      assert has_element?(view, ~s|button[role="tab"][phx-value-tab="overview"]|)
+      # phoenix_kit_comments isn't a dep in the standalone suite, so the
+      # Comments tab degrades away (and the embedded thread never renders).
+      refute has_element?(view, ~s|button[role="tab"][phx-value-tab="comments"]|)
+    end
+
+    test "switch_tab handler is safe even when the comments module is absent",
+         %{conn: conn} do
+      person = fixture_person()
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
+
+      # The Comments tab is hidden standalone, but the handler must still
+      # be race/crash-safe: switching to "comments" gates the live_component
+      # on the (absent) module, so it renders nothing rather than blowing up.
+      render_click(view, "switch_tab", %{"tab" => "comments"})
+      assert Process.alive?(view.pid)
+
+      html = render_click(view, "switch_tab", %{"tab" => "overview"})
+      assert html =~ person.user.email
+    end
   end
 
   describe "TeamShowLive — extension to existing test (mount + remove_person path)" do

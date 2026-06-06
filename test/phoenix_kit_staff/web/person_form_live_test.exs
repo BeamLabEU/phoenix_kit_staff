@@ -200,6 +200,21 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
     end
   end
 
+  describe "internal notes field removed" do
+    test "the edit form no longer renders the Internal notes field", %{conn: conn} do
+      person = fixture_person()
+
+      {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      refute html =~ "Internal notes"
+      # No notes input under any name (primary column or translations key).
+      refute html =~ "][notes]"
+      refute html =~ ~s|name="person[notes]"|
+      # Sibling translatable fields are untouched.
+      assert html =~ "Skills"
+    end
+  end
+
   describe "404 fallback" do
     test "edit with bogus uuid redirects to people list", %{conn: conn} do
       bogus = Ecto.UUID.generate()

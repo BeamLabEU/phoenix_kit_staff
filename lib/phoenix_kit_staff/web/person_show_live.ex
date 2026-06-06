@@ -11,6 +11,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   alias PhoenixKitStaff.Schemas.Person
   alias PhoenixKitStaff.Web.Helpers
 
+  import PhoenixKitStaff.Web.Components.TabsStrip
+
   @impl true
   def mount(%{"id" => id}, _session, socket) do
     # Subscribe BEFORE the DB read so a broadcast between fetch and
@@ -29,7 +31,10 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
          assign(socket,
            page_title: Person.display_name(person),
            person: person,
-           memberships: Staff.list_memberships_for_person(person.uuid)
+           memberships: Staff.list_memberships_for_person(person.uuid),
+           active_tab: "overview",
+           comments_enabled: comments_enabled?(),
+           comments_module: comments_module()
          )}
     end
   end
@@ -56,12 +61,21 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     end
   end
 
+  # Emitted by the embedded comments LiveComponent on create/delete. We
+  # don't surface a comment count on the profile, so this is a no-op —
+  # declared explicitly to keep it out of the unexpected-message log.
+  def handle_info({:comments_updated, _info}, socket), do: {:noreply, socket}
+
   def handle_info(msg, socket) do
     Logger.debug("[Staff] PersonShowLive: unexpected handle_info #{inspect(msg)}")
     {:noreply, socket}
   end
 
   @impl true
+  def handle_event("switch_tab", %{"tab" => tab}, socket) do
+    {:noreply, assign(socket, :active_tab, tab)}
+  end
+
   def handle_event("trash", _params, socket) do
     person = socket.assigns.person
 
@@ -139,6 +153,29 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         )
 
         {:noreply, put_flash(socket, :error, gettext("Could not delete staff."))}
+    end
+  end
+
+  # ── Optional comments soft-dep ─────────────────────────────────────
+  # `phoenix_kit_comments` is not a staff dependency. Resolve it through
+  # `Code.ensure_loaded/1` (same idiom as the locations soft-dep in
+  # person_form_live) so the optional module is never named as a call
+  # target at compile time — no `--warnings-as-errors` / dialyzer noise
+  # when it isn't installed.
+
+  defp comments_enabled? do
+    case Code.ensure_loaded(PhoenixKitComments) do
+      {:module, mod} -> function_exported?(mod, :enabled?, 0) and mod.enabled?()
+      {:error, _} -> false
+    end
+  rescue
+    _ -> false
+  end
+
+  defp comments_module do
+    case Code.ensure_loaded(PhoenixKitComments.Web.CommentsComponent) do
+      {:module, mod} -> mod
+      {:error, _} -> nil
     end
   end
 
@@ -243,8 +280,12 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         <span>{gettext("This staff is in the trash. Restore to bring them back to the active roster.")}</span>
       </div>
 
-      <%!-- Hero profile card --%>
-      <div class="card bg-base-100 shadow">
+      <.tabs_strip event="switch_tab" active={@active_tab} tabs={tab_list(@comments_enabled)} />
+
+      <%!-- Overview tab — the full profile --%>
+      <div :if={@active_tab == "overview"} class="flex flex-col gap-4">
+        <%!-- Hero profile card --%>
+        <div class="card bg-base-100 shadow">
         <div class="card-body">
           <div class="flex flex-wrap items-center gap-2 text-xs text-base-content/60">
             <span class={"badge badge-sm #{if @person.status == "active", do: "badge-success", else: "badge-ghost"}"}>
@@ -427,18 +468,45 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         </div>
       </div>
 
-      <%!-- Admin notes (visible only if present) --%>
-      <%= if @person.notes do %>
-        <div class="card bg-warning/10 border border-warning/30 shadow-sm">
-          <div class="card-body">
-            <h2 class="card-title text-base text-warning-content">
-              <.icon name="hero-lock-closed" class="w-4 h-4" /> {gettext("Admin notes")}
-            </h2>
-            <div class="text-sm whitespace-pre-line">{@person.notes}</div>
+        <%!-- Admin notes — legacy, read-only (the editable field moved
+             to the Comments tab). Self-hides when the person has none. --%>
+        <%= if @person.notes do %>
+          <div class="card bg-warning/10 border border-warning/30 shadow-sm">
+            <div class="card-body">
+              <h2 class="card-title text-base text-warning-content">
+                <.icon name="hero-lock-closed" class="w-4 h-4" /> {gettext("Admin notes")}
+              </h2>
+              <div class="text-sm whitespace-pre-line">{@person.notes}</div>
+            </div>
           </div>
-        </div>
-      <% end %>
+        <% end %>
+      </div>
+
+      <%!-- Comments tab — embedded thread, only when the optional
+           phoenix_kit_comments module is installed + enabled. --%>
+      <div :if={@active_tab == "comments"}>
+        <.live_component
+          :if={@comments_module}
+          module={@comments_module}
+          id={"staff-person-comments-#{@person.uuid}"}
+          resource_type="staff_person"
+          resource_uuid={@person.uuid}
+          current_user={@phoenix_kit_current_user}
+        />
+      </div>
     </div>
     """
+  end
+
+  # Tab set for the profile: Overview always; Comments only when the
+  # optional comments module is installed + enabled.
+  defp tab_list(comments_enabled?) do
+    overview = {"overview", gettext("Overview"), "hero-identification"}
+
+    if comments_enabled? do
+      [overview, {"comments", gettext("Comments"), "hero-chat-bubble-left-right"}]
+    else
+      [overview]
+    end
   end
 end
