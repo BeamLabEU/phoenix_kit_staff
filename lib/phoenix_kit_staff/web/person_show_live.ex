@@ -27,14 +27,21 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
          |> push_navigate(to: Paths.people())}
 
       person ->
+        # Resolve the component once and derive tab availability from
+        # BOTH the setting and the module actually being loadable, so a
+        # skewed install (setting on, component missing) never shows a
+        # blank Comments tab.
+        comments_module = comments_module()
+        comments_enabled = comments_module != nil and comments_enabled?()
+
         {:ok,
          assign(socket,
            page_title: Person.display_name(person),
            person: person,
            memberships: Staff.list_memberships_for_person(person.uuid),
            active_tab: "overview",
-           comments_enabled: comments_enabled?(),
-           comments_module: comments_module()
+           comments_enabled: comments_enabled,
+           comments_module: comments_module
          )}
     end
   end
@@ -73,7 +80,14 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
   @impl true
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
+    # Clamp to a currently-available tab so a stale/crafted value (e.g.
+    # "comments" when the module is gone) can't land on a blank panel.
+    tab = if tab in valid_tabs(socket.assigns.comments_enabled), do: tab, else: "overview"
     {:noreply, assign(socket, :active_tab, tab)}
+  end
+
+  defp valid_tabs(comments_enabled?) do
+    comments_enabled? |> tab_list() |> Enum.map(fn {value, _label, _icon} -> value end)
   end
 
   def handle_event("trash", _params, socket) do
