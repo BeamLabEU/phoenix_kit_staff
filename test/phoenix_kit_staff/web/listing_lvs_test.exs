@@ -253,6 +253,20 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
       html = render_click(view, "switch_tab", %{"tab" => "overview"})
       assert html =~ person.user.email
     end
+
+    test "leaf_changed forward is a safe no-op when comments is unavailable",
+         %{conn: conn} do
+      person = fixture_person()
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
+
+      # The composer's Leaf editor sends {:leaf_changed, ...} to the host;
+      # with phoenix_kit_comments absent (standalone suite) the runtime
+      # forward resolves to nil and must no-op without crashing.
+      send(view.pid, {:leaf_changed, %{editor_id: "x", markdown: "hi"}})
+      assert render(view) =~ person.user.email
+      assert Process.alive?(view.pid)
+    end
   end
 
   describe "TeamShowLive — extension to existing test (mount + remove_person path)" do

@@ -73,6 +73,25 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   # declared explicitly to keep it out of the unexpected-message log.
   def handle_info({:comments_updated, _info}, socket), do: {:noreply, socket}
 
+  # The comments composer's rich-text (Leaf) editor doesn't bubble its
+  # content through the form params, so it sends `{:leaf_changed, ...}`
+  # to this host LV; we must forward it to the CommentsComponent (via
+  # `forward_leaf_event/2`) so the component's `new_comment` assign stays
+  # current and "Post comment" actually has content to submit. Soft-dep:
+  # resolved at runtime so staff still builds without phoenix_kit_comments.
+  def handle_info({:leaf_changed, _} = msg, socket) do
+    case comments_module() do
+      nil ->
+        {:noreply, socket}
+
+      mod ->
+        case mod.forward_leaf_event(msg, socket) do
+          {:noreply, socket} -> {:noreply, socket}
+          _ -> {:noreply, socket}
+        end
+    end
+  end
+
   def handle_info(msg, socket) do
     Logger.debug("[Staff] PersonShowLive: unexpected handle_info #{inspect(msg)}")
     {:noreply, socket}
@@ -84,10 +103,6 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     # "comments" when the module is gone) can't land on a blank panel.
     tab = if tab in valid_tabs(socket.assigns.comments_enabled), do: tab, else: "overview"
     {:noreply, assign(socket, :active_tab, tab)}
-  end
-
-  defp valid_tabs(comments_enabled?) do
-    comments_enabled? |> tab_list() |> Enum.map(fn {value, _label, _icon} -> value end)
   end
 
   def handle_event("trash", _params, socket) do
@@ -514,6 +529,10 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
   # Tab set for the profile: Overview always; Comments only when the
   # optional comments module is installed + enabled.
+  defp valid_tabs(comments_enabled?) do
+    comments_enabled? |> tab_list() |> Enum.map(fn {value, _label, _icon} -> value end)
+  end
+
   defp tab_list(comments_enabled?) do
     overview = {"overview", gettext("Overview"), "hero-identification"}
 
