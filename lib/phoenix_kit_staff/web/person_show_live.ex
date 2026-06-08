@@ -4,6 +4,12 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitStaff.Gettext
 
+  # Comments is a hard dep (the Comments tab embeds CommentsComponent). This
+  # attaches a :handle_info lifecycle hook that forwards the composer's
+  # {:leaf_changed, …} message into CommentsComponent.forward_leaf_event/2
+  # (halts only :leaf_changed) — without it "Post comment" silently no-ops.
+  use PhoenixKitComments.Embed
+
   require Logger
 
   alias PhoenixKitStaff.{Activity, L10n, Paths, Staff}
@@ -27,21 +33,16 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
          |> push_navigate(to: Paths.people())}
 
       person ->
-        # Resolve the component once and derive tab availability from
-        # BOTH the setting and the module actually being loadable, so a
-        # skewed install (setting on, component missing) never shows a
-        # blank Comments tab.
-        comments_module = comments_module()
-        comments_enabled = comments_module != nil and comments_enabled?()
-
+        # The Comments tab shows only when the comments module's admin
+        # toggle is on (`enabled?()`). The module itself is a hard dep, so
+        # it's always loadable — only the runtime feature flag gates the tab.
         {:ok,
          assign(socket,
            page_title: Person.display_name(person),
            person: person,
            memberships: Staff.list_memberships_for_person(person.uuid),
            active_tab: "overview",
-           comments_enabled: comments_enabled,
-           comments_module: comments_module
+           comments_enabled: comments_enabled?()
          )}
     end
   end
@@ -73,25 +74,9 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   # declared explicitly to keep it out of the unexpected-message log.
   def handle_info({:comments_updated, _info}, socket), do: {:noreply, socket}
 
-  # The comments composer's rich-text (Leaf) editor doesn't bubble its
-  # content through the form params, so it sends `{:leaf_changed, ...}`
-  # to this host LV; we must forward it to the CommentsComponent (via
-  # `forward_leaf_event/2`) so the component's `new_comment` assign stays
-  # current and "Post comment" actually has content to submit. Soft-dep:
-  # resolved at runtime so staff still builds without phoenix_kit_comments.
-  def handle_info({:leaf_changed, _} = msg, socket) do
-    case comments_module() do
-      nil ->
-        {:noreply, socket}
-
-      mod ->
-        case mod.forward_leaf_event(msg, socket) do
-          {:noreply, socket} -> {:noreply, socket}
-          _ -> {:noreply, socket}
-        end
-    end
-  end
-
+  # Note: the composer's {:leaf_changed, …} message is handled by the
+  # `use PhoenixKitComments.Embed` lifecycle hook (it halts before reaching
+  # handle_info), so there's no explicit clause for it here.
   def handle_info(msg, socket) do
     Logger.debug("[Staff] PersonShowLive: unexpected handle_info #{inspect(msg)}")
     {:noreply, socket}
@@ -185,27 +170,13 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     end
   end
 
-  # ── Optional comments soft-dep ─────────────────────────────────────
-  # `phoenix_kit_comments` is not a staff dependency. Resolve it through
-  # `Code.ensure_loaded/1` (same idiom as the locations soft-dep in
-  # person_form_live) so the optional module is never named as a call
-  # target at compile time — no `--warnings-as-errors` / dialyzer noise
-  # when it isn't installed.
-
+  # The Comments tab is gated on the comments module's admin toggle.
+  # `phoenix_kit_comments` is a hard dep, so the call is direct — rescued
+  # only so a missing settings table during boot/discovery never crashes.
   defp comments_enabled? do
-    case Code.ensure_loaded(PhoenixKitComments) do
-      {:module, mod} -> function_exported?(mod, :enabled?, 0) and mod.enabled?()
-      {:error, _} -> false
-    end
+    PhoenixKitComments.enabled?()
   rescue
     _ -> false
-  end
-
-  defp comments_module do
-    case Code.ensure_loaded(PhoenixKitComments.Web.CommentsComponent) do
-      {:module, mod} -> mod
-      {:error, _} -> nil
-    end
   end
 
   defp has_any?(m, fields) do
@@ -511,12 +482,11 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         <% end %>
       </div>
 
-      <%!-- Comments tab — embedded thread, only when the optional
-           phoenix_kit_comments module is installed + enabled. --%>
+      <%!-- Comments tab — embedded thread. The tab only renders when the
+           comments admin toggle is on (see `comments_enabled?`). --%>
       <div :if={@active_tab == "comments"}>
         <.live_component
-          :if={@comments_module}
-          module={@comments_module}
+          module={PhoenixKitComments.Web.CommentsComponent}
           id={"staff-person-comments-#{@person.uuid}"}
           resource_type="staff_person"
           resource_uuid={@person.uuid}
@@ -528,7 +498,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   end
 
   # Tab set for the profile: Overview always; Comments only when the
-  # optional comments module is installed + enabled.
+  # comments module's admin toggle is enabled.
   defp valid_tabs(comments_enabled?) do
     comments_enabled? |> tab_list() |> Enum.map(fn {value, _label, _icon} -> value end)
   end

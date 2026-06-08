@@ -24,7 +24,7 @@ defmodule PhoenixKitStaff.MixProject do
       ],
       description: "Staff module for PhoenixKit — departments, teams, and people.",
       package: package(),
-      dialyzer: [plt_add_apps: [:phoenix_kit]],
+      dialyzer: [plt_add_apps: [:phoenix_kit, :phoenix_kit_comments]],
       name: "PhoenixKitStaff",
       source_url: @source_url,
       docs: docs()
@@ -32,7 +32,7 @@ defmodule PhoenixKitStaff.MixProject do
   end
 
   def application do
-    [extra_applications: [:logger, :phoenix_kit]]
+    [extra_applications: [:logger, :phoenix_kit, :phoenix_kit_comments]]
   end
 
   def cli do
@@ -78,6 +78,10 @@ defmodule PhoenixKitStaff.MixProject do
   defp deps do
     [
       pk_dep(:phoenix_kit, "~> 1.7.125"),
+      # Hard dep: PersonShowLive embeds the comment thread (Comments tab) and
+      # `use PhoenixKitComments.Embed` for the composer's Leaf-event forwarding,
+      # both compile-time. `~> 0.2` — Embed lives in the 0.2.x line.
+      pk_dep(:phoenix_kit_comments, "~> 0.2"),
       {:phoenix_live_view, "~> 1.1"},
       {:ecto_sql, "~> 3.13"},
       # Own Gettext backend for staff-specific (domain) UI strings; generic
