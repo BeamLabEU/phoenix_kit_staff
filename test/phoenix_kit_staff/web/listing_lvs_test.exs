@@ -226,27 +226,47 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
       assert_redirect(view, "/en/admin/staff/people")
     end
 
-    test "renders the Overview tab; Comments tab is gated on the optional comments module",
+    test "renders the Overview tab; Comments tab is hidden when the toggle is off",
          %{conn: conn} do
       person = fixture_person()
 
       {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
 
       assert has_element?(view, ~s|button[role="tab"][phx-value-tab="overview"]|)
-      # phoenix_kit_comments isn't a dep in the standalone suite, so the
-      # Comments tab degrades away (and the embedded thread never renders).
+      # phoenix_kit_comments is a hard dep now, so the Comments tab gates purely
+      # on the `comments_enabled` admin toggle — which defaults off in the test
+      # DB, so the tab (and the embedded thread) stays hidden.
       refute has_element?(view, ~s|button[role="tab"][phx-value-tab="comments"]|)
     end
 
-    test "switch_tab handler is safe even when the comments module is absent",
+    test "renders the Comments tab + embedded thread when the toggle is on",
+         %{conn: conn} do
+      person = fixture_person()
+      {:ok, _} = PhoenixKit.Settings.update_boolean_setting("comments_enabled", true)
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
+
+      # Toggle on → the tab appears. (Hard dep means presence is the toggle,
+      # not "is the module installed" — the pre-hard-dep assertion was stale.)
+      assert has_element?(view, ~s|button[role="tab"][phx-value-tab="comments"]|)
+
+      # Switching to it makes the tab active and mounts the embedded
+      # CommentsComponent (its tables ship in core migrations, so they exist in
+      # the test DB via ensure_current) — the LV must stay alive through mount.
+      render_click(view, "switch_tab", %{"tab" => "comments"})
+      assert has_element?(view, ~s|button[phx-value-tab="comments"].tab-active|)
+      assert Process.alive?(view.pid)
+    end
+
+    test "switch_tab is safe even when the Comments tab is disabled",
          %{conn: conn} do
       person = fixture_person()
 
       {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
 
-      # The Comments tab is hidden standalone, but the handler must still
-      # be race/crash-safe: switching to "comments" gates the live_component
-      # on the (absent) module, so it renders nothing rather than blowing up.
+      # With the toggle off the Comments tab is hidden; a stale/crafted
+      # "comments" value must clamp to a valid tab rather than render a blank
+      # panel or crash.
       render_click(view, "switch_tab", %{"tab" => "comments"})
       assert Process.alive?(view.pid)
 
@@ -254,16 +274,26 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
       assert html =~ person.user.email
     end
 
-    test "leaf_changed forward is a safe no-op when comments is unavailable",
+    test "leaf_changed is forwarded by the Embed hook without crashing",
          %{conn: conn} do
       person = fixture_person()
 
       {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
 
-      # The composer's Leaf editor sends {:leaf_changed, ...} to the host;
-      # with phoenix_kit_comments absent (standalone suite) the runtime
-      # forward resolves to nil and must no-op without crashing.
-      send(view.pid, {:leaf_changed, %{editor_id: "x", markdown: "hi"}})
+      # The composer's Leaf editor sends {:leaf_changed, ...} to the host LV;
+      # `use PhoenixKitComments.Embed` attaches a :handle_info hook that forwards
+      # a pk-comments editor's event to the component (send_update) and halts.
+      # No component is mounted here (Overview tab), so the update lands nowhere
+      # — the contract is that it must not crash the LV.
+      send(
+        view.pid,
+        {:leaf_changed,
+         %{
+           editor_id: "pk-comments:staff-person-comments-#{person.uuid}:draft:top",
+           markdown: "hi"
+         }}
+      )
+
       assert render(view) =~ person.user.email
       assert Process.alive?(view.pid)
     end
