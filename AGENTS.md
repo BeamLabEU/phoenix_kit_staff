@@ -134,7 +134,7 @@ All under `/admin/staff/*`: `departments`, `teams`, `people`, plus `.../new`, `.
 **Migrations live in `phoenix_kit` core** (versioned system). The four staff tables ship in `V100`. Later cross-cut changes:
 
 - `V122` bundles `translations JSONB NOT NULL DEFAULT '{}'` on all three top-level staff tables (`phoenix_kit_staff_departments`, `phoenix_kit_staff_teams`, `phoenix_kit_staff_people`) plus a single `name VARCHAR` on `phoenix_kit_staff_people` for the person's full display name.
-- `V130` adds `metadata JSONB NOT NULL DEFAULT '{}'` on `phoenix_kit_staff_people` (general-purpose, mirrors `entity_data`). Soft-delete uses it to stash `trashed_from_status` so restore returns the person to active/inactive. **Gated**: the module's behavior depends on V130 being in the pinned core Hex release — until core ships it and the `~> 1.7` pin bumps, the module's tests/CI run against a core without the column and go red by design (works locally via the `phoenix_kit_parent` path-override).
+- `V131` adds `metadata JSONB NOT NULL DEFAULT '{}'` on `phoenix_kit_staff_people` (general-purpose, mirrors `entity_data`). Soft-delete uses it to stash `trashed_from_status` so restore returns the person to active/inactive. Shipped in core **1.7.132** (renumbered from a drafted V130 — core took V130 for the annotations-marker migration). The module's soft-delete requires this column, so the `phoenix_kit` lock must resolve to `>= 1.7.132`; until the lock is bumped the soft-delete tests/CI run against a core without the column and go red by design (works locally via the `phoenix_kit_parent` path-override or `PHOENIX_KIT_PATH`).
 
 When changing the schema, add the next `VNN` migration in `/www/phoenix_kit/lib/phoenix_kit/migrations/postgres/`.
 
@@ -202,7 +202,7 @@ assignment/membership FK rows) intact.
 Context API (`PhoenixKitStaff.Staff`):
 
 - `trash_person/1` — `status` → `"trashed"`, stashing the prior status
-  in `metadata["trashed_from_status"]` (V130 column). `{:error, :already_trashed}` if already trashed.
+  in `metadata["trashed_from_status"]` (V131 column). `{:error, :already_trashed}` if already trashed.
 - `restore_person/1` — restores to the stashed status (validated against
   `Person.statuses/0`, else `"active"`), clearing the stash key.
   `{:error, :not_trashed}` otherwise.
