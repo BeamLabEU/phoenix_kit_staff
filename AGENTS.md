@@ -184,8 +184,12 @@ to people many-to-many. Replaces the old free-text `Person.skills` (V135 migrate
 - **Assignment** lives in `PhoenixKitStaff.Skills` (`assign_skill`/`unassign_skill`/
   `update_assignment_level` + rosters), with thin `Staff` delegators. Manage it
   from **two directions**: the **skill show** (skill → people, with a level picker
-  + inline level change) and the **person show** Overview tab (person → skills).
-  The person *form* does **not** touch skills.
+  + inline level change, persisted immediately) and the **person edit form**
+  (person → skills, **staged** — a type-to-search multi-select with per-chip level
+  selects that writes to the DB only when the form is **saved**; `PersonFormLive`
+  reconciles the staged list against the DB in `sync_skills/2` after the person
+  upsert). The **person show** Overview tab renders the assignments **read-only**
+  (badge per skill + level), linking to the edit form to change them.
 - Deleting a skill cascades its assignments (FK `ON DELETE CASCADE`); the list +
   delete-confirm surface the "removed from N people" count.
 - Categories/grouping are **not** built (a deliberate v1 cut — easy follow-up).

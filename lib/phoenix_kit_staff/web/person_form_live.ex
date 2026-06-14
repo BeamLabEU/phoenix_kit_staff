@@ -9,11 +9,14 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   require Logger
 
   alias PhoenixKit.Users.Auth
-  alias PhoenixKitStaff.{Activity, Departments, Errors, Paths, Staff, Teams}
-  alias PhoenixKitStaff.Schemas.Person
+  alias PhoenixKitStaff.{Activity, Departments, Errors, Paths, Skills, Staff, Teams}
+  alias PhoenixKitStaff.Schemas.{Person, PersonSkill}
   alias PhoenixKitStaff.Web.Helpers
 
   @translatable_field_atoms [:job_title, :bio]
+
+  # How many skill matches to surface in the type-to-search dropdown.
+  @skill_match_limit 8
 
   @impl true
   def mount(params, _session, socket) do
@@ -25,6 +28,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
 
   defp apply_action(socket, :new, _params) do
     person = %Person{}
+    all_skills = skill_options()
 
     socket
     |> assign(
@@ -38,7 +42,11 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
       dept_options: dept_options(),
       team_options: [],
       selected_team_uuid: nil,
-      location_options: location_options()
+      location_options: location_options(),
+      all_skills: all_skills,
+      staged_skills: [],
+      skill_search: "",
+      skill_matches: skill_matches("", [], all_skills)
     )
     |> assign_form(Staff.change_person(person))
   end
@@ -60,6 +68,9 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
         |> push_navigate(to: Paths.person(person.uuid))
 
       person ->
+        all_skills = skill_options()
+        staged = load_staged_skills(person.uuid)
+
         socket
         |> assign(
           page_title: gettext("Edit staff"),
@@ -73,7 +84,10 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
           team_options: team_options_for(person.primary_department_uuid),
           selected_team_uuid: nil,
           location_options: location_options(),
-          actor_uuid: Activity.actor_uuid(socket)
+          all_skills: all_skills,
+          staged_skills: staged,
+          skill_search: "",
+          skill_matches: skill_matches("", staged, all_skills)
         )
         |> assign_form(Staff.change_person(person))
     end
@@ -159,6 +173,13 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     team_uuid = params["team_uuid"]
     email = Map.get(params, "email", socket.assigns.email) |> String.trim()
 
+    # Skills are staged client-side: the type-to-search box and the per-chip
+    # level selects ride along on this same form change. Keep the search +
+    # matches live, and fold any level edits into the staged list so they're
+    # in hand when the user finally presses Save (nothing is persisted yet).
+    search = Map.get(params, "skill_search", socket.assigns.skill_search)
+    staged = sync_staged_levels(socket.assigns.staged_skills, params["skills"])
+
     {:noreply,
      socket
      |> assign_form(cs)
@@ -166,7 +187,41 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
        email: email,
        email_status: email_status(email, socket.assigns.eligible_users),
        team_options: team_options_for(blank_to_nil(dept_uuid)),
-       selected_team_uuid: blank_to_nil(team_uuid)
+       selected_team_uuid: blank_to_nil(team_uuid),
+       staged_skills: staged,
+       skill_search: search,
+       skill_matches: skill_matches(search, staged, socket.assigns.all_skills)
+     )}
+  end
+
+  def handle_event("add_staged_skill", %{"uuid" => uuid}, socket) do
+    staged =
+      case Enum.find(socket.assigns.all_skills, &(&1.uuid == uuid)) do
+        nil ->
+          socket.assigns.staged_skills
+
+        %{name: name} ->
+          if Enum.any?(socket.assigns.staged_skills, &(&1.skill_uuid == uuid)),
+            do: socket.assigns.staged_skills,
+            else: socket.assigns.staged_skills ++ [%{skill_uuid: uuid, name: name, level: nil}]
+      end
+
+    {:noreply,
+     assign(socket,
+       staged_skills: staged,
+       skill_search: "",
+       skill_matches: skill_matches("", staged, socket.assigns.all_skills)
+     )}
+  end
+
+  def handle_event("remove_staged_skill", %{"uuid" => uuid}, socket) do
+    staged = Enum.reject(socket.assigns.staged_skills, &(&1.skill_uuid == uuid))
+
+    {:noreply,
+     assign(socket,
+       staged_skills: staged,
+       skill_matches:
+         skill_matches(socket.assigns.skill_search, staged, socket.assigns.all_skills)
      )}
   end
 
@@ -174,6 +229,16 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     attrs = merge_attrs(attrs, socket)
     email = Map.get(params, "email", "") |> String.trim()
     team_uuid = blank_to_nil(params["team_uuid"])
+    # Final level sync from the submitted form — covers a level select that
+    # changed without a preceding validate round-trip. Skills persist only
+    # here, after the person upsert succeeds (see `sync_skills/2`).
+    socket =
+      assign(
+        socket,
+        :staged_skills,
+        sync_staged_levels(socket.assigns.staged_skills, params["skills"])
+      )
+
     save(socket, socket.assigns.live_action, attrs, email, team_uuid)
   end
 
@@ -216,6 +281,8 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             "user_status" => to_string(status_tag)
           }
         )
+
+        sync_skills(socket, person)
 
         {kind, flash} = create_flash(status_tag, team_result, email)
 
@@ -343,6 +410,8 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
           metadata: %{}
         )
 
+        sync_skills(socket, person)
+
         {kind, flash} = update_flash(team_result)
 
         {:noreply,
@@ -426,6 +495,107 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   defp blank_to_nil(nil), do: nil
   defp blank_to_nil(""), do: nil
   defp blank_to_nil(v), do: v
+
+  # ── Skills (staged on the form, persisted only on Save) ────────────
+
+  # All skills as lightweight `%{uuid, name}` maps for the picker.
+  defp skill_options do
+    Skills.list() |> Enum.map(&%{uuid: &1.uuid, name: &1.name})
+  end
+
+  # A person's current assignments as staged entries (`level` = the
+  # proficiency level, `nil` when unset).
+  defp load_staged_skills(person_uuid) do
+    person_uuid
+    |> Skills.list_for_person()
+    |> Enum.map(&%{skill_uuid: &1.skill_uuid, name: &1.skill.name, level: &1.proficiency_level})
+  end
+
+  # Skills not yet staged, filtered by the (case-insensitive) query, capped.
+  defp skill_matches(query, staged, all_skills) do
+    staged_uuids = MapSet.new(staged, & &1.skill_uuid)
+    q = query |> to_string() |> String.trim() |> String.downcase()
+
+    all_skills
+    |> Enum.reject(&MapSet.member?(staged_uuids, &1.uuid))
+    |> then(fn skills ->
+      if q == "",
+        do: skills,
+        else: Enum.filter(skills, &String.contains?(String.downcase(&1.name), q))
+    end)
+    |> Enum.take(@skill_match_limit)
+  end
+
+  # Folds per-chip level edits (`skills[<uuid>][level]` form params) back
+  # into the staged list. Unknown/absent params leave the staged list as-is.
+  defp sync_staged_levels(staged, params) when is_map(params) do
+    Enum.map(staged, fn s ->
+      case params[s.skill_uuid] do
+        %{"level" => level} -> %{s | level: blank_to_nil(level)}
+        _ -> s
+      end
+    end)
+  end
+
+  defp sync_staged_levels(staged, _params), do: staged
+
+  # Reconciles the DB assignments with the staged list after a successful
+  # person upsert: unassign what was removed, assign what's new, re-level
+  # what changed. Logs one activity row per change.
+  defp sync_skills(socket, person) do
+    desired = Map.new(socket.assigns.staged_skills, &{&1.skill_uuid, &1.level})
+    current = Skills.list_for_person(person.uuid)
+    current_map = Map.new(current, &{&1.skill_uuid, &1})
+    actor = Activity.actor_uuid(socket)
+
+    current
+    |> Enum.reject(&Map.has_key?(desired, &1.skill_uuid))
+    |> Enum.each(fn ps ->
+      with {:ok, _} <- Skills.unassign_skill(ps) do
+        log_skill_change(
+          actor,
+          "staff.person_skill_removed",
+          ps.skill_uuid,
+          person.user_uuid,
+          %{}
+        )
+      end
+    end)
+
+    Enum.each(desired, fn {skill_uuid, level} ->
+      case current_map[skill_uuid] do
+        nil ->
+          with {:ok, ps} <- Skills.assign_skill(person.uuid, skill_uuid, level) do
+            log_skill_change(actor, "staff.person_skill_added", skill_uuid, person.user_uuid, %{
+              "person_skill_uuid" => ps.uuid,
+              "proficiency_level" => level
+            })
+          end
+
+        %PersonSkill{proficiency_level: ^level} ->
+          :ok
+
+        %PersonSkill{} = ps ->
+          with {:ok, _} <- Skills.update_assignment_level(ps, level) do
+            log_skill_change(actor, "staff.person_skill_updated", skill_uuid, person.user_uuid, %{
+              "proficiency_level" => level
+            })
+          end
+      end
+    end)
+
+    :ok
+  end
+
+  defp log_skill_change(actor, action, skill_uuid, target_uuid, metadata) do
+    Activity.log(action,
+      actor_uuid: actor,
+      resource_type: "skill",
+      resource_uuid: skill_uuid,
+      target_uuid: target_uuid,
+      metadata: metadata
+    )
+  end
 
   @impl true
   def render(assigns) do
@@ -673,6 +843,70 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             </div>
             <.input field={@form[:emergency_contact_phone]} label={gettext("Phone")} placeholder={gettext("+372 ...")} />
 
+            <div class="divider text-xs text-base-content/50 my-0">{gettext("Skills")}</div>
+
+            <%!-- Skills are staged on the form and written to the database
+                 only when Save is pressed (below). Each chip's hidden +
+                 level inputs POST with the person form; add/remove restage
+                 in-memory via phx-click — no DB write happens here. --%>
+            <div>
+              <div :if={@staged_skills != []} class="flex flex-wrap gap-2 mb-2">
+                <div
+                  :for={s <- @staged_skills}
+                  class="flex items-center gap-2 badge badge-lg badge-outline py-4"
+                >
+                  <input type="hidden" name={"skills[#{s.skill_uuid}][skill_uuid]"} value={s.skill_uuid} />
+                  <span class="font-medium">{s.name}</span>
+                  <select name={"skills[#{s.skill_uuid}][level]"} class="select select-xs select-bordered">
+                    <option value="" selected={is_nil(s.level)}>{PersonSkill.proficiency_label(nil)}</option>
+                    <option
+                      :for={lvl <- PersonSkill.proficiency_levels()}
+                      value={lvl}
+                      selected={s.level == lvl}
+                    >
+                      {PersonSkill.proficiency_label(lvl)}
+                    </option>
+                  </select>
+                  <button
+                    type="button"
+                    phx-click="remove_staged_skill"
+                    phx-value-uuid={s.skill_uuid}
+                    class="btn btn-ghost btn-xs btn-circle text-error"
+                    aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
+                  >
+                    <.icon name="hero-x-mark" class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div class="relative max-w-md">
+                <input
+                  type="text"
+                  name="skill_search"
+                  value={@skill_search}
+                  autocomplete="off"
+                  placeholder={gettext("Type to search skills…")}
+                  class="input input-bordered input-sm w-full"
+                />
+                <ul
+                  :if={@skill_matches != []}
+                  class="menu menu-sm bg-base-100 border border-base-300 rounded-box mt-1 w-full shadow absolute z-20"
+                >
+                  <li :for={skill <- @skill_matches}>
+                    <button type="button" phx-click="add_staged_skill" phx-value-uuid={skill.uuid}>
+                      <.icon name="hero-plus" class="w-4 h-4" /> {skill.name}
+                    </button>
+                  </li>
+                </ul>
+                <p
+                  :if={@skill_search != "" and @skill_matches == []}
+                  class="text-xs text-base-content/50 mt-1"
+                >
+                  {gettext("No matching skills. Create them under Skills first.")}
+                </p>
+              </div>
+            </div>
+
             <div class="flex justify-end gap-2 mt-4">
               <.link navigate={Paths.people()} class="btn btn-ghost btn-sm">{Gettext.gettext(PhoenixKitWeb.Gettext, "Cancel")}</.link>
               <button type="submit" phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Saving…")} class="btn btn-primary btn-sm">
@@ -682,18 +916,6 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
           </div>
         </.form>
       </div>
-
-      <%!-- Skills — searchable multi-select with a per-skill proficiency
-           level. Lives outside the person form (its own little search/level
-           forms can't nest) and persists each change immediately. Edit only:
-           a person must exist before skills can be attached. --%>
-      <.live_component
-        :if={@live_action == :edit}
-        module={PhoenixKitStaff.Web.Components.SkillPicker}
-        id={"skill-picker-#{@person.uuid}"}
-        person={@person}
-        actor_uuid={@actor_uuid}
-      />
     </div>
     """
   end

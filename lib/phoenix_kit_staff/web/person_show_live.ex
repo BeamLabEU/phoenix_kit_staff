@@ -49,8 +49,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     end
   end
 
-  # The person's skill assignments (read-only here — assignment is managed
-  # on the edit page via the SkillPicker).
+  # The person's skill assignments (read-only here — assignment is staged
+  # on the edit form and persisted on Save).
   defp load_skills(socket) do
     assign(socket, person_skills: Skills.list_for_person(socket.assigns.person.uuid))
   end
