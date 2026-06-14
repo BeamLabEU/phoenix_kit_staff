@@ -210,8 +210,11 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
       # No notes input under any name (primary column or translations key).
       refute html =~ "][notes]"
       refute html =~ ~s|name="person[notes]"|
-      # Sibling translatable fields are untouched.
-      assert html =~ "Skills"
+      # Skills also no longer live on the form (V135 moved them to the
+      # structured Skill entity, managed on the person show page).
+      refute html =~ ~s|name="person[skills]"|
+      # A sibling translatable field that IS still on the form.
+      assert html =~ "Bio"
     end
   end
 

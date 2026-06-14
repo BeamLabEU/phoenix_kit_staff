@@ -13,7 +13,7 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
   use PhoenixKitStaff.LiveCase, async: false
 
   alias PhoenixKit.Users.Auth
-  alias PhoenixKitStaff.{Departments, Staff}
+  alias PhoenixKitStaff.{Departments, Skills, Staff}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
 
   setup %{conn: conn} do
@@ -38,7 +38,6 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
           "personal_phone" => "+372 555 2222",
           "personal_email" => "personal@example.com",
           "bio" => "Full bio text.",
-          "skills" => "Elixir, Phoenix, PostgreSQL",
           "date_of_birth" => Date.to_string(Date.add(Date.utc_today(), -10_000)),
           "emergency_contact_name" => "Jane Doe",
           "emergency_contact_phone" => "+372 555 9999",
@@ -46,6 +45,13 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
           "primary_department_uuid" => dept.uuid,
           "notes" => "Internal admin notes"
         })
+
+      # Structured skills (replaced the old free-text field): assign two so
+      # the at-a-glance badges + the Skills card render.
+      {:ok, elixir} = Skills.create(%{"name" => "Elixir"})
+      {:ok, phoenix} = Skills.create(%{"name" => "Phoenix"})
+      {:ok, _} = Skills.assign_skill(person.uuid, elixir.uuid, "expert")
+      {:ok, _} = Skills.assign_skill(person.uuid, phoenix.uuid, nil)
 
       {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
 
@@ -67,9 +73,11 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
       assert html =~ "spouse"
       # Bio
       assert html =~ "Full bio text"
-      # Skills badges
+      # Skills card + structured assignments (name + level label)
+      assert html =~ "Skills"
       assert html =~ "Elixir"
       assert html =~ "Phoenix"
+      assert html =~ "Expert"
       # Admin notes (warning panel)
       assert html =~ "Admin notes"
       assert html =~ "Internal admin notes"

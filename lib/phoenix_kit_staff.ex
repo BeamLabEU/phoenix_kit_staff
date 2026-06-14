@@ -29,7 +29,11 @@ defmodule PhoenixKitStaff do
       gettext_noop("New Team"),
       gettext_noop("Edit Team"),
       gettext_noop("New Staff"),
-      gettext_noop("Edit Staff")
+      gettext_noop("Edit Staff"),
+      gettext_noop("Skills"),
+      gettext_noop("New Skill"),
+      gettext_noop("Edit Skill"),
+      gettext_noop("Skill")
     ]
   end
 
@@ -153,6 +157,19 @@ defmodule PhoenixKitStaff do
         match: :prefix,
         parent: :admin_staff,
         live_view: {PhoenixKitStaff.Web.PeopleLive, :index}
+      },
+      %Tab{
+        id: :admin_staff_skills,
+        label: "Skills",
+        gettext_backend: PhoenixKitStaff.Gettext,
+        icon: "hero-academic-cap",
+        path: "staff/skills",
+        priority: 655,
+        level: :admin,
+        permission: module_key(),
+        match: :prefix,
+        parent: :admin_staff,
+        live_view: {PhoenixKitStaff.Web.SkillsLive, :index}
       }
     ]
 
@@ -222,6 +239,39 @@ defmodule PhoenixKitStaff do
         parent: :admin_staff,
         visible: false,
         live_view: {PhoenixKitStaff.Web.TeamShowLive, :show}
+      },
+      %Tab{
+        id: :admin_staff_skill_new,
+        label: "New Skill",
+        gettext_backend: PhoenixKitStaff.Gettext,
+        path: "staff/skills/new",
+        level: :admin,
+        permission: module_key(),
+        parent: :admin_staff,
+        visible: false,
+        live_view: {PhoenixKitStaff.Web.SkillFormLive, :new}
+      },
+      %Tab{
+        id: :admin_staff_skill_edit,
+        label: "Edit Skill",
+        gettext_backend: PhoenixKitStaff.Gettext,
+        path: "staff/skills/:id/edit",
+        level: :admin,
+        permission: module_key(),
+        parent: :admin_staff,
+        visible: false,
+        live_view: {PhoenixKitStaff.Web.SkillFormLive, :edit}
+      },
+      %Tab{
+        id: :admin_staff_skill_show,
+        label: "Skill",
+        gettext_backend: PhoenixKitStaff.Gettext,
+        path: "staff/skills/:id",
+        level: :admin,
+        permission: module_key(),
+        parent: :admin_staff,
+        visible: false,
+        live_view: {PhoenixKitStaff.Web.SkillShowLive, :show}
       },
       %Tab{
         id: :admin_staff_person_new,

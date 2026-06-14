@@ -15,6 +15,7 @@ defmodule PhoenixKitStaff.Staff do
   alias PhoenixKitStaff.Departments
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
   alias PhoenixKitStaff.Schemas.{Person, TeamMembership}
+  alias PhoenixKitStaff.Skills
 
   defp repo, do: PhoenixKit.RepoHelper.repo()
 
@@ -747,4 +748,21 @@ defmodule PhoenixKitStaff.Staff do
     )
     |> repo().all()
   end
+
+  # ── Skill assignment (delegates to PhoenixKitStaff.Skills) ─────────
+  # Skill CRUD + assignment live in `Skills` for cohesion; these thin
+  # delegators keep the person↔skill API reachable from `Staff`, mirroring
+  # how team membership lives here.
+
+  @doc "Delegates to `PhoenixKitStaff.Skills.assign_skill/3`."
+  defdelegate assign_skill(person_uuid, skill_uuid, level), to: Skills
+
+  @doc "Delegates to `PhoenixKitStaff.Skills.unassign_skill/1`."
+  defdelegate unassign_skill(person_skill), to: Skills
+
+  @doc "Delegates to `PhoenixKitStaff.Skills.unassign_skill/2`."
+  defdelegate unassign_skill(person_uuid, skill_uuid), to: Skills
+
+  @doc "Delegates to `PhoenixKitStaff.Skills.list_for_person/1`."
+  defdelegate list_skills_for_person(person_uuid), to: Skills, as: :list_for_person
 end

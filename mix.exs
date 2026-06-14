@@ -77,7 +77,7 @@ defmodule PhoenixKitStaff.MixProject do
 
   defp deps do
     [
-      pk_dep(:phoenix_kit, "~> 1.7.125"),
+      pk_dep(:phoenix_kit, "~> 1.7 and >= 1.7.132"),
       # Hard dep: PersonShowLive embeds the comment thread (Comments tab) and
       # `use PhoenixKitComments.Embed` for the composer's Leaf-event forwarding,
       # both compile-time. `~> 0.2` — Embed lives in the 0.2.x line.

@@ -96,4 +96,14 @@ defmodule PhoenixKitStaff.DataCase do
 
     PhoenixKitStaff.Staff.get_person!(person.uuid, preload: [:user, :primary_department])
   end
+
+  @doc "Creates a Skill fixture (unique name unless overridden)."
+  def fixture_skill(attrs \\ %{}) do
+    {:ok, skill} =
+      PhoenixKitStaff.Skills.create(
+        Map.merge(%{"name" => "Skill #{System.unique_integer([:positive])}"}, attrs)
+      )
+
+    skill
+  end
 end

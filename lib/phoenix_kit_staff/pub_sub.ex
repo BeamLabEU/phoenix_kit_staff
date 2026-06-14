@@ -38,6 +38,12 @@ defmodule PhoenixKitStaff.PubSub do
   @doc "Topic for all person mutations."
   @spec topic_people() :: topic()
   def topic_people, do: "staff:people"
+  @doc "Topic for all skill mutations."
+  @spec topic_skills() :: topic()
+  def topic_skills, do: "staff:skills"
+  @doc "Topic scoped to a single skill."
+  @spec topic_skill(UUIDv7.t() | String.t()) :: topic()
+  def topic_skill(uuid), do: "staff:skill:#{uuid}"
   @doc "Topic scoped to a single department."
   @spec topic_department(UUIDv7.t() | String.t()) :: topic()
   def topic_department(uuid), do: "staff:department:#{uuid}"
@@ -103,6 +109,34 @@ defmodule PhoenixKitStaff.PubSub do
   @spec broadcast_people_bulk(event()) :: :ok
   def broadcast_people_bulk(event) do
     Manager.broadcast(topic_people(), {:staff, event, %{bulk: true}})
+  end
+
+  @doc "Broadcasts a skill event to the skills topic and the skill's own topic."
+  @spec broadcast_skill(event(), %{
+          required(:uuid) => UUIDv7.t() | String.t(),
+          optional(any) => any
+        }) :: :ok
+  def broadcast_skill(event, %{uuid: uuid} = payload) do
+    msg = {:staff, event, payload}
+    Manager.broadcast(topic_skills(), msg)
+    Manager.broadcast(topic_skill(uuid), msg)
+  end
+
+  @doc "Broadcasts a person-skill event to the skills, skill, people, and person topics."
+  @spec broadcast_person_skill(event(), %{
+          required(:skill_uuid) => UUIDv7.t() | String.t(),
+          required(:staff_person_uuid) => UUIDv7.t() | String.t(),
+          optional(any) => any
+        }) :: :ok
+  def broadcast_person_skill(
+        event,
+        %{skill_uuid: skill_uuid, staff_person_uuid: person_uuid} = payload
+      ) do
+    msg = {:staff, event, payload}
+    Manager.broadcast(topic_skills(), msg)
+    Manager.broadcast(topic_skill(skill_uuid), msg)
+    Manager.broadcast(topic_people(), msg)
+    Manager.broadcast(topic_person(person_uuid), msg)
   end
 
   @doc "Broadcasts a team-membership event to the teams, team, people, and person topics."

@@ -13,7 +13,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   alias PhoenixKitStaff.Schemas.Person
   alias PhoenixKitStaff.Web.Helpers
 
-  @translatable_field_atoms [:job_title, :bio, :skills]
+  @translatable_field_atoms [:job_title, :bio]
 
   @impl true
   def mount(params, _session, socket) do
@@ -493,22 +493,6 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
                 label={gettext("Bio")}
                 type="textarea"
                 placeholder={gettext("A short summary about this person")}
-              />
-
-              <.translatable_field
-                field_name="skills"
-                form_prefix="person"
-                changeset={@form.source}
-                schema_field={:skills}
-                multilang_enabled={@multilang_enabled}
-                current_lang={@current_lang}
-                primary_language={@primary_language}
-                lang_data={Helpers.lang_data(@form, @current_lang)}
-                secondary_name={"person[translations][#{@current_lang}][skills]"}
-                lang_data_key="skills"
-                label={gettext("Skills")}
-                type="textarea"
-                placeholder={gettext("Languages, technologies, certifications, anything else worth noting…")}
               />
             </div>
           </.multilang_fields_wrapper>

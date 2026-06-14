@@ -297,6 +297,49 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
       assert render(view) =~ person.user.email
       assert Process.alive?(view.pid)
     end
+
+    test "add_skill assigns a skill at a level and logs activity", %{
+      conn: conn,
+      actor_uuid: actor_uuid
+    } do
+      person = fixture_person()
+      skill = fixture_skill(%{"name" => "Elixir-#{System.unique_integer([:positive])}"})
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
+
+      view
+      |> form("#person-add-skill-form",
+        assign_skill: %{skill_uuid: skill.uuid, proficiency_level: "expert"}
+      )
+      |> render_submit()
+
+      assert_activity_logged("staff.person_skill_added",
+        resource_uuid: skill.uuid,
+        actor_uuid: actor_uuid,
+        target_uuid: person.user_uuid
+      )
+
+      [ps] = PhoenixKitStaff.Skills.list_for_person(person.uuid)
+      assert ps.skill.uuid == skill.uuid
+      assert ps.proficiency_level == "expert"
+    end
+
+    test "remove_skill unassigns and logs activity", %{conn: conn, actor_uuid: actor_uuid} do
+      person = fixture_person()
+      skill = fixture_skill()
+      {:ok, ps} = PhoenixKitStaff.Skills.assign_skill(person.uuid, skill.uuid, nil)
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
+      render_click(view, "remove_skill", %{"uuid" => ps.uuid})
+
+      assert_activity_logged("staff.person_skill_removed",
+        resource_uuid: skill.uuid,
+        actor_uuid: actor_uuid,
+        target_uuid: person.user_uuid
+      )
+
+      assert PhoenixKitStaff.Skills.list_for_person(person.uuid) == []
+    end
   end
 
   describe "TeamShowLive — extension to existing test (mount + remove_person path)" do

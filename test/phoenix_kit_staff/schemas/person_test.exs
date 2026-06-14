@@ -20,31 +20,4 @@ defmodule PhoenixKitStaff.Schemas.PersonTest do
       assert Person.employment_type_label("weird") == "weird"
     end
   end
-
-  describe "skill_list/1" do
-    test "nil returns empty list" do
-      assert Person.skill_list(nil) == []
-    end
-
-    test "blank string returns empty list" do
-      assert Person.skill_list("") == []
-      assert Person.skill_list("   ") == []
-    end
-
-    test "splits and trims comma-separated skills" do
-      assert Person.skill_list("Elixir, Phoenix, PostgreSQL") == [
-               "Elixir",
-               "Phoenix",
-               "PostgreSQL"
-             ]
-    end
-
-    test "drops empty entries" do
-      assert Person.skill_list("Elixir,,Phoenix, ") == ["Elixir", "Phoenix"]
-    end
-
-    test "single item with no commas" do
-      assert Person.skill_list("Elixir") == ["Elixir"]
-    end
-  end
 end

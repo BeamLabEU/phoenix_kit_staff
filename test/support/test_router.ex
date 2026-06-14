@@ -44,6 +44,11 @@ defmodule PhoenixKitStaff.Test.Router do
       live("/people/new", PersonFormLive, :new)
       live("/people/:id", PersonShowLive, :show)
       live("/people/:id/edit", PersonFormLive, :edit)
+
+      live("/skills", SkillsLive, :index)
+      live("/skills/new", SkillFormLive, :new)
+      live("/skills/:id", SkillShowLive, :show)
+      live("/skills/:id/edit", SkillFormLive, :edit)
     end
   end
 end
