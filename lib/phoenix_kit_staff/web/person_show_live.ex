@@ -49,15 +49,10 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     end
   end
 
-  # Skill assignments for this person + the skills still available to add.
+  # The person's skill assignments (read-only here — assignment is managed
+  # on the edit page via the SkillPicker).
   defp load_skills(socket) do
-    person_uuid = socket.assigns.person.uuid
-
-    assign(socket,
-      person_skills: Skills.list_for_person(person_uuid),
-      available_skills: Skills.skills_not_assigned_to(person_uuid),
-      add_skill_form: to_form(%{"skill_uuid" => "", "proficiency_level" => ""}, as: :assign_skill)
-    )
+    assign(socket, person_skills: Skills.list_for_person(socket.assigns.person.uuid))
   end
 
   @impl true
@@ -184,75 +179,6 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         {:noreply, put_flash(socket, :error, gettext("Could not delete staff."))}
     end
   end
-
-  def handle_event("add_skill", %{"assign_skill" => %{"skill_uuid" => ""}}, socket) do
-    {:noreply, put_flash(socket, :error, gettext("Please choose a skill."))}
-  end
-
-  def handle_event(
-        "add_skill",
-        %{"assign_skill" => %{"skill_uuid" => skill_uuid} = params},
-        socket
-      ) do
-    person = socket.assigns.person
-    level = Map.get(params, "proficiency_level")
-
-    case Skills.assign_skill(person.uuid, skill_uuid, level) do
-      {:ok, ps} ->
-        Activity.log("staff.person_skill_added",
-          actor_uuid: Activity.actor_uuid(socket),
-          resource_type: "skill",
-          resource_uuid: skill_uuid,
-          target_uuid: person.user_uuid,
-          metadata: %{"person_skill_uuid" => ps.uuid, "proficiency_level" => ps.proficiency_level}
-        )
-
-        {:noreply, socket |> load_skills() |> put_flash(:info, gettext("Skill added."))}
-
-      {:error, %Ecto.Changeset{} = cs} ->
-        # Stale picker / two tabs raced — the unique (person, skill) index
-        # fired. Treat as already-assigned rather than a hard error.
-        if duplicate_assignment?(cs) do
-          {:noreply,
-           socket |> load_skills() |> put_flash(:info, gettext("That skill is already assigned."))}
-        else
-          {:noreply, put_flash(socket, :error, gettext("Could not add skill."))}
-        end
-    end
-  end
-
-  def handle_event("remove_skill", %{"uuid" => ps_uuid}, socket) do
-    person = socket.assigns.person
-
-    case Enum.find(socket.assigns.person_skills, &(&1.uuid == ps_uuid)) do
-      %PersonSkill{} = ps ->
-        case Skills.unassign_skill(ps) do
-          {:ok, removed} ->
-            Activity.log("staff.person_skill_removed",
-              actor_uuid: Activity.actor_uuid(socket),
-              resource_type: "skill",
-              resource_uuid: removed.skill_uuid,
-              target_uuid: person.user_uuid,
-              metadata: %{}
-            )
-
-            {:noreply, socket |> load_skills() |> put_flash(:info, gettext("Skill removed."))}
-
-          {:error, _} ->
-            {:noreply, put_flash(socket, :error, gettext("Could not remove skill."))}
-        end
-
-      nil ->
-        # Already gone (stale view) — just refresh.
-        {:noreply, load_skills(socket)}
-    end
-  end
-
-  # The unique (staff_person_uuid, skill_uuid) constraint maps its error onto
-  # :staff_person_uuid (first field in the index); any error there means the
-  # pair already exists.
-  defp duplicate_assignment?(%Ecto.Changeset{errors: errors}),
-    do: Keyword.has_key?(errors, :staff_person_uuid)
 
   # The Comments tab is gated on the comments module's admin toggle.
   # `phoenix_kit_comments` is a hard dep, so the call is direct — rescued
@@ -398,18 +324,6 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
           <%= if @person.bio do %>
             <div class="mt-4 text-sm leading-relaxed whitespace-pre-line">{@person.bio}</div>
           <% end %>
-
-          <%!-- Skills at-a-glance (managed in the Skills card below) --%>
-          <%= if @person_skills != [] do %>
-            <div class="flex flex-wrap gap-1 mt-3">
-              <span :for={ps <- @person_skills} class="badge badge-outline badge-sm gap-1">
-                {ps.skill.name}
-                <span :if={ps.proficiency_level} class="opacity-60">
-                  · {PersonSkill.proficiency_label(ps.proficiency_level)}
-                </span>
-              </span>
-            </div>
-          <% end %>
         </div>
       </div>
 
@@ -552,80 +466,39 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         </div>
       </div>
 
-      <%!-- Skills — assign skills to this person, each at an optional level --%>
+      <%!-- Skills — read-only display; assignment is managed on the edit page. --%>
       <div class="card bg-base-100 shadow">
         <div class="card-body">
-          <h2 class="card-title text-lg">
-            <.icon name="hero-academic-cap" class="w-5 h-5" /> {gettext("Skills")} ({length(@person_skills)})
-          </h2>
-
-          <.form
-            :if={@available_skills != []}
-            for={@add_skill_form}
-            id="person-add-skill-form"
-            phx-submit="add_skill"
-            class="flex flex-col sm:flex-row gap-2 sm:items-end"
-          >
-            <.select
-              field={@add_skill_form[:skill_uuid]}
-              label={gettext("Skill")}
-              class="select-sm"
-              options={Enum.map(@available_skills, &{&1.name, &1.uuid})}
-              prompt={gettext("Select a skill…")}
-            />
-            <.select
-              field={@add_skill_form[:proficiency_level]}
-              label={gettext("Level")}
-              class="select-sm"
-              options={Enum.map(PersonSkill.proficiency_levels(), &{PersonSkill.proficiency_label(&1), &1})}
-              prompt={PersonSkill.proficiency_label(nil)}
-            />
-            <button type="submit" class="btn btn-primary btn-sm" phx-disable-with={gettext("Adding…")}>
-              <.icon name="hero-plus" class="w-4 h-4" /> {gettext("Add")}
-            </button>
-          </.form>
+          <div class="flex items-center justify-between">
+            <h2 class="card-title text-lg">
+              <.icon name="hero-academic-cap" class="w-5 h-5" /> {gettext("Skills")} ({length(@person_skills)})
+            </h2>
+            <.link navigate={Paths.edit_person(@person.uuid)} class="btn btn-ghost btn-xs">
+              <.icon name="hero-pencil" class="w-3.5 h-3.5" /> {gettext("Manage")}
+            </.link>
+          </div>
 
           <%= if @person_skills == [] do %>
-            <.empty_state
-              icon="hero-academic-cap"
-              title={gettext("No skills assigned yet.")}
-              class="py-6"
-            />
+            <.empty_state icon="hero-academic-cap" title={gettext("No skills assigned yet.")} class="py-6">
+              <:cta>
+                <.link navigate={Paths.edit_person(@person.uuid)} class="link link-primary text-sm">
+                  {gettext("Add skills")}
+                </.link>
+              </:cta>
+            </.empty_state>
           <% else %>
-            <table class="table table-sm mt-2">
-              <thead>
-                <tr>
-                  <th>{gettext("Skill")}</th>
-                  <th>{gettext("Level")}</th>
-                  <th class="w-px"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr :for={ps <- @person_skills}>
-                  <td>
-                    <.link navigate={Paths.skill(ps.skill.uuid)} class="link link-hover font-medium">
-                      {ps.skill.name}
-                    </.link>
-                  </td>
-                  <td>
-                    <span class="badge badge-ghost badge-sm">
-                      {PersonSkill.proficiency_label(ps.proficiency_level)}
-                    </span>
-                  </td>
-                  <td class="text-right">
-                    <button
-                      type="button"
-                      phx-click="remove_skill"
-                      phx-value-uuid={ps.uuid}
-                      data-confirm={gettext("Remove this skill from %{name}?", name: Person.display_name(@person))}
-                      class="btn btn-ghost btn-xs text-error"
-                    >
-                      <.icon name="hero-x-mark" class="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <div class="flex flex-wrap gap-2 mt-1">
+              <.link
+                :for={ps <- @person_skills}
+                navigate={Paths.skill(ps.skill.uuid)}
+                class="badge badge-lg badge-outline gap-1 hover:badge-primary"
+              >
+                {ps.skill.name}
+                <span :if={ps.proficiency_level} class="opacity-60">
+                  · {PersonSkill.proficiency_label(ps.proficiency_level)}
+                </span>
+              </.link>
+            </div>
           <% end %>
         </div>
       </div>

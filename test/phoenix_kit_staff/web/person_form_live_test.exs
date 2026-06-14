@@ -254,4 +254,69 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
       assert PhoenixKitStaff.Staff.get_person(person.uuid).status == "trashed"
     end
   end
+
+  describe "skills picker (edit page)" do
+    alias PhoenixKitStaff.Skills
+
+    test "renders the searchable skills picker", %{conn: conn} do
+      person = fixture_person()
+      {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      assert html =~ "Skills"
+      assert html =~ "Type to search skills"
+    end
+
+    test "search + add assigns a skill and logs activity", %{conn: conn, actor_uuid: actor_uuid} do
+      person = fixture_person()
+      skill = fixture_skill(%{"name" => "Elixir-#{System.unique_integer([:positive])}"})
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      # type-to-search surfaces the skill, then add it
+      view
+      |> element("form[phx-change='search']")
+      |> render_change(%{"q" => skill.name})
+
+      view
+      |> element("button[phx-click='add'][phx-value-uuid='#{skill.uuid}']")
+      |> render_click()
+
+      assert_activity_logged("staff.person_skill_added",
+        resource_uuid: skill.uuid,
+        actor_uuid: actor_uuid,
+        target_uuid: person.user_uuid
+      )
+
+      assert [ps] = Skills.list_for_person(person.uuid)
+      assert ps.skill.uuid == skill.uuid
+    end
+
+    test "changing a chip's level updates the assignment", %{conn: conn} do
+      person = fixture_person()
+      skill = fixture_skill()
+      {:ok, ps} = Skills.assign_skill(person.uuid, skill.uuid, "beginner")
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      view
+      |> element("form[phx-change='set_level']")
+      |> render_change(%{"uuid" => ps.uuid, "level" => "advanced"})
+
+      assert hd(Skills.list_for_person(person.uuid)).proficiency_level == "advanced"
+    end
+
+    test "removing a chip unassigns the skill", %{conn: conn} do
+      person = fixture_person()
+      skill = fixture_skill()
+      {:ok, ps} = Skills.assign_skill(person.uuid, skill.uuid, nil)
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      view
+      |> element("button[phx-click='remove'][phx-value-uuid='#{ps.uuid}']")
+      |> render_click()
+
+      assert Skills.list_for_person(person.uuid) == []
+    end
+  end
 end

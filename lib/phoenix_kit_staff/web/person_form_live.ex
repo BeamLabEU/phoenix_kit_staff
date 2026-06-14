@@ -72,7 +72,8 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
           dept_options: dept_options(),
           team_options: team_options_for(person.primary_department_uuid),
           selected_team_uuid: nil,
-          location_options: location_options()
+          location_options: location_options(),
+          actor_uuid: Activity.actor_uuid(socket)
         )
         |> assign_form(Staff.change_person(person))
     end
@@ -681,6 +682,18 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
           </div>
         </.form>
       </div>
+
+      <%!-- Skills — searchable multi-select with a per-skill proficiency
+           level. Lives outside the person form (its own little search/level
+           forms can't nest) and persists each change immediately. Edit only:
+           a person must exist before skills can be attached. --%>
+      <.live_component
+        :if={@live_action == :edit}
+        module={PhoenixKitStaff.Web.Components.SkillPicker}
+        id={"skill-picker-#{@person.uuid}"}
+        person={@person}
+        actor_uuid={@actor_uuid}
+      />
     </div>
     """
   end
