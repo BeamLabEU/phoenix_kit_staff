@@ -258,12 +258,46 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
   describe "skills picker (edit form — staged, persisted on Save)" do
     alias PhoenixKitStaff.Skills
 
-    test "renders the searchable skills picker", %{conn: conn} do
+    test "renders the searchable skills picker (skills exist)", %{conn: conn} do
       person = fixture_person()
+      _skill = fixture_skill()
       {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
 
       assert html =~ "Skills"
       assert html =~ "Type to search skills"
+      # The "manage the taxonomy" link points at the Skills admin page.
+      assert html =~ "Add / edit skills"
+      assert html =~ ~s|href="/en/admin/staff/skills"|
+    end
+
+    test "with no skills at all, shows an empty-state prompt linking to Skills", %{conn: conn} do
+      person = fixture_person()
+      {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      # No skills exist → the picker collapses to a prompt + link, and the
+      # search box is suppressed (there's nothing to search).
+      assert html =~ "No skills have been created yet."
+      assert html =~ "Add / edit skills"
+      assert html =~ ~s|href="/en/admin/staff/skills"|
+      refute html =~ "Type to search skills"
+    end
+
+    test "refresh_skills flips the empty state to the picker after a skill is created", %{
+      conn: conn
+    } do
+      person = fixture_person()
+      {:ok, view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      assert html =~ "No skills have been created yet."
+      refute html =~ "Type to search skills"
+
+      # A skill gets created elsewhere (e.g. the Skills page opened in a new
+      # tab); returning to this tab fires phx-window-focus → refresh_skills.
+      _skill = fixture_skill()
+      html = render_hook(view, "refresh_skills", %{})
+
+      assert html =~ "Type to search skills"
+      refute html =~ "No skills have been created yet."
     end
 
     test "type-to-search narrows the add-able skills", %{conn: conn} do

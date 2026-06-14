@@ -225,6 +225,21 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
      )}
   end
 
+  # Re-query the skill taxonomy when the window regains focus — the user may
+  # have just created a skill on the Skills admin page (opened in a new tab
+  # from the picker). Flips the empty state to the picker and surfaces new
+  # skills in search without a manual reload.
+  def handle_event("refresh_skills", _params, socket) do
+    all_skills = skill_options()
+
+    {:noreply,
+     assign(socket,
+       all_skills: all_skills,
+       skill_matches:
+         skill_matches(socket.assigns.skill_search, socket.assigns.staged_skills, all_skills)
+     )}
+  end
+
   def handle_event("save", %{"person" => attrs} = params, socket) do
     attrs = merge_attrs(attrs, socket)
     email = Map.get(params, "email", "") |> String.trim()
@@ -850,65 +865,110 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
                  level inputs POST with the person form; add/remove restage
                  in-memory via phx-click — no DB write happens here. The
                  rows + search field mirror the form's other fields (full
-                 width, `label-text font-semibold` labels, `input w-full`). --%>
-            <div :if={@staged_skills != []} class="flex flex-col gap-2">
-              <div
-                :for={s <- @staged_skills}
-                class="flex items-center gap-2 rounded-box border border-base-300 px-3 py-2"
-              >
-                <input type="hidden" name={"skills[#{s.skill_uuid}][skill_uuid]"} value={s.skill_uuid} />
-                <span class="flex-1 font-medium truncate">{s.name}</span>
-                <select name={"skills[#{s.skill_uuid}][level]"} class="select select-sm w-40">
-                  <option value="" selected={is_nil(s.level)}>{PersonSkill.proficiency_label(nil)}</option>
-                  <option
-                    :for={lvl <- PersonSkill.proficiency_levels()}
-                    value={lvl}
-                    selected={s.level == lvl}
-                  >
-                    {PersonSkill.proficiency_label(lvl)}
-                  </option>
-                </select>
-                <button
-                  type="button"
-                  phx-click="remove_staged_skill"
-                  phx-value-uuid={s.skill_uuid}
-                  class="btn btn-ghost btn-sm btn-circle text-error"
-                  aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
-                >
-                  <.icon name="hero-x-mark" class="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+                 width, `label-text font-semibold` labels, `input w-full`).
 
-            <div>
-              <label class="label mb-2">
-                <span class="label-text font-semibold">{gettext("Add a skill")}</span>
-              </label>
-              <div class="relative">
-                <input
-                  type="text"
-                  name="skill_search"
-                  value={@skill_search}
-                  autocomplete="off"
-                  placeholder={gettext("Type to search skills…")}
-                  class="input w-full transition-colors focus:input-primary"
-                />
-                <ul
-                  :if={@skill_matches != []}
-                  class="menu menu-sm bg-base-100 border border-base-300 rounded-box mt-1 w-full shadow absolute z-20"
-                >
-                  <li :for={skill <- @skill_matches}>
-                    <button type="button" phx-click="add_staged_skill" phx-value-uuid={skill.uuid}>
-                      <.icon name="hero-plus" class="w-4 h-4" /> {skill.name}
-                    </button>
-                  </li>
-                </ul>
-                <p
-                  :if={@skill_search != "" and @skill_matches == []}
-                  class="text-xs text-base-content/50 mt-1"
-                >
-                  {gettext("No matching skills. Create them under Skills first.")}
+                 Skills are a global taxonomy created on the Skills admin
+                 page, so the picker only assigns *existing* ones. The
+                 "Add / edit skills" link opens that page in a new tab so
+                 in-progress form edits survive; `phx-window-focus`
+                 re-queries on return, flipping the empty state to the
+                 picker (and surfacing freshly-created skills) without a
+                 manual reload. --%>
+            <div phx-window-focus="refresh_skills" class="flex flex-col gap-3">
+              <div :if={@all_skills == []}>
+                <label class="label mb-2">
+                  <span class="label-text font-semibold">{gettext("Add a skill")}</span>
+                </label>
+                <p class="text-sm text-base-content/60">
+                  {gettext("No skills have been created yet.")}
+                  <.link
+                    href={Paths.skills()}
+                    target="_blank"
+                    rel="noopener"
+                    class="link link-primary"
+                  >
+                    {gettext("Add / edit skills")}
+                  </.link>
                 </p>
+              </div>
+
+              <div :if={@all_skills != []} class="flex flex-col gap-3">
+                <div :if={@staged_skills != []} class="flex flex-col gap-2">
+                  <div
+                    :for={s <- @staged_skills}
+                    class="flex items-center gap-2 rounded-box border border-base-300 px-3 py-2"
+                  >
+                    <input type="hidden" name={"skills[#{s.skill_uuid}][skill_uuid]"} value={s.skill_uuid} />
+                    <span class="flex-1 font-medium truncate">{s.name}</span>
+                    <select name={"skills[#{s.skill_uuid}][level]"} class="select select-sm w-40">
+                      <option value="" selected={is_nil(s.level)}>{PersonSkill.proficiency_label(nil)}</option>
+                      <option
+                        :for={lvl <- PersonSkill.proficiency_levels()}
+                        value={lvl}
+                        selected={s.level == lvl}
+                      >
+                        {PersonSkill.proficiency_label(lvl)}
+                      </option>
+                    </select>
+                    <button
+                      type="button"
+                      phx-click="remove_staged_skill"
+                      phx-value-uuid={s.skill_uuid}
+                      class="btn btn-ghost btn-sm btn-circle text-error"
+                      aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
+                    >
+                      <.icon name="hero-x-mark" class="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="label mb-2">
+                    <span class="label-text font-semibold">{gettext("Add a skill")}</span>
+                    <.link
+                      href={Paths.skills()}
+                      target="_blank"
+                      rel="noopener"
+                      class="label-text-alt link link-primary"
+                    >
+                      {gettext("Add / edit skills")}
+                    </.link>
+                  </label>
+                  <div class="relative">
+                    <input
+                      type="text"
+                      name="skill_search"
+                      value={@skill_search}
+                      autocomplete="off"
+                      placeholder={gettext("Type to search skills…")}
+                      class="input w-full transition-colors focus:input-primary"
+                    />
+                    <ul
+                      :if={@skill_matches != []}
+                      class="menu menu-sm bg-base-100 border border-base-300 rounded-box mt-1 w-full shadow absolute z-20"
+                    >
+                      <li :for={skill <- @skill_matches}>
+                        <button type="button" phx-click="add_staged_skill" phx-value-uuid={skill.uuid}>
+                          <.icon name="hero-plus" class="w-4 h-4" /> {skill.name}
+                        </button>
+                      </li>
+                    </ul>
+                    <p
+                      :if={@skill_search != "" and @skill_matches == []}
+                      class="text-xs text-base-content/50 mt-1"
+                    >
+                      {gettext("No matching skills.")}
+                      <.link
+                        href={Paths.skills()}
+                        target="_blank"
+                        rel="noopener"
+                        class="link link-primary"
+                      >
+                        {gettext("Add / edit skills")}
+                      </.link>
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
