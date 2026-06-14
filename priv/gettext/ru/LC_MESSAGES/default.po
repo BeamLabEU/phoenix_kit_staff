@@ -131,7 +131,7 @@ msgid "Could not rename email — %{errors}"
 msgstr "Не удалось переименовать почту — %{errors}"
 
 #: lib/phoenix_kit_staff/web/department_form_live.ex:209
-#: lib/phoenix_kit_staff/web/person_form_live.ex:913
+#: lib/phoenix_kit_staff/web/person_form_live.ex:918
 #: lib/phoenix_kit_staff/web/skill_form_live.ex:201
 #: lib/phoenix_kit_staff/web/team_form_live.ex:237
 #, elixir-autogen, elixir-format
@@ -1119,12 +1119,17 @@ msgstr "Добавить навыки"
 msgid "Manage"
 msgstr "Управление"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:905
+#: lib/phoenix_kit_staff/web/person_form_live.ex:910
 #, elixir-autogen, elixir-format
 msgid "No matching skills. Create them under Skills first."
 msgstr "Нет подходящих навыков. Сначала создайте их в разделе «Навыки»."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:888
+#: lib/phoenix_kit_staff/web/person_form_live.ex:893
 #, elixir-autogen, elixir-format
 msgid "Type to search skills…"
 msgstr "Введите для поиска навыков…"
+
+#: lib/phoenix_kit_staff/web/person_form_live.ex:885
+#, elixir-autogen, elixir-format
+msgid "Add a skill"
+msgstr "Добавить навык"

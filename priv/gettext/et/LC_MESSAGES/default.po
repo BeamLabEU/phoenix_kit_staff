@@ -130,7 +130,7 @@ msgid "Could not rename email — %{errors}"
 msgstr "E-posti ümbernimetamine ebaõnnestus — %{errors}"
 
 #: lib/phoenix_kit_staff/web/department_form_live.ex:209
-#: lib/phoenix_kit_staff/web/person_form_live.ex:913
+#: lib/phoenix_kit_staff/web/person_form_live.ex:918
 #: lib/phoenix_kit_staff/web/skill_form_live.ex:201
 #: lib/phoenix_kit_staff/web/team_form_live.ex:237
 #, elixir-autogen, elixir-format
@@ -1111,12 +1111,17 @@ msgstr "Lisa oskusi"
 msgid "Manage"
 msgstr "Halda"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:905
+#: lib/phoenix_kit_staff/web/person_form_live.ex:910
 #, elixir-autogen, elixir-format
 msgid "No matching skills. Create them under Skills first."
 msgstr "Sobivaid oskusi pole. Loo need esmalt jaotises Oskused."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:888
+#: lib/phoenix_kit_staff/web/person_form_live.ex:893
 #, elixir-autogen, elixir-format
 msgid "Type to search skills…"
 msgstr "Otsi oskusi…"
+
+#: lib/phoenix_kit_staff/web/person_form_live.ex:885
+#, elixir-autogen, elixir-format
+msgid "Add a skill"
+msgstr "Lisa oskus"

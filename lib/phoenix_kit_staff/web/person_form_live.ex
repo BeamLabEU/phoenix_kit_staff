@@ -846,47 +846,52 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             <div class="divider text-xs text-base-content/50 my-0">{gettext("Skills")}</div>
 
             <%!-- Skills are staged on the form and written to the database
-                 only when Save is pressed (below). Each chip's hidden +
+                 only when Save is pressed (below). Each row's hidden +
                  level inputs POST with the person form; add/remove restage
-                 in-memory via phx-click — no DB write happens here. --%>
-            <div>
-              <div :if={@staged_skills != []} class="flex flex-wrap gap-2 mb-2">
-                <div
-                  :for={s <- @staged_skills}
-                  class="flex items-center gap-2 badge badge-lg badge-outline py-4"
-                >
-                  <input type="hidden" name={"skills[#{s.skill_uuid}][skill_uuid]"} value={s.skill_uuid} />
-                  <span class="font-medium">{s.name}</span>
-                  <select name={"skills[#{s.skill_uuid}][level]"} class="select select-xs select-bordered">
-                    <option value="" selected={is_nil(s.level)}>{PersonSkill.proficiency_label(nil)}</option>
-                    <option
-                      :for={lvl <- PersonSkill.proficiency_levels()}
-                      value={lvl}
-                      selected={s.level == lvl}
-                    >
-                      {PersonSkill.proficiency_label(lvl)}
-                    </option>
-                  </select>
-                  <button
-                    type="button"
-                    phx-click="remove_staged_skill"
-                    phx-value-uuid={s.skill_uuid}
-                    class="btn btn-ghost btn-xs btn-circle text-error"
-                    aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
+                 in-memory via phx-click — no DB write happens here. The
+                 rows + search field mirror the form's other fields (full
+                 width, `label-text font-semibold` labels, `input w-full`). --%>
+            <div :if={@staged_skills != []} class="flex flex-col gap-2">
+              <div
+                :for={s <- @staged_skills}
+                class="flex items-center gap-2 rounded-box border border-base-300 px-3 py-2"
+              >
+                <input type="hidden" name={"skills[#{s.skill_uuid}][skill_uuid]"} value={s.skill_uuid} />
+                <span class="flex-1 font-medium truncate">{s.name}</span>
+                <select name={"skills[#{s.skill_uuid}][level]"} class="select select-sm w-40">
+                  <option value="" selected={is_nil(s.level)}>{PersonSkill.proficiency_label(nil)}</option>
+                  <option
+                    :for={lvl <- PersonSkill.proficiency_levels()}
+                    value={lvl}
+                    selected={s.level == lvl}
                   >
-                    <.icon name="hero-x-mark" class="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                    {PersonSkill.proficiency_label(lvl)}
+                  </option>
+                </select>
+                <button
+                  type="button"
+                  phx-click="remove_staged_skill"
+                  phx-value-uuid={s.skill_uuid}
+                  class="btn btn-ghost btn-sm btn-circle text-error"
+                  aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
+                >
+                  <.icon name="hero-x-mark" class="w-4 h-4" />
+                </button>
               </div>
+            </div>
 
-              <div class="relative max-w-md">
+            <div>
+              <label class="label mb-2">
+                <span class="label-text font-semibold">{gettext("Add a skill")}</span>
+              </label>
+              <div class="relative">
                 <input
                   type="text"
                   name="skill_search"
                   value={@skill_search}
                   autocomplete="off"
                   placeholder={gettext("Type to search skills…")}
-                  class="input input-bordered input-sm w-full"
+                  class="input w-full transition-colors focus:input-primary"
                 />
                 <ul
                   :if={@skill_matches != []}
