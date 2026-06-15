@@ -76,5 +76,18 @@ defmodule PhoenixKitStaff.Integration.SkillsTest do
 
       assert Skills.person_counts()[skill.uuid] == 2
     end
+
+    test "excludes trashed people so the count matches the skill-show roster" do
+      alias PhoenixKitStaff.Staff
+
+      skill = fixture_skill()
+      active = fixture_person()
+      trashed = fixture_person()
+      {:ok, _} = Skills.assign_skill(active.uuid, skill.uuid, [])
+      {:ok, _} = Skills.assign_skill(trashed.uuid, skill.uuid, [])
+      {:ok, _} = Staff.trash_person(trashed)
+
+      assert Skills.person_counts()[skill.uuid] == 1
+    end
   end
 end

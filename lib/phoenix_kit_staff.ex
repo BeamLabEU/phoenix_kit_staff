@@ -2,11 +2,11 @@ defmodule PhoenixKitStaff do
   @moduledoc """
   Staff module for PhoenixKit.
 
-  Manages departments, teams, and people (staff linked to
-  `PhoenixKit.Users.Auth.User`).
+  Manages departments, teams, people (staff linked to
+  `PhoenixKit.Users.Auth.User`), and skills.
 
   Registers one parent admin tab `Staff` with visible subtabs for
-  Overview, Departments, Teams, and Members, plus hidden subtabs for
+  Overview, Departments, Teams, Staff, and Skills, plus hidden subtabs for
   new/edit/show forms.
   """
 

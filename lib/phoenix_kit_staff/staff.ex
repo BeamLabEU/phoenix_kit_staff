@@ -253,7 +253,7 @@ defmodule PhoenixKitStaff.Staff do
   end
 
   @doc "Fetches a person by uuid, or `nil` if not found."
-  @spec get_person(UUIDv7.t() | String.t() | any(), keyword()) :: Person.t() | nil
+  @spec get_person(UUIDv7.t() | String.t(), keyword()) :: Person.t() | nil
   def get_person(uuid, opts \\ []) do
     preload = Keyword.get(opts, :preload, [:user, :primary_department])
 

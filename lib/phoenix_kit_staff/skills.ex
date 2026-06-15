@@ -34,10 +34,12 @@ defmodule PhoenixKitStaff.Skills do
     |> repo().all()
   end
 
-  @doc "Map of `skill_uuid => assigned-people count` (one query, for the list view)."
+  @doc "Map of `skill_uuid => assigned-people count` (one query, for the list view). Trashed people are excluded so the count matches the skill-show roster."
   @spec person_counts() :: %{optional(UUIDv7.t()) => non_neg_integer()}
   def person_counts do
     PersonSkill
+    |> join(:inner, [ps], p in assoc(ps, :staff_person))
+    |> where([ps, p], p.status != ^@soft_delete_status)
     |> group_by([ps], ps.skill_uuid)
     |> select([ps], {ps.skill_uuid, count(ps.uuid)})
     |> repo().all()
