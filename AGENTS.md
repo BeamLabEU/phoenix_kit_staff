@@ -73,6 +73,8 @@ mix quality.ci              # format --check-formatted + credo --strict + dialyz
 ## Dependencies
 
 - `phoenix_kit` (path dep) — Module behaviour, Settings, RepoHelper, Users.Auth, Activity
+- `phoenix_kit_comments` (`~> 0.2`) — **hard, compile-time** dep for the
+  person profile's Comments tab (see the Comments section below)
 - `phoenix_live_view` — admin pages
 - `ecto_sql` — schemas, changesets
 
@@ -285,6 +287,36 @@ bulk-select (`<.bulk_select_scope>`); bulk permanent-delete routes
 through a `<.confirm_modal>` because the `BulkSelectScope` hook can't
 carry a `data-confirm`. `PersonShowLive` shows a trashed banner +
 Restore / Delete-permanently.
+
+## Comments (person profile)
+
+`PersonShowLive` carries a **Comments** tab backed by the
+`phoenix_kit_comments` module. Unlike `phoenix_kit_locations` (a *soft*
+dep — see Work location), `phoenix_kit_comments` is a **hard,
+compile-time** dependency (`~> 0.2` in `mix.exs`): the LiveView
+`use PhoenixKitComments.Embed` and references
+`PhoenixKitComments.Web.CommentsComponent` /
+`PhoenixKitComments.enabled?/0` directly, so the package must always be
+present to compile.
+
+- **Embed lifecycle.** `use PhoenixKitComments.Embed` installs the hook
+  that forwards the composer's `{:leaf_changed, …}` message into
+  `CommentsComponent.forward_leaf_event/2` (it halts only `:leaf_changed`).
+  Without it the "Post comment" action silently no-ops. The component's
+  own `{:comments_updated, _}` message has an explicit no-op
+  `handle_info/2` clause.
+- **Thread binding.** The tab renders `CommentsComponent` with
+  `resource_type="staff_person"` + `resource_uuid={person.uuid}`, scoping
+  the thread to that staff profile.
+- **Runtime gating.** Although the dep is compile-time, the tab is shown
+  only when the comments module's admin toggle is on
+  (`comments_enabled?/0` → `PhoenixKitComments.enabled?()`, rescued).
+  `valid_tabs/1` recomputes the allowed tab set from that flag, so a
+  deep-link to `?tab=comments` falls back to Overview when the module is
+  disabled — it never lands on a blank panel.
+
+The `staff_person` comment thread is the only cross-module surface owned
+by comments; everything else stays inside this plugin.
 
 ## Activity logging
 
