@@ -113,6 +113,6 @@ defmodule PhoenixKitStaff.MixProject do
   end
 
   defp docs do
-    [main: "PhoenixKitStaff", source_ref: "v#{@version}"]
+    [main: "PhoenixKitStaff", source_ref: @version]
   end
 end
