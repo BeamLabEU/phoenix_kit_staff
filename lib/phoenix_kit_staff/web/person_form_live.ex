@@ -551,6 +551,13 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   defp toggle_level(ids, id, true), do: if(id in ids, do: List.delete(ids, id), else: ids ++ [id])
   defp toggle_level(ids, id, false), do: if(ids == [id], do: [], else: [id])
 
+  # True when every available skill is already staged — the search box would be
+  # dead weight, so the picker shows an "all added" prompt instead.
+  defp all_skills_staged?(all_skills, staged) do
+    staged_uuids = MapSet.new(staged, & &1.skill_uuid)
+    all_skills != [] and Enum.all?(all_skills, &MapSet.member?(staged_uuids, &1.uuid))
+  end
+
   # Reconciles the DB assignments with the staged list after a successful
   # person upsert: unassign what was removed, assign what's new, re-level what
   # changed. The context re-validates level ids against the current DB skill —
@@ -957,19 +964,32 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
                   </div>
                 </div>
 
-                <div>
-                  <label class="label mb-2">
-                    <span class="label-text font-semibold">{gettext("Add a skill")}</span>
+                <%= if all_skills_staged?(@all_skills, @staged_skills) do %>
+                  <p class="text-sm text-base-content/60">
+                    {gettext("All available skills are added.")}
                     <.link
                       href={Paths.skills()}
                       target="_blank"
                       rel="noopener"
-                      class="label-text-alt link link-primary"
+                      class="link link-primary"
                     >
                       {gettext("Add / edit skills")}
                     </.link>
-                  </label>
-                  <div class="relative">
+                  </p>
+                <% else %>
+                  <div>
+                    <label class="label mb-2">
+                      <span class="label-text font-semibold">{gettext("Add a skill")}</span>
+                      <.link
+                        href={Paths.skills()}
+                        target="_blank"
+                        rel="noopener"
+                        class="label-text-alt link link-primary"
+                      >
+                        {gettext("Add / edit skills")}
+                      </.link>
+                    </label>
+                    <div class="relative">
                     <input
                       type="text"
                       name="skill_search"
@@ -1004,6 +1024,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
                     </p>
                   </div>
                 </div>
+                <% end %>
               </div>
             </div>
 

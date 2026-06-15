@@ -282,6 +282,38 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
       refute html =~ "Type to search skills"
     end
 
+    test "with every available skill already assigned, shows 'all added' and no search box", %{
+      conn: conn
+    } do
+      person = fixture_person()
+      skill = fixture_skill()
+      {:ok, _} = Skills.assign_skill(person.uuid, skill.uuid, [])
+
+      {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      # Every available skill is staged → the search box would be dead weight.
+      assert html =~ "All available skills are added."
+      refute html =~ "Type to search skills"
+    end
+
+    test "removing a staged skill brings the search box back when all were assigned", %{conn: conn} do
+      person = fixture_person()
+      skill = fixture_skill()
+      {:ok, _} = Skills.assign_skill(person.uuid, skill.uuid, [])
+
+      {:ok, view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+      assert html =~ "All available skills are added."
+
+      html =
+        view
+        |> element("button[phx-click='remove_staged_skill'][phx-value-uuid='#{skill.uuid}']")
+        |> render_click()
+
+      # Now one skill is free again → the search box returns.
+      assert html =~ "Type to search skills"
+      refute html =~ "All available skills are added."
+    end
+
     test "refresh_skills flips the empty state to the picker after a skill is created", %{
       conn: conn
     } do

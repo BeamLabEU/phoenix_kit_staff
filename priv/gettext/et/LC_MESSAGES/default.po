@@ -16,14 +16,14 @@ msgstr ""
 msgid "%{date} · age %{age}"
 msgstr "%{date} · vanus %{age}"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:729
+#: lib/phoenix_kit_staff/web/person_form_live.ex:735
 #, elixir-autogen, elixir-format
 msgid "(editable — account not yet claimed)"
 msgstr "(muudetav — kontot pole veel hõivatud)"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:862
-#: lib/phoenix_kit_staff/web/person_form_live.ex:863
-#: lib/phoenix_kit_staff/web/person_form_live.ex:886
+#: lib/phoenix_kit_staff/web/person_form_live.ex:868
+#: lib/phoenix_kit_staff/web/person_form_live.ex:869
+#: lib/phoenix_kit_staff/web/person_form_live.ex:892
 #, elixir-autogen, elixir-format
 msgid "+372 ..."
 msgstr "+372 ..."
@@ -35,12 +35,12 @@ msgid_plural "%{count} teams"
 msgstr[0] "1 meeskond"
 msgstr[1] "%{count} meeskonda"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:708
+#: lib/phoenix_kit_staff/web/person_form_live.ex:714
 #, elixir-autogen, elixir-format
 msgid "A short summary about this person"
 msgstr "Lühike kokkuvõte selle inimese kohta"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:650
+#: lib/phoenix_kit_staff/web/person_form_live.ex:656
 #, elixir-autogen, elixir-format
 msgid "Add a new person on staff."
 msgstr "Lisa uus töötaja."
@@ -72,7 +72,7 @@ msgstr "Administraatori märkmed"
 msgid "An account with that email already exists."
 msgstr "Selle e-postiga konto on juba olemas."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:706
+#: lib/phoenix_kit_staff/web/person_form_live.ex:712
 #, elixir-autogen, elixir-format
 msgid "Bio"
 msgstr "Tutvustus"
@@ -82,18 +82,18 @@ msgstr "Tutvustus"
 msgid "Birthday"
 msgstr "Sünnipäev"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:859
+#: lib/phoenix_kit_staff/web/person_form_live.ex:865
 #: lib/phoenix_kit_staff/web/person_show_live.ex:376
 #, elixir-autogen, elixir-format
 msgid "Contact"
 msgstr "Kontakt"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:879
+#: lib/phoenix_kit_staff/web/person_form_live.ex:885
 #, elixir-autogen, elixir-format
 msgid "Contact's full name"
 msgstr "Kontakti täisnimi"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:810
+#: lib/phoenix_kit_staff/web/person_form_live.ex:816
 #, elixir-autogen, elixir-format
 msgid "Contractor"
 msgstr "Töövõtja"
@@ -131,7 +131,7 @@ msgid "Could not rename email — %{errors}"
 msgstr "E-posti ümbernimetamine ebaõnnestus — %{errors}"
 
 #: lib/phoenix_kit_staff/web/department_form_live.ex:209
-#: lib/phoenix_kit_staff/web/person_form_live.ex:1014
+#: lib/phoenix_kit_staff/web/person_form_live.ex:1034
 #: lib/phoenix_kit_staff/web/skill_form_live.ex:441
 #: lib/phoenix_kit_staff/web/team_form_live.ex:237
 #, elixir-autogen, elixir-format
@@ -165,7 +165,7 @@ msgstr "Loo oma esimene"
 msgid "Create your first department"
 msgstr "Loo oma esimene osakond"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:868
+#: lib/phoenix_kit_staff/web/person_form_live.ex:874
 #, elixir-autogen, elixir-format
 msgid "Date of birth"
 msgstr "Sünniaeg"
@@ -240,24 +240,24 @@ msgstr "Muuda töötajat"
 msgid "Email is required."
 msgstr "E-post on kohustuslik."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:876
+#: lib/phoenix_kit_staff/web/person_form_live.ex:882
 #: lib/phoenix_kit_staff/web/person_show_live.ex:421
 #, elixir-autogen, elixir-format
 msgid "Emergency contact"
 msgstr "Hädaolukorra kontakt"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:802
+#: lib/phoenix_kit_staff/web/person_form_live.ex:808
 #: lib/phoenix_kit_staff/web/person_show_live.ex:348
 #, elixir-autogen, elixir-format
 msgid "Employment"
 msgstr "Töösuhe"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:806
+#: lib/phoenix_kit_staff/web/person_form_live.ex:812
 #, elixir-autogen, elixir-format
 msgid "Employment type"
 msgstr "Töösuhte tüüp"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:819
+#: lib/phoenix_kit_staff/web/person_form_live.ex:825
 #, elixir-autogen, elixir-format
 msgid "End date"
 msgstr "Lõppkuupäev"
@@ -277,7 +277,7 @@ msgstr "Kõik on juba selles meeskonnas (või töötajaid pole veel —"
 msgid "Everyone on staff, linked to their PhoenixKit user."
 msgstr "Kõik töötajad, seotud oma PhoenixKiti kasutajaga."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:753
+#: lib/phoenix_kit_staff/web/person_form_live.ex:759
 #, elixir-autogen, elixir-format
 msgid "Existing accounts suggested. Typing a new email creates an unregistered placeholder — they'll claim it on signup or OAuth login."
 msgstr ""
@@ -285,12 +285,12 @@ msgstr ""
 "registreerimata kohatäitekonto — selle saab hõivata registreerudes või "
 "OAuthiga sisse logides."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:798
+#: lib/phoenix_kit_staff/web/person_form_live.ex:804
 #, elixir-autogen, elixir-format
 msgid "Full name"
 msgstr "Täisnimi"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:808
+#: lib/phoenix_kit_staff/web/person_form_live.ex:814
 #, elixir-autogen, elixir-format
 msgid "Full-time"
 msgstr "Täiskoht"
@@ -300,12 +300,12 @@ msgstr "Täiskoht"
 msgid "In department, not on any team"
 msgstr "Osakonnas, kuid mitte üheski meeskonnas"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:811
+#: lib/phoenix_kit_staff/web/person_form_live.ex:817
 #, elixir-autogen, elixir-format
 msgid "Intern"
 msgstr "Praktikant"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:691
+#: lib/phoenix_kit_staff/web/person_form_live.ex:697
 #, elixir-autogen, elixir-format
 msgid "Job title"
 msgstr "Ametinimetus"
@@ -370,7 +370,7 @@ msgstr "Meeskondi ega töötajaid veel pole."
 msgid "No teams yet."
 msgstr "Meeskondi veel pole."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:759
+#: lib/phoenix_kit_staff/web/person_form_live.ex:765
 #, elixir-autogen, elixir-format
 msgid "Not a valid email."
 msgstr "Vigane e-posti aadress."
@@ -380,30 +380,30 @@ msgstr "Vigane e-posti aadress."
 msgid "Not on any teams yet."
 msgstr "Veel mitte üheski meeskonnas."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:809
+#: lib/phoenix_kit_staff/web/person_form_live.ex:815
 #, elixir-autogen, elixir-format
 msgid "Part-time"
 msgstr "Osakoormus"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:866
+#: lib/phoenix_kit_staff/web/person_form_live.ex:872
 #: lib/phoenix_kit_staff/web/person_show_live.ex:406
 #, elixir-autogen, elixir-format
 msgid "Personal"
 msgstr "Isiklik"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:871
+#: lib/phoenix_kit_staff/web/person_form_live.ex:877
 #: lib/phoenix_kit_staff/web/person_show_live.ex:382
 #, elixir-autogen, elixir-format
 msgid "Personal email"
 msgstr "Isiklik e-post"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:863
+#: lib/phoenix_kit_staff/web/person_form_live.ex:869
 #: lib/phoenix_kit_staff/web/person_show_live.ex:394
 #, elixir-autogen, elixir-format
 msgid "Personal phone"
 msgstr "Isiklik telefon"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:886
+#: lib/phoenix_kit_staff/web/person_form_live.ex:892
 #: lib/phoenix_kit_staff/web/person_show_live.ex:433
 #, elixir-autogen, elixir-format
 msgid "Phone"
@@ -415,7 +415,7 @@ msgstr "Telefon"
 msgid "Pick someone first."
 msgstr "Vali esmalt keegi."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:845
+#: lib/phoenix_kit_staff/web/person_form_live.ex:851
 #, elixir-autogen, elixir-format
 msgid "Primary department"
 msgstr "Peamine osakond"
@@ -430,7 +430,7 @@ msgstr "Peamine osak."
 msgid "Record not found."
 msgstr "Kirjet ei leitud."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:882
+#: lib/phoenix_kit_staff/web/person_form_live.ex:888
 #: lib/phoenix_kit_staff/web/person_show_live.ex:429
 #, elixir-autogen, elixir-format
 msgid "Relationship"
@@ -459,7 +459,7 @@ msgid "Select staff"
 msgstr "Vali töötaja"
 
 #: lib/phoenix_kit_staff.ex:33
-#: lib/phoenix_kit_staff/web/person_form_live.ex:888
+#: lib/phoenix_kit_staff/web/person_form_live.ex:894
 #: lib/phoenix_kit_staff/web/person_show_live.ex:486
 #: lib/phoenix_kit_staff/web/skills_live.ex:16
 #: lib/phoenix_kit_staff/web/skills_live.ex:69
@@ -530,7 +530,7 @@ msgstr ""
 msgid "Staff updated."
 msgstr "Töötaja andmed uuendatud."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:818
+#: lib/phoenix_kit_staff/web/person_form_live.ex:824
 #, elixir-autogen, elixir-format
 msgid "Start date"
 msgstr "Alguskuupäev"
@@ -541,7 +541,7 @@ msgid "Started"
 msgstr "Algas"
 
 #: lib/phoenix_kit_staff/web/overview_live.ex:61
-#: lib/phoenix_kit_staff/web/person_form_live.ex:852
+#: lib/phoenix_kit_staff/web/person_form_live.ex:858
 #: lib/phoenix_kit_staff/web/person_show_live.ex:462
 #, elixir-autogen, elixir-format
 msgid "Team"
@@ -584,7 +584,7 @@ msgstr "Meeskonnad"
 msgid "Teams across all departments."
 msgstr "Meeskonnad kõigis osakondades."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:812
+#: lib/phoenix_kit_staff/web/person_form_live.ex:818
 #, elixir-autogen, elixir-format
 msgid "Temporary"
 msgstr "Ajutine"
@@ -609,7 +609,7 @@ msgstr "See töötaja kustutati."
 msgid "This team was deleted."
 msgstr "See meeskond kustutati."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:763
+#: lib/phoenix_kit_staff/web/person_form_live.ex:769
 #, elixir-autogen, elixir-format
 msgid "This user already has a staff profile."
 msgstr "Sellel kasutajal on juba töötajaprofiil."
@@ -624,7 +624,7 @@ msgstr "See kasutaja on oma konto juba hõivanud — e-posti ei saa siin muuta."
 msgid "Top-level organizational units."
 msgstr "Ülemise taseme organisatsiooniüksused."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:738
+#: lib/phoenix_kit_staff/web/person_form_live.ex:744
 #, elixir-autogen, elixir-format
 msgid "Type or pick an email"
 msgstr "Sisesta või vali e-post"
@@ -644,7 +644,7 @@ msgstr "Eelseisvad sünnipäevad"
 msgid "Update department details."
 msgstr "Uuenda osakonna andmeid."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:651
+#: lib/phoenix_kit_staff/web/person_form_live.ex:657
 #, elixir-autogen, elixir-format
 msgid "Update staff profile."
 msgstr "Uuenda töötajaprofiili."
@@ -654,12 +654,12 @@ msgstr "Uuenda töötajaprofiili."
 msgid "Update team details."
 msgstr "Uuenda meeskonna andmeid."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:773
+#: lib/phoenix_kit_staff/web/person_form_live.ex:779
 #, elixir-autogen, elixir-format
 msgid "Will create a placeholder account — person claims it on signup."
 msgstr "Loob kohatäitekonto — inimene hõivab selle registreerudes."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:768
+#: lib/phoenix_kit_staff/web/person_form_live.ex:774
 #, elixir-autogen, elixir-format
 msgid "Will link to existing account."
 msgstr "Seob olemasoleva kontoga."
@@ -669,18 +669,18 @@ msgstr "Seob olemasoleva kontoga."
 msgid "Work email"
 msgstr "Töö e-post"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:830
+#: lib/phoenix_kit_staff/web/person_form_live.ex:836
 #, elixir-autogen, elixir-format
 msgid "Work location"
 msgstr "Töökoht"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:862
+#: lib/phoenix_kit_staff/web/person_form_live.ex:868
 #: lib/phoenix_kit_staff/web/person_show_live.ex:390
 #, elixir-autogen, elixir-format
 msgid "Work phone"
 msgstr "Töötelefon"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:755
+#: lib/phoenix_kit_staff/web/person_form_live.ex:761
 #, elixir-autogen, elixir-format
 msgid "You can rename a placeholder account while nobody has claimed it yet."
 msgstr ""
@@ -697,17 +697,17 @@ msgstr "Esmalt on vaja vähemalt üht osakonda."
 msgid "create one"
 msgstr "loo üks"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:799
+#: lib/phoenix_kit_staff/web/person_form_live.ex:805
 #, elixir-autogen, elixir-format
 msgid "e.g. Jane Smith"
 msgstr "nt Jane Smith"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:692
+#: lib/phoenix_kit_staff/web/person_form_live.ex:698
 #, elixir-autogen, elixir-format
 msgid "e.g. Senior Engineer"
 msgstr "nt vaneminsener"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:883
+#: lib/phoenix_kit_staff/web/person_form_live.ex:889
 #, elixir-autogen, elixir-format
 msgid "e.g. spouse, parent"
 msgstr "nt abikaasa, vanem"
@@ -717,12 +717,12 @@ msgstr "nt abikaasa, vanem"
 msgid "in %{days}d (%{date})"
 msgstr "%{days} päeva pärast (%{date})"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:783
+#: lib/phoenix_kit_staff/web/person_form_live.ex:789
 #, elixir-autogen, elixir-format
 msgid "locked"
 msgstr "lukus"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:873
+#: lib/phoenix_kit_staff/web/person_form_live.ex:879
 #, elixir-autogen, elixir-format
 msgid "non-work email"
 msgstr "mittetöö e-post"
@@ -1112,30 +1112,31 @@ msgstr "Lisa oskusi"
 msgid "Manage"
 msgstr "Halda"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:979
+#: lib/phoenix_kit_staff/web/person_form_live.ex:998
 #, elixir-autogen, elixir-format
 msgid "Type to search skills…"
 msgstr "Otsi oskusi…"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:907
-#: lib/phoenix_kit_staff/web/person_form_live.ex:963
+#: lib/phoenix_kit_staff/web/person_form_live.ex:913
+#: lib/phoenix_kit_staff/web/person_form_live.ex:982
 #, elixir-autogen, elixir-format
 msgid "Add a skill"
 msgstr "Lisa oskus"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:917
-#: lib/phoenix_kit_staff/web/person_form_live.ex:970
-#: lib/phoenix_kit_staff/web/person_form_live.ex:1003
+#: lib/phoenix_kit_staff/web/person_form_live.ex:923
+#: lib/phoenix_kit_staff/web/person_form_live.ex:976
+#: lib/phoenix_kit_staff/web/person_form_live.ex:989
+#: lib/phoenix_kit_staff/web/person_form_live.ex:1022
 #, elixir-autogen, elixir-format
 msgid "Add / edit skills"
 msgstr "Lisa / muuda oskusi"
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:996
+#: lib/phoenix_kit_staff/web/person_form_live.ex:1015
 #, elixir-autogen, elixir-format
 msgid "No matching skills."
 msgstr "Sobivaid oskusi pole."
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:910
+#: lib/phoenix_kit_staff/web/person_form_live.ex:916
 #, elixir-autogen, elixir-format
 msgid "No skills have been created yet."
 msgstr "Ühtegi oskust pole veel loodud."
@@ -1190,3 +1191,8 @@ msgstr "Oskustasemed"
 #, elixir-autogen, elixir-format
 msgid "optional"
 msgstr "valikuline"
+
+#: lib/phoenix_kit_staff/web/person_form_live.ex:969
+#, elixir-autogen, elixir-format
+msgid "All available skills are added."
+msgstr "Kõik saadaolevad oskused on lisatud."
