@@ -1,5 +1,14 @@
 defmodule PhoenixKitStaff.Web.SkillShowLive do
-  @moduledoc "Show a skill and manage which people have it (with proficiency level)."
+  @moduledoc """
+  Show a skill and manage which people have it, at which of the skill's own
+  proficiency levels.
+
+  Level selection is **event-driven toggle chips** (single-select skills replace,
+  multi-select toggle) rather than form checkboxes — an unchecked checkbox never
+  POSTs, so "deselect all" would be undetectable from form params. The add-form
+  stages its selection in `@add_selected_levels`; roster chips mutate the
+  assignment immediately via `Skills.update_assignment_levels/2`.
+  """
 
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitStaff.Gettext
@@ -8,7 +17,7 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
 
   alias PhoenixKitStaff.{Activity, Paths, Skills}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
-  alias PhoenixKitStaff.Schemas.{Person, PersonSkill}
+  alias PhoenixKitStaff.Schemas.{Person, PersonSkill, Skill}
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -52,30 +61,43 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
     assign(socket,
       assignments: Skills.list_people_for_skill(skill_uuid),
       available_people: Skills.people_without_skill(skill_uuid),
-      add_form: to_form(%{"staff_person_uuid" => "", "proficiency_level" => ""}, as: :assign)
+      add_form: to_form(%{"staff_person_uuid" => ""}, as: :assign),
+      add_selected_levels: []
     )
   end
 
   @impl true
+  def handle_event("toggle_add_level", %{"id" => id}, socket) do
+    selected =
+      toggle_level(
+        socket.assigns.add_selected_levels,
+        id,
+        socket.assigns.skill.allow_multiple_levels
+      )
+
+    {:noreply, assign(socket, :add_selected_levels, selected)}
+  end
+
   def handle_event("add_person", %{"assign" => %{"staff_person_uuid" => ""}}, socket) do
     {:noreply, put_flash(socket, :error, gettext("Pick someone first."))}
   end
 
-  def handle_event(
-        "add_person",
-        %{"assign" => %{"staff_person_uuid" => person_uuid} = params},
-        socket
-      ) do
-    level = Map.get(params, "proficiency_level")
-
-    case Skills.assign_skill(person_uuid, socket.assigns.skill.uuid, level) do
+  def handle_event("add_person", %{"assign" => %{"staff_person_uuid" => person_uuid}}, socket) do
+    case Skills.assign_skill(
+           person_uuid,
+           socket.assigns.skill.uuid,
+           socket.assigns.add_selected_levels
+         ) do
       {:ok, ps} ->
         Activity.log("staff.person_skill_added",
           actor_uuid: Activity.actor_uuid(socket),
           resource_type: "skill",
           resource_uuid: socket.assigns.skill.uuid,
           target_uuid: person_uuid,
-          metadata: %{"person_skill_uuid" => ps.uuid, "proficiency_level" => ps.proficiency_level}
+          metadata: %{
+            "person_skill_uuid" => ps.uuid,
+            "proficiency_levels" => ps.proficiency_levels
+          }
         )
 
         {:noreply, socket |> put_flash(:info, gettext("Staff added.")) |> load_assignments()}
@@ -89,14 +111,24 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
         else
           {:noreply, put_flash(socket, :error, gettext("Could not add staff."))}
         end
+
+      {:error, _reason} ->
+        {:noreply, put_flash(socket, :error, gettext("Could not add staff."))}
     end
   end
 
-  def handle_event("change_level", %{"uuid" => ps_uuid, "proficiency_level" => level}, socket) do
+  def handle_event("toggle_level", %{"uuid" => ps_uuid, "id" => level_id}, socket) do
     case Enum.find(socket.assigns.assignments, &(&1.uuid == ps_uuid)) do
       %PersonSkill{} = ps ->
-        case Skills.update_assignment_level(ps, level) do
-          {:ok, _} ->
+        new_ids =
+          toggle_level(
+            ps.proficiency_levels,
+            level_id,
+            socket.assigns.skill.allow_multiple_levels
+          )
+
+        case Skills.update_assignment_levels(ps, new_ids) do
+          {:ok, updated} ->
             Activity.log("staff.person_skill_updated",
               actor_uuid: Activity.actor_uuid(socket),
               resource_type: "skill",
@@ -104,7 +136,7 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
               target_uuid: ps.staff_person_uuid,
               metadata: %{
                 "person_skill_uuid" => ps.uuid,
-                "proficiency_level" => blank_to_nil(level)
+                "proficiency_levels" => updated.proficiency_levels
               }
             )
 
@@ -143,11 +175,15 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
     end
   end
 
-  defp blank_to_nil(""), do: nil
-  defp blank_to_nil(v), do: v
+  defp toggle_level(ids, id, true), do: if(id in ids, do: List.delete(ids, id), else: ids ++ [id])
+  defp toggle_level(ids, id, false), do: if(ids == [id], do: [], else: [id])
+
+  defp locale(socket_or_assigns), do: Map.get(socket_or_assigns, :current_locale)
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :has_levels, Skill.levels(assigns.skill) != [])
+
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
       <.admin_page_header>
@@ -174,23 +210,37 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
               for={@add_form}
               id="skill-add-person-form"
               phx-submit="add_person"
-              class="flex flex-wrap gap-2 items-end"
+              class="flex flex-col gap-3"
             >
-              <.select
-                field={@add_form[:staff_person_uuid]}
-                label={Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}
-                options={Enum.map(@available_people, &{person_label(&1), &1.uuid})}
-                prompt={gettext("Select staff")}
-              />
-              <.select
-                field={@add_form[:proficiency_level]}
-                label={gettext("Level")}
-                options={Enum.map(PersonSkill.proficiency_levels(), &{PersonSkill.proficiency_label(&1), &1})}
-                prompt={PersonSkill.proficiency_label(nil)}
-              />
-              <button type="submit" phx-disable-with={gettext("Adding…")} class="btn btn-primary btn-sm">
-                <.icon name="hero-plus" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Add")}
-              </button>
+              <div class="flex flex-wrap gap-2 items-end">
+                <.select
+                  field={@add_form[:staff_person_uuid]}
+                  label={Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}
+                  options={Enum.map(@available_people, &{person_label(&1), &1.uuid})}
+                  prompt={gettext("Select staff")}
+                />
+                <button type="submit" phx-disable-with={gettext("Adding…")} class="btn btn-primary btn-sm">
+                  <.icon name="hero-plus" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Add")}
+                </button>
+              </div>
+
+              <div :if={@has_levels}>
+                <span class="label-text text-sm">{gettext("Level")}</span>
+                <div class="flex flex-wrap gap-1.5 mt-1">
+                  <button
+                    :for={{name, id} <- Skill.level_options(@skill, locale(assigns))}
+                    type="button"
+                    phx-click="toggle_add_level"
+                    phx-value-id={id}
+                    class={[
+                      "btn btn-xs",
+                      if(id in @add_selected_levels, do: "btn-primary", else: "btn-outline")
+                    ]}
+                  >
+                    {name}
+                  </button>
+                </div>
+              </div>
             </.form>
           <% end %>
         </div>
@@ -210,7 +260,7 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
               <thead>
                 <tr>
                   <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}</th>
-                  <th>{gettext("Level")}</th>
+                  <th :if={@has_levels}>{gettext("Level")}</th>
                   <th class="text-right w-px whitespace-nowrap">{Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}</th>
                 </tr>
               </thead>
@@ -221,22 +271,22 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
                       {person_label(a.staff_person)}
                     </.link>
                   </td>
-                  <td>
-                    <form phx-change="change_level">
-                      <input type="hidden" name="uuid" value={a.uuid} />
-                      <select name="proficiency_level" class="select select-sm select-bordered">
-                        <option value="" selected={is_nil(a.proficiency_level)}>
-                          {PersonSkill.proficiency_label(nil)}
-                        </option>
-                        <option
-                          :for={lvl <- PersonSkill.proficiency_levels()}
-                          value={lvl}
-                          selected={a.proficiency_level == lvl}
-                        >
-                          {PersonSkill.proficiency_label(lvl)}
-                        </option>
-                      </select>
-                    </form>
+                  <td :if={@has_levels}>
+                    <div class="flex flex-wrap gap-1.5">
+                      <button
+                        :for={{name, id} <- Skill.level_options(@skill, locale(assigns))}
+                        type="button"
+                        phx-click="toggle_level"
+                        phx-value-uuid={a.uuid}
+                        phx-value-id={id}
+                        class={[
+                          "btn btn-xs",
+                          if(id in a.proficiency_levels, do: "btn-primary", else: "btn-outline")
+                        ]}
+                      >
+                        {name}
+                      </button>
+                    </div>
                   </td>
                   <td class="text-right w-px whitespace-nowrap">
                     <.table_row_menu id={"assignment-menu-#{a.uuid}"}>

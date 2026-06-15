@@ -106,4 +106,16 @@ defmodule PhoenixKitStaff.DataCase do
 
     skill
   end
+
+  @doc """
+  Creates a Skill with the given level names (ids auto-generated). Returns
+  `{skill, ids_by_name}` where `ids_by_name` maps each level name to its id.
+  Pass `attrs` to set e.g. `%{"allow_multiple_levels" => true}`.
+  """
+  def fixture_skill_with_levels(level_names, attrs \\ %{}) do
+    levels = Enum.map(level_names, &%{"name" => &1})
+    skill = fixture_skill(Map.merge(%{"levels" => levels}, attrs))
+    ids_by_name = Map.new(skill.levels, fn lvl -> {lvl["name"], lvl["id"]} end)
+    {skill, ids_by_name}
+  end
 end

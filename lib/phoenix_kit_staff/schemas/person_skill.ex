@@ -1,11 +1,18 @@
 defmodule PhoenixKitStaff.Schemas.PersonSkill do
   @moduledoc """
   Join between `Person` and `Skill` — a person's assignment of a skill,
-  carrying an optional proficiency level.
+  carrying zero or more of the skill's own proficiency levels.
 
-  `proficiency_level` is **nullable**: `nil` means "not set" (e.g. rows
-  migrated from the old free-text skills column, or an admin who hasn't
-  rated it). When present it must be one of `proficiency_levels/0`.
+  `proficiency_levels` is a list of level `id`s referencing the parent
+  `Skill.levels`. `[]` means "no level / not set". A single-select skill
+  holds 0–1 ids; a multi-select skill holds 0–N.
+
+  **Write path invariant:** semantic validation of the ids (they must exist
+  in the parent skill's `levels`, and there must be ≤1 when the skill is
+  single-select) lives in `PhoenixKitStaff.Skills`, which is the **sole**
+  supported write path for assignments. This changeset only does structural
+  normalisation (reject blanks, dedup) — do **not** insert a `PersonSkill`
+  directly bypassing the context, or invalid/over-count ids can be persisted.
   """
 
   use Ecto.Schema
@@ -18,15 +25,13 @@ defmodule PhoenixKitStaff.Schemas.PersonSkill do
   @primary_key {:uuid, UUIDv7, autogenerate: true}
   @foreign_key_type UUIDv7
 
-  @proficiency_levels ~w(beginner intermediate advanced expert)
-
   @type t :: %__MODULE__{
           uuid: UUIDv7.t() | nil,
           skill_uuid: UUIDv7.t() | nil,
           skill: Skill.t() | Ecto.Association.NotLoaded.t() | nil,
           staff_person_uuid: UUIDv7.t() | nil,
           staff_person: Person.t() | Ecto.Association.NotLoaded.t() | nil,
-          proficiency_level: String.t() | nil,
+          proficiency_levels: [String.t()],
           inserted_at: DateTime.t() | nil
         }
 
@@ -38,25 +43,20 @@ defmodule PhoenixKitStaff.Schemas.PersonSkill do
       references: :uuid
     )
 
-    field(:proficiency_level, :string)
+    field(:proficiency_levels, {:array, :string}, default: [])
 
     timestamps(type: :utc_datetime, updated_at: false)
   end
 
   @required ~w(skill_uuid staff_person_uuid)a
-  @optional ~w(proficiency_level)a
+  @optional ~w(proficiency_levels)a
 
   @spec changeset(t() | Ecto.Changeset.t(t()), map()) :: Ecto.Changeset.t(t())
   def changeset(ps, attrs) do
     ps
     |> cast(attrs, @required ++ @optional)
     |> validate_required(@required)
-    # An empty `<select>` posts "" — normalize to nil ("not set") before
-    # `validate_inclusion`, which skips nil but would reject "".
-    |> normalize_level()
-    |> validate_inclusion(:proficiency_level, @proficiency_levels,
-      message: gettext("is not a valid level")
-    )
+    |> normalize_levels()
     |> assoc_constraint(:skill)
     |> assoc_constraint(:staff_person)
     |> unique_constraint([:staff_person_uuid, :skill_uuid],
@@ -65,22 +65,22 @@ defmodule PhoenixKitStaff.Schemas.PersonSkill do
     )
   end
 
-  defp normalize_level(changeset) do
-    case get_change(changeset, :proficiency_level) do
-      "" -> put_change(changeset, :proficiency_level, nil)
-      _ -> changeset
+  # Drop blanks and dedup while preserving order. Semantic checks (subset of
+  # the skill's levels, single-vs-multiple) are the context's job.
+  defp normalize_levels(changeset) do
+    case fetch_change(changeset, :proficiency_levels) do
+      {:ok, ids} when is_list(ids) ->
+        cleaned =
+          ids
+          |> Enum.map(&to_string/1)
+          |> Enum.map(&String.trim/1)
+          |> Enum.reject(&(&1 == ""))
+          |> Enum.uniq()
+
+        put_change(changeset, :proficiency_levels, cleaned)
+
+      _ ->
+        changeset
     end
   end
-
-  @doc "Allowed proficiency levels (nil/'not set' is always permitted)."
-  @spec proficiency_levels() :: [String.t()]
-  def proficiency_levels, do: @proficiency_levels
-
-  @doc "Translated label for a proficiency level (`nil` → \"Not set\")."
-  def proficiency_label(nil), do: gettext("Not set")
-  def proficiency_label("beginner"), do: gettext("Beginner")
-  def proficiency_label("intermediate"), do: gettext("Intermediate")
-  def proficiency_label("advanced"), do: gettext("Advanced")
-  def proficiency_label("expert"), do: gettext("Expert")
-  def proficiency_label(other), do: other
 end

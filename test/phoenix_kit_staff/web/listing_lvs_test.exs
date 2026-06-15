@@ -300,8 +300,13 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
 
     test "renders assigned skills read-only (name + level), no add/remove controls", %{conn: conn} do
       person = fixture_person()
-      skill = fixture_skill(%{"name" => "Elixir-#{System.unique_integer([:positive])}"})
-      {:ok, _} = PhoenixKitStaff.Skills.assign_skill(person.uuid, skill.uuid, "expert")
+
+      {skill, ids} =
+        fixture_skill_with_levels(["Expert"], %{
+          "name" => "Elixir-#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, _} = PhoenixKitStaff.Skills.assign_skill(person.uuid, skill.uuid, [ids["Expert"]])
 
       {:ok, view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
 

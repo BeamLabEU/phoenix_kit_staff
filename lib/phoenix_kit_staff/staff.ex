@@ -754,8 +754,8 @@ defmodule PhoenixKitStaff.Staff do
   # delegators keep the person↔skill API reachable from `Staff`, mirroring
   # how team membership lives here.
 
-  @doc "Delegates to `PhoenixKitStaff.Skills.assign_skill/3`."
-  defdelegate assign_skill(person_uuid, skill_uuid, level), to: Skills
+  @doc "Delegates to `PhoenixKitStaff.Skills.assign_skill/3` (level_ids list)."
+  defdelegate assign_skill(person_uuid, skill_uuid, level_ids), to: Skills
 
   @doc "Delegates to `PhoenixKitStaff.Skills.unassign_skill/1`."
   defdelegate unassign_skill(person_skill), to: Skills

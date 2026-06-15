@@ -14,7 +14,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
   alias PhoenixKitStaff.{Activity, L10n, Paths, Skills, Staff}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
-  alias PhoenixKitStaff.Schemas.{Person, PersonSkill}
+  alias PhoenixKitStaff.Schemas.{Person, Skill}
   alias PhoenixKitStaff.Web.Helpers
 
   import PhoenixKitStaff.Web.Components.TabsStrip
@@ -54,6 +54,18 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   defp load_skills(socket) do
     assign(socket, person_skills: Skills.list_for_person(socket.assigns.person.uuid))
   end
+
+  # Localized, comma-joined names of an assignment's selected levels (stray ids
+  # — e.g. a level deleted from the skill — resolve to nil and are dropped).
+  defp level_names(%{skill: %Skill{} = skill, proficiency_levels: ids}, locale)
+       when is_list(ids) do
+    ids
+    |> Enum.map(&Skill.localized_level_name(skill, &1, locale))
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join(", ")
+  end
+
+  defp level_names(_ps, _locale), do: ""
 
   @impl true
   def handle_info({:staff, :person_deleted, _}, socket) do
@@ -494,8 +506,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
                 class="badge badge-lg badge-outline gap-1 hover:badge-primary"
               >
                 {ps.skill.name}
-                <span :if={ps.proficiency_level} class="opacity-60">
-                  · {PersonSkill.proficiency_label(ps.proficiency_level)}
+                <span :if={level_names(ps, assigns[:current_locale]) != ""} class="opacity-60">
+                  · {level_names(ps, assigns[:current_locale])}
                 </span>
               </.link>
             </div>

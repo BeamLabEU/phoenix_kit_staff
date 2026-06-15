@@ -69,13 +69,57 @@ defmodule PhoenixKitStaff.Skills do
     end
   end
 
-  @doc "Updates a skill and broadcasts `:skill_updated`."
+  @doc """
+  Updates a skill and broadcasts `:skill_updated`.
+
+  Reconciles existing assignments to the new `levels`/`allow_multiple_levels`
+  **in the same transaction**: ids removed from `levels` are stripped from every
+  `person_skills.proficiency_levels`, and if multiple→single each assignment is
+  pruned to its first level (in skill order). This keeps assignments free of
+  orphaned or over-count ids.
+  """
   @spec update(Skill.t(), map()) :: {:ok, Skill.t()} | {:error, Ecto.Changeset.t(Skill.t())}
   def update(%Skill{} = skill, attrs) do
-    with {:ok, updated} <- skill |> Skill.changeset(attrs) |> repo().update() do
-      StaffPubSub.broadcast_skill(:skill_updated, %{uuid: updated.uuid, name: updated.name})
-      {:ok, updated}
+    result =
+      repo().transaction(fn ->
+        case skill |> Skill.changeset(attrs) |> repo().update() do
+          {:ok, updated} ->
+            reconcile_assignments(updated)
+            updated
+
+          {:error, cs} ->
+            repo().rollback(cs)
+        end
+      end)
+
+    case result do
+      {:ok, updated} ->
+        StaffPubSub.broadcast_skill(:skill_updated, %{uuid: updated.uuid, name: updated.name})
+        {:ok, updated}
+
+      {:error, cs} ->
+        {:error, cs}
     end
+  end
+
+  # Strip ids no longer in the skill's levels from every assignment, reorder to
+  # skill-levels order, and prune to ≤1 when the skill is single-select. Only
+  # touches rows that actually change.
+  defp reconcile_assignments(%Skill{} = skill) do
+    valid_ids = Skill.level_ids(skill)
+    single? = not skill.allow_multiple_levels
+
+    PersonSkill
+    |> where([ps], ps.skill_uuid == ^skill.uuid)
+    |> repo().all()
+    |> Enum.each(fn ps ->
+      kept = Enum.filter(valid_ids, &(&1 in (ps.proficiency_levels || [])))
+      kept = if single?, do: Enum.take(kept, 1), else: kept
+
+      if kept != (ps.proficiency_levels || []) do
+        ps |> Ecto.Changeset.change(proficiency_levels: kept) |> repo().update!()
+      end
+    end)
   end
 
   @doc "Deletes a skill (cascades its assignments) and broadcasts `:skill_deleted`."
@@ -93,33 +137,87 @@ defmodule PhoenixKitStaff.Skills do
 
   # ── Assignment (person ↔ skill + proficiency level) ────────────────
 
-  @doc "Assigns a skill to a person at an optional level; broadcasts `:person_skill_added`."
-  @spec assign_skill(UUIDv7.t() | String.t(), UUIDv7.t() | String.t(), String.t() | nil) ::
-          {:ok, PersonSkill.t()} | {:error, Ecto.Changeset.t(PersonSkill.t())}
-  def assign_skill(person_uuid, skill_uuid, level \\ nil) do
-    with {:ok, ps} <-
+  @doc """
+  Assigns a skill to a person at zero or more of the skill's levels (a list of
+  level ids); broadcasts `:person_skill_added`. Validates the ids against the
+  skill (must exist; ≤1 unless the skill allows multiple).
+  """
+  @spec assign_skill(
+          UUIDv7.t() | String.t(),
+          UUIDv7.t() | String.t(),
+          [String.t()] | String.t() | nil
+        ) ::
+          {:ok, PersonSkill.t()}
+          | {:error, :skill_not_found | :invalid_levels | :too_many_levels | Ecto.Changeset.t()}
+  def assign_skill(person_uuid, skill_uuid, level_ids \\ []) do
+    with skill when not is_nil(skill) <- get(skill_uuid),
+         {:ok, normalized} <- validate_level_ids(skill, List.wrap(level_ids)),
+         {:ok, ps} <-
            %PersonSkill{}
            |> PersonSkill.changeset(%{
              staff_person_uuid: person_uuid,
              skill_uuid: skill_uuid,
-             proficiency_level: level
+             proficiency_levels: normalized
            })
            |> repo().insert() do
       broadcast_person_skill(:person_skill_added, ps)
       {:ok, ps}
+    else
+      nil -> {:error, :skill_not_found}
+      other -> other
     end
   end
 
-  @doc "Updates an assignment's proficiency level; broadcasts `:person_skill_updated`."
-  @spec update_assignment_level(PersonSkill.t(), String.t() | nil) ::
-          {:ok, PersonSkill.t()} | {:error, Ecto.Changeset.t(PersonSkill.t())}
-  def update_assignment_level(%PersonSkill{} = ps, level) do
-    with {:ok, updated} <-
-           ps |> PersonSkill.changeset(%{proficiency_level: level}) |> repo().update() do
+  @doc """
+  Replaces an assignment's selected levels (a list of level ids); broadcasts
+  `:person_skill_updated`. Validates against the parent skill.
+  """
+  @spec update_assignment_levels(PersonSkill.t(), [String.t()] | String.t() | nil) ::
+          {:ok, PersonSkill.t()}
+          | {:error, :skill_not_found | :invalid_levels | :too_many_levels | Ecto.Changeset.t()}
+  def update_assignment_levels(%PersonSkill{} = ps, level_ids) do
+    with skill when not is_nil(skill) <- get(ps.skill_uuid),
+         {:ok, normalized} <- validate_level_ids(skill, List.wrap(level_ids)),
+         {:ok, updated} <-
+           ps |> PersonSkill.changeset(%{proficiency_levels: normalized}) |> repo().update() do
       broadcast_person_skill(:person_skill_updated, updated)
       {:ok, updated}
+    else
+      nil -> {:error, :skill_not_found}
+      other -> other
     end
   end
+
+  @doc """
+  Validates a list of level ids against a skill: every id must exist in the
+  skill's `levels`, and there must be ≤1 unless `allow_multiple_levels`. Returns
+  the ids cleaned + reordered to the skill's level order on success.
+  """
+  @spec validate_level_ids(Skill.t(), [String.t()]) ::
+          {:ok, [String.t()]} | {:error, :invalid_levels | :too_many_levels}
+  def validate_level_ids(%Skill{} = skill, ids) when is_list(ids) do
+    # Reject non-binary ids outright rather than `to_string/1`-crashing on a
+    # crafted param (a map/tuple in the list).
+    if Enum.all?(ids, &is_binary/1) do
+      cleaned =
+        ids
+        |> Enum.map(&String.trim/1)
+        |> Enum.reject(&(&1 == ""))
+        |> Enum.uniq()
+
+      allowed = Skill.level_ids(skill)
+
+      cond do
+        not Enum.all?(cleaned, &(&1 in allowed)) -> {:error, :invalid_levels}
+        not skill.allow_multiple_levels and length(cleaned) > 1 -> {:error, :too_many_levels}
+        true -> {:ok, Enum.filter(allowed, &(&1 in cleaned))}
+      end
+    else
+      {:error, :invalid_levels}
+    end
+  end
+
+  def validate_level_ids(%Skill{}, _ids), do: {:error, :invalid_levels}
 
   @doc "Removes an assignment (by struct or person/skill uuids); broadcasts `:person_skill_removed`."
   @spec unassign_skill(PersonSkill.t()) ::

@@ -351,24 +351,48 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
       )
     end
 
-    test "changing a chip's level then saving updates the assignment", %{
-      conn: conn,
-      actor_uuid: actor_uuid
-    } do
+    test "staging a new skill + picking a level chip persists the level on Save", %{conn: conn} do
       person = fixture_person()
-      skill = fixture_skill()
-      {:ok, _ps} = Skills.assign_skill(person.uuid, skill.uuid, "beginner")
+
+      {skill, ids} =
+        fixture_skill_with_levels(["Beginner", "Expert"], %{
+          "name" => "Driving-#{System.unique_integer([:positive])}"
+        })
 
       {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
 
       view
-      |> form("#person-form", %{
-        "person" => %{"status" => "active"},
-        "skills" => %{skill.uuid => %{"level" => "advanced"}}
-      })
+      |> element("button[phx-click='add_staged_skill'][phx-value-uuid='#{skill.uuid}']")
+      |> render_click()
+
+      render_click(view, "toggle_staged_level", %{"uuid" => skill.uuid, "id" => ids["Expert"]})
+
+      view
+      |> form("#person-form", person: %{status: "active"})
       |> render_submit()
 
-      assert hd(Skills.list_for_person(person.uuid)).proficiency_level == "advanced"
+      assert [ps] = Skills.list_for_person(person.uuid)
+      assert ps.proficiency_levels == [ids["Expert"]]
+    end
+
+    test "toggling a staged level chip then saving updates the assignment", %{
+      conn: conn,
+      actor_uuid: actor_uuid
+    } do
+      person = fixture_person()
+      {skill, ids} = fixture_skill_with_levels(["Beginner", "Advanced"])
+      {:ok, _ps} = Skills.assign_skill(person.uuid, skill.uuid, [ids["Beginner"]])
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      # single-select: toggling "Advanced" replaces "Beginner" in the staged row
+      render_click(view, "toggle_staged_level", %{"uuid" => skill.uuid, "id" => ids["Advanced"]})
+
+      view
+      |> form("#person-form", person: %{status: "active"})
+      |> render_submit()
+
+      assert hd(Skills.list_for_person(person.uuid)).proficiency_levels == [ids["Advanced"]]
 
       assert_activity_logged("staff.person_skill_updated",
         resource_uuid: skill.uuid,
@@ -383,7 +407,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
     } do
       person = fixture_person()
       skill = fixture_skill()
-      {:ok, _ps} = Skills.assign_skill(person.uuid, skill.uuid, nil)
+      {:ok, _ps} = Skills.assign_skill(person.uuid, skill.uuid, [])
 
       {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
 

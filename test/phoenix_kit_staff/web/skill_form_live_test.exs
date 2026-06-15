@@ -93,5 +93,100 @@ defmodule PhoenixKitStaff.Web.SkillFormLiveTest do
 
       assert Skills.get!(skill.uuid).name == new_name
     end
+
+    test "edit round-trips existing level names", %{conn: conn} do
+      {skill, _ids} = fixture_skill_with_levels(["Bronze", "Silver", "Gold"])
+      {:ok, _view, html} = live(conn, "/en/admin/staff/skills/#{skill.uuid}/edit")
+
+      assert html =~ "Bronze"
+      assert html =~ "Silver"
+      assert html =~ "Gold"
+    end
+  end
+
+  describe "levels editor" do
+    # The level inputs carry a generated id in their name: `level[<id>][name]`.
+    defp level_ids(html) do
+      ~r/level\[([0-9a-f]+)\]\[name\]/
+      |> Regex.scan(html)
+      |> Enum.map(&Enum.at(&1, 1))
+      |> Enum.uniq()
+    end
+
+    test "seed standard levels + save persists them (with et translations)", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/skills/new")
+      name = "Seeded-#{System.unique_integer([:positive])}"
+
+      render_click(view, "seed_standard_levels")
+      # the seeded names render in the editor
+      assert render(view) =~ "Beginner"
+
+      view |> form("#skill-form", skill: %{name: name}) |> render_submit()
+
+      [skill] = Enum.filter(Skills.list(), &(&1.name == name))
+      names = Enum.map(skill.levels, & &1["name"])
+      assert names == ["Beginner", "Intermediate", "Advanced", "Expert"]
+      # seed pre-fills et translations
+      assert hd(skill.levels)["translations"]["et"] == "Algaja"
+    end
+
+    test "add a custom level, name it, and save persists it", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/skills/new")
+      sname = "Custom-#{System.unique_integer([:positive])}"
+      lname = "Cadet"
+
+      html = render_click(view, "add_level")
+      [id] = level_ids(html)
+
+      view
+      |> form("#skill-form", %{
+        "skill" => %{"name" => sname},
+        "level" => %{id => %{"name" => lname}}
+      })
+      |> render_submit()
+
+      [skill] = Enum.filter(Skills.list(), &(&1.name == sname))
+      assert [%{"name" => "Cadet"}] = skill.levels
+    end
+
+    test "remove a seeded level before saving drops it", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/skills/new")
+      sname = "Trimmed-#{System.unique_integer([:positive])}"
+
+      html = render_click(view, "seed_standard_levels")
+      [first_id | _] = level_ids(html)
+      render_click(view, "remove_level", %{"id" => first_id})
+
+      view |> form("#skill-form", skill: %{name: sname}) |> render_submit()
+
+      [skill] = Enum.filter(Skills.list(), &(&1.name == sname))
+      names = Enum.map(skill.levels, & &1["name"])
+      assert names == ["Intermediate", "Advanced", "Expert"]
+    end
+
+    test "level-name inputs are language-keyed so a switch refreshes the value", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/skills/new")
+      html = render_click(view, "seed_standard_levels")
+      [id | _] = level_ids(html)
+
+      # The input id carries the active language (H2): morphdom replaces the
+      # node on switch_language so the value refreshes to that language's text.
+      assert html =~ ~s(id="level-#{id}-name-)
+      # On the primary tab the primary name shows (the et override sits in the
+      # level's translations until the et tab is active).
+      assert html =~ "Beginner"
+    end
+
+    test "toggling allow-multiple + save persists the flag", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/skills/new")
+      sname = "Multi-#{System.unique_integer([:positive])}"
+
+      render_submit(view, "save", %{
+        "skill" => %{"name" => sname, "allow_multiple_levels" => "true"}
+      })
+
+      [skill] = Enum.filter(Skills.list(), &(&1.name == sname))
+      assert skill.allow_multiple_levels == true
+    end
   end
 end

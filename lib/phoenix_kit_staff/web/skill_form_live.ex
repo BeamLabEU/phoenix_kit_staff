@@ -1,5 +1,17 @@
 defmodule PhoenixKitStaff.Web.SkillFormLive do
-  @moduledoc "Create or edit a skill."
+  @moduledoc """
+  Create or edit a skill, including its per-skill proficiency levels.
+
+  The levels editor is **staged in `@staged_levels`** (the source of truth) and
+  rendered inside `#skill-form` but **outside** `<.multilang_fields_wrapper>`,
+  so it survives language switches (the wrapper re-mounts its subtree on switch).
+  Each level-name input's DOM `id` is keyed on `@current_lang` so morphdom
+  replaces the node on a switch and the value refreshes to the active language;
+  `validate` merges only the active language's typed names back into the staged
+  list. Structural edits (add / seed / reorder / remove) are event-driven so a
+  reconnect can't strand them. On save the staged list is injected as
+  `attrs["levels"]` and normalised by `Skill.changeset/2`.
+  """
 
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitStaff.Gettext
@@ -9,6 +21,16 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
   alias PhoenixKitStaff.{Activity, Paths, Skills}
   alias PhoenixKitStaff.Schemas.Skill
   alias PhoenixKitStaff.Web.Helpers
+
+  # Convenience seed for the common beginner→expert ladder (et/ru pre-filled;
+  # editable + translatable after). Primary name is English — rename if the
+  # app's primary language differs.
+  @standard_levels [
+    {"Beginner", %{"et" => "Algaja", "ru" => "Начинающий"}},
+    {"Intermediate", %{"et" => "Kesktase", "ru" => "Средний"}},
+    {"Advanced", %{"et" => "Edasijõudnu", "ru" => "Продвинутый"}},
+    {"Expert", %{"et" => "Ekspert", "ru" => "Эксперт"}}
+  ]
 
   @impl true
   def mount(params, _session, socket) do
@@ -24,7 +46,13 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
     skill = %Skill{}
 
     socket
-    |> assign(page_title: gettext("New skill"), skill: skill, live_action: :new)
+    |> assign(
+      page_title: gettext("New skill"),
+      skill: skill,
+      live_action: :new,
+      staged_levels: [],
+      allow_multiple: false
+    )
     |> assign_form(Skills.change(skill))
   end
 
@@ -40,7 +68,9 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
         |> assign(
           page_title: gettext("Edit %{name}", name: skill.name),
           skill: skill,
-          live_action: :edit
+          live_action: :edit,
+          staged_levels: Skill.levels(skill),
+          allow_multiple: skill.allow_multiple_levels
         )
         |> assign_form(Skills.change(skill))
     end
@@ -53,23 +83,131 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
     {:noreply, handle_switch_language(socket, lang)}
   end
 
-  def handle_event("validate", %{"skill" => attrs}, socket) do
+  def handle_event("validate", %{"skill" => attrs} = params, socket) do
+    staged = merge_level_names(socket.assigns.staged_levels, params["level"], socket)
+    allow_multiple = parse_bool(attrs["allow_multiple_levels"])
+
     cs =
       socket.assigns.skill
-      |> Skills.change(merge_attrs(attrs, socket))
+      |> Skills.change(build_attrs(attrs, socket, staged))
       |> Map.put(:action, :validate)
 
-    {:noreply, assign_form(socket, cs)}
+    {:noreply,
+     socket
+     |> assign(staged_levels: staged, allow_multiple: allow_multiple)
+     |> assign_form(cs)}
   end
 
-  def handle_event("save", %{"skill" => attrs}, socket) do
-    save(socket, socket.assigns.live_action, merge_attrs(attrs, socket))
+  def handle_event("save", %{"skill" => attrs} = params, socket) do
+    staged = merge_level_names(socket.assigns.staged_levels, params["level"], socket)
+    socket = assign(socket, :staged_levels, staged)
+    save(socket, socket.assigns.live_action, build_attrs(attrs, socket, staged))
+  end
+
+  def handle_event("add_level", _params, socket) do
+    {:noreply, assign(socket, :staged_levels, socket.assigns.staged_levels ++ [new_level()])}
+  end
+
+  def handle_event("seed_standard_levels", _params, socket) do
+    seeded =
+      Enum.map(@standard_levels, fn {name, translations} ->
+        %{"id" => Skill.gen_level_id(), "name" => name, "translations" => translations}
+      end)
+
+    {:noreply, assign(socket, :staged_levels, socket.assigns.staged_levels ++ seeded)}
+  end
+
+  def handle_event("remove_level", %{"id" => id}, socket) do
+    staged = Enum.reject(socket.assigns.staged_levels, &(&1["id"] == id))
+    {:noreply, assign(socket, :staged_levels, staged)}
+  end
+
+  def handle_event("move_level_up", %{"id" => id}, socket) do
+    {:noreply, assign(socket, :staged_levels, move_level(socket.assigns.staged_levels, id, -1))}
+  end
+
+  def handle_event("move_level_down", %{"id" => id}, socket) do
+    {:noreply, assign(socket, :staged_levels, move_level(socket.assigns.staged_levels, id, 1))}
+  end
+
+  # Inject the staged levels into the skill attrs (the editor is the source of
+  # truth, not a `skill[...]` form field) and fold in-flight translations.
+  defp build_attrs(attrs, socket, staged) do
+    attrs
+    |> merge_attrs(socket)
+    |> Map.put("levels", staged)
   end
 
   defp merge_attrs(attrs, socket) do
     in_flight = Helpers.in_flight_record(socket, :form, :skill)
     Helpers.merge_translations_attrs(attrs, in_flight, Skill.translatable_fields())
   end
+
+  # Merge the active language's typed level names back into the staged list.
+  # Only keys present in params are touched (a non-active language's names are
+  # held in the staged list, untouched).
+  defp merge_level_names(staged, nil, _socket), do: staged
+
+  defp merge_level_names(staged, params, socket) when is_map(params) do
+    lang = socket.assigns.current_lang
+    primary? = lang == socket.assigns.primary_language
+
+    Enum.map(staged, fn level ->
+      case params[level["id"]] do
+        %{"name" => typed} -> put_level_name(level, typed, lang, primary?)
+        _ -> level
+      end
+    end)
+  end
+
+  defp merge_level_names(staged, _params, _socket), do: staged
+
+  defp put_level_name(level, typed, _lang, true), do: Map.put(level, "name", typed)
+
+  defp put_level_name(level, typed, lang, false) do
+    translations =
+      level
+      |> Map.get("translations", %{})
+      |> then(fn t ->
+        if String.trim(typed) == "", do: Map.delete(t, lang), else: Map.put(t, lang, typed)
+      end)
+
+    Map.put(level, "translations", translations)
+  end
+
+  defp new_level, do: %{"id" => Skill.gen_level_id(), "name" => "", "translations" => %{}}
+
+  defp move_level(levels, id, delta) do
+    case Enum.find_index(levels, &(&1["id"] == id)) do
+      nil ->
+        levels
+
+      idx ->
+        target = idx + delta
+
+        if target >= 0 and target < length(levels) do
+          a = Enum.at(levels, idx)
+          b = Enum.at(levels, target)
+
+          levels
+          |> List.replace_at(idx, b)
+          |> List.replace_at(target, a)
+        else
+          levels
+        end
+    end
+  end
+
+  defp parse_bool("true"), do: true
+  defp parse_bool(true), do: true
+  defp parse_bool(_), do: false
+
+  # The level-name input value for the active language: the primary `name` on
+  # the primary tab, else the `translations[lang]` override.
+  defp level_field_value(level, lang, lang), do: Map.get(level, "name", "")
+
+  defp level_field_value(level, lang, _primary),
+    do: level |> Map.get("translations", %{}) |> Map.get(lang, "")
 
   defp save(socket, :new, attrs) do
     case Skills.create(attrs) do
@@ -187,6 +325,108 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
               />
             </div>
           </.multilang_fields_wrapper>
+
+          <%!-- Levels editor — inside the form, OUTSIDE the multilang wrapper
+               (structure is shared across languages; only the per-level name is
+               translatable, edited for the active language). --%>
+          <div class="card-body border-t border-base-200 pt-4 flex flex-col gap-4">
+            <div>
+              <label class="label cursor-pointer justify-start gap-3 p-0">
+                <input type="hidden" name="skill[allow_multiple_levels]" value="false" />
+                <input
+                  type="checkbox"
+                  name="skill[allow_multiple_levels]"
+                  value="true"
+                  checked={@allow_multiple}
+                  class="toggle toggle-primary"
+                />
+                <span class="label-text font-semibold">{gettext("Allow selecting multiple levels")}</span>
+              </label>
+              <p class="text-xs text-base-content/50 mt-1">
+                {gettext("On: a person can hold several of these levels at once (e.g. licence categories). Off: a single level.")}
+              </p>
+            </div>
+
+            <div>
+              <label class="label mb-2">
+                <span class="label-text font-semibold">
+                  {gettext("Proficiency levels")}
+                  <span class="label-text-alt text-base-content/50 font-normal">{gettext("optional")}</span>
+                </span>
+              </label>
+
+              <p :if={@staged_levels == []} class="text-sm text-base-content/60 mb-2">
+                {gettext("No levels — this skill is assigned without a proficiency level. Add some below, or leave empty.")}
+              </p>
+
+              <div :if={@staged_levels != []} class="flex flex-col gap-2">
+                <div
+                  :for={{level, idx} <- Enum.with_index(@staged_levels)}
+                  class="flex items-center gap-2"
+                >
+                  <span class="text-xs text-base-content/40 w-5 text-right tabular-nums">{idx + 1}.</span>
+                  <input
+                    type="text"
+                    id={"level-#{level["id"]}-name-#{@current_lang}"}
+                    name={"level[#{level["id"]}][name]"}
+                    value={level_field_value(level, @current_lang, @primary_language)}
+                    placeholder={
+                      if @current_lang == @primary_language,
+                        do: gettext("Level name"),
+                        else: Map.get(level, "name", gettext("Level name"))
+                    }
+                    autocomplete="off"
+                    class="input input-sm w-full"
+                  />
+                  <div class="flex items-center shrink-0">
+                    <button
+                      type="button"
+                      phx-click="move_level_up"
+                      phx-value-id={level["id"]}
+                      disabled={idx == 0}
+                      class="btn btn-ghost btn-xs btn-square"
+                      aria-label={gettext("Move up")}
+                    >
+                      <.icon name="hero-chevron-up" class="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      phx-click="move_level_down"
+                      phx-value-id={level["id"]}
+                      disabled={idx == length(@staged_levels) - 1}
+                      class="btn btn-ghost btn-xs btn-square"
+                      aria-label={gettext("Move down")}
+                    >
+                      <.icon name="hero-chevron-down" class="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      phx-click="remove_level"
+                      phx-value-id={level["id"]}
+                      class="btn btn-ghost btn-xs btn-square text-error"
+                      aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
+                    >
+                      <.icon name="hero-x-mark" class="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap gap-2 mt-2">
+                <button type="button" phx-click="add_level" class="btn btn-ghost btn-sm">
+                  <.icon name="hero-plus" class="w-4 h-4" /> {gettext("Add level")}
+                </button>
+                <button
+                  :if={@staged_levels == []}
+                  type="button"
+                  phx-click="seed_standard_levels"
+                  class="btn btn-ghost btn-sm"
+                >
+                  <.icon name="hero-sparkles" class="w-4 h-4" /> {gettext("Add standard levels")}
+                </button>
+              </div>
+            </div>
+          </div>
 
           <div class="card-body pt-0">
             <div class="flex justify-end gap-2 mt-2">

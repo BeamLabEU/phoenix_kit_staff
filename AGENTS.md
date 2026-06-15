@@ -103,7 +103,7 @@ the env var instead.
 - **Person** — staff profile, always linked to a `PhoenixKit.Users.Auth.User`. Can be on many Teams via `TeamMembership`. Has an optional `primary_department_uuid` independent of team memberships.
 - **TeamMembership** — join row between Team and Person
 - **Skill** — a flat, translatable skill (no parent). Assigned to people many-to-many.
-- **PersonSkill** — join row between Person and Skill, carrying an optional `proficiency_level`
+- **PersonSkill** — join row between Person and Skill, carrying a `proficiency_levels` array of the skill's own level ids
 
 ### Schemas
 
@@ -142,7 +142,7 @@ All under `/admin/staff/*`: `departments`, `teams`, `people`, `skills`, plus `..
 
 - `V122` bundles `translations JSONB NOT NULL DEFAULT '{}'` on all three top-level staff tables (`phoenix_kit_staff_departments`, `phoenix_kit_staff_teams`, `phoenix_kit_staff_people`) plus a single `name VARCHAR` on `phoenix_kit_staff_people` for the person's full display name.
 - `V131` adds `metadata JSONB NOT NULL DEFAULT '{}'` on `phoenix_kit_staff_people` (general-purpose, mirrors `entity_data`). Soft-delete uses it to stash `trashed_from_status` so restore returns the person to active/inactive. Shipped in core **1.7.132** (renumbered from a drafted V130 — core took V130 for the annotations-marker migration). The module's soft-delete requires this column, so the `phoenix_kit` lock must resolve to `>= 1.7.132`; until the lock is bumped the soft-delete tests/CI run against a core without the column and go red by design (works locally via the `phoenix_kit_parent` path-override or `PHOENIX_KIT_PATH`).
-- `V135` creates `phoenix_kit_staff_skills` (translatable `name`/`description`, globally unique `lower(name)`) + `phoenix_kit_staff_person_skills` (join with nullable `proficiency_level`), migrates the old free-text `phoenix_kit_staff_people.skills` into structured rows (case-insensitive dedup, guarded for retry-safety), and **drops** that column. **Lossy by design:** per-locale `translations["skills"]` overrides don't map to structured skills and are stripped. Requires the `phoenix_kit` lock to resolve to the core release carrying V135 (works locally via the path-override / `PHOENIX_KIT_PATH` until then).
+- `V135` creates `phoenix_kit_staff_skills` (translatable `name`/`description`, globally unique `lower(name)`, plus a `levels` JSONB array of per-skill translatable proficiency levels and an `allow_multiple_levels` boolean) + `phoenix_kit_staff_person_skills` (join with a `proficiency_levels` JSONB array of selected level ids), migrates the old free-text `phoenix_kit_staff_people.skills` into structured rows (case-insensitive dedup, guarded for retry-safety), and **drops** that column. **Lossy by design:** per-locale `translations["skills"]` overrides don't map to structured skills and are stripped. Requires the `phoenix_kit` lock to resolve to the core release carrying V135 (works locally via the path-override / `PHOENIX_KIT_PATH` until then).
 
 When changing the schema, add the next `VNN` migration in `/www/phoenix_kit/lib/phoenix_kit/migrations/postgres/`.
 
@@ -175,18 +175,32 @@ to people many-to-many. Replaces the old free-text `Person.skills` (V135 migrate
 
 - **`Skill`** (`phoenix_kit_staff_skills`) — flat (no parent), translatable
   `name`/`description`, globally unique `lower(name)`. CRUD in
-  `PhoenixKitStaff.Skills` (mirrors `Teams`).
-- **`PersonSkill`** (`phoenix_kit_staff_person_skills`) — the join, with a
-  **nullable** `proficiency_level` (`beginner`/`intermediate`/`advanced`/`expert`,
-  or `nil` = "Not set"; migrated rows are `nil`). `proficiency_label/1` gives the
-  gettext'd label. The changeset normalizes a blank `""` (empty select) → `nil`
-  before `validate_inclusion`.
-- **Assignment** lives in `PhoenixKitStaff.Skills` (`assign_skill`/`unassign_skill`/
-  `update_assignment_level` + rosters), with thin `Staff` delegators. Manage it
-  from **two directions**: the **skill show** (skill → people, with a level picker
-  + inline level change, persisted immediately) and the **person edit form**
-  (person → skills, **staged** — a type-to-search multi-select with per-chip level
-  selects that writes to the DB only when the form is **saved**; `PersonFormLive`
+  `PhoenixKitStaff.Skills` (mirrors `Teams`). Each skill defines its **own**
+  proficiency levels: a `levels` JSONB array of `%{"id", "name", "translations"}`
+  maps (per-skill, optional, **translatable** via the form's language selector —
+  level names are user data in `levels[].translations`, not gettext) with stable
+  `id`s, plus an `allow_multiple_levels` boolean. `Skill` exposes `levels/1`,
+  `level_ids/1`, `find_level/2`, `localized_level_name/3` (graceful on unknown id),
+  `level_options/2`, `gen_level_id/0`; `normalize_levels/1` strictly validates the
+  JSONB shape (id-gen for new rows, dup-id error, blank-name drop). **There is no
+  hardcoded global level enum** — the old `proficiency_label/1` is gone.
+- **`PersonSkill`** (`phoenix_kit_staff_person_skills`) — the join, whose
+  `proficiency_levels` JSONB array holds the selected level `id`s into the parent
+  skill's `levels` (`[]` = not set; single-select skill = 0–1, multi-select = 0–N).
+  The changeset only normalises (drop blanks, dedup); **semantic** validation (ids
+  ⊆ the skill's levels, ≤1 when single-select, order normalised to skill order)
+  lives in `Skills` — the **sole** write path.
+- **Assignment** lives in `PhoenixKitStaff.Skills` (`assign_skill(.., level_ids)`/
+  `unassign_skill`/`update_assignment_levels` + `validate_level_ids` + rosters),
+  with thin `Staff` delegators. `Skills.update/2` reconciles existing assignments
+  in one transaction (strips removed level ids; prunes to ≤1 on multiple→single).
+  Manage it
+  from **two directions**: the **skill show** (skill → people, with the skill's
+  own levels as **event-driven toggle chips** — single-select replaces, multi
+  toggles — persisted immediately) and the **person edit form**
+  (person → skills, **staged** — a type-to-search multi-select where each staged
+  row shows the skill's level chips; writes to the DB only when the form is
+  **saved**; `PersonFormLive`
   reconciles the staged list against the DB in `sync_skills/2` after the person
   upsert). The picker only assigns **existing** skills (the taxonomy is created
   on the Skills page), so it carries an "Add / edit skills" link (new tab) and,
@@ -312,7 +326,7 @@ lib/phoenix_kit_staff/
 ├── schemas/
 │   ├── department.ex
 │   ├── person.ex                            # Employment metadata + emergency contacts
-│   ├── person_skill.ex                      # Person↔Skill join + proficiency_level
+│   ├── person_skill.ex                      # Person↔Skill join + proficiency_levels (level ids)
 │   ├── skill.ex
 │   ├── team.ex
 │   └── team_membership.ex

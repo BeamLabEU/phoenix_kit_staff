@@ -10,7 +10,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
 
   alias PhoenixKit.Users.Auth
   alias PhoenixKitStaff.{Activity, Departments, Errors, Paths, Skills, Staff, Teams}
-  alias PhoenixKitStaff.Schemas.{Person, PersonSkill}
+  alias PhoenixKitStaff.Schemas.{Person, PersonSkill, Skill}
   alias PhoenixKitStaff.Web.Helpers
 
   @translatable_field_atoms [:job_title, :bio]
@@ -173,12 +173,10 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     team_uuid = params["team_uuid"]
     email = Map.get(params, "email", socket.assigns.email) |> String.trim()
 
-    # Skills are staged client-side: the type-to-search box and the per-chip
-    # level selects ride along on this same form change. Keep the search +
-    # matches live, and fold any level edits into the staged list so they're
-    # in hand when the user finally presses Save (nothing is persisted yet).
+    # Skills are staged client-side: the type-to-search box rides along on this
+    # same form change. Level selection + add/remove are event-driven (phx-click),
+    # so the staged list itself isn't touched here — only the search + matches.
     search = Map.get(params, "skill_search", socket.assigns.skill_search)
-    staged = sync_staged_levels(socket.assigns.staged_skills, params["skills"])
 
     {:noreply,
      socket
@@ -188,9 +186,9 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
        email_status: email_status(email, socket.assigns.eligible_users),
        team_options: team_options_for(blank_to_nil(dept_uuid)),
        selected_team_uuid: blank_to_nil(team_uuid),
-       staged_skills: staged,
        skill_search: search,
-       skill_matches: skill_matches(search, staged, socket.assigns.all_skills)
+       skill_matches:
+         skill_matches(search, socket.assigns.staged_skills, socket.assigns.all_skills)
      )}
   end
 
@@ -200,10 +198,10 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
         nil ->
           socket.assigns.staged_skills
 
-        %{name: name} ->
+        skill ->
           if Enum.any?(socket.assigns.staged_skills, &(&1.skill_uuid == uuid)),
             do: socket.assigns.staged_skills,
-            else: socket.assigns.staged_skills ++ [%{skill_uuid: uuid, name: name, level: nil}]
+            else: socket.assigns.staged_skills ++ [staged_entry(skill, [])]
       end
 
     {:noreply,
@@ -225,6 +223,19 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
      )}
   end
 
+  def handle_event("toggle_staged_level", %{"uuid" => skill_uuid, "id" => level_id}, socket) do
+    staged =
+      Enum.map(socket.assigns.staged_skills, fn s ->
+        if s.skill_uuid == skill_uuid do
+          %{s | level_ids: toggle_level(s.level_ids, level_id, s.skill.allow_multiple_levels)}
+        else
+          s
+        end
+      end)
+
+    {:noreply, assign(socket, :staged_skills, staged)}
+  end
+
   # Re-query the skill taxonomy when the window regains focus — the user may
   # have just created a skill on the Skills admin page (opened in a new tab
   # from the picker). Flips the empty state to the picker and surfaces new
@@ -244,16 +255,9 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     attrs = merge_attrs(attrs, socket)
     email = Map.get(params, "email", "") |> String.trim()
     team_uuid = blank_to_nil(params["team_uuid"])
-    # Final level sync from the submitted form — covers a level select that
-    # changed without a preceding validate round-trip. Skills persist only
-    # here, after the person upsert succeeds (see `sync_skills/2`).
-    socket =
-      assign(
-        socket,
-        :staged_skills,
-        sync_staged_levels(socket.assigns.staged_skills, params["skills"])
-      )
-
+    # Staged skills (incl. their selected level ids) already live in assigns —
+    # level selection is event-driven, so nothing to fold in from form params.
+    # They persist in `sync_skills/2` after the person upsert succeeds.
     save(socket, socket.assigns.live_action, attrs, email, team_uuid)
   end
 
@@ -513,17 +517,19 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
 
   # ── Skills (staged on the form, persisted only on Save) ────────────
 
-  # All skills as lightweight `%{uuid, name}` maps for the picker.
-  defp skill_options do
-    Skills.list() |> Enum.map(&%{uuid: &1.uuid, name: &1.name})
-  end
+  # All skills (full structs — the staged rows need each skill's `levels` +
+  # `allow_multiple_levels` to render their per-skill level control).
+  defp skill_options, do: Skills.list()
 
-  # A person's current assignments as staged entries (`level` = the
-  # proficiency level, `nil` when unset).
+  # A person's current assignments as staged entries.
   defp load_staged_skills(person_uuid) do
     person_uuid
     |> Skills.list_for_person()
-    |> Enum.map(&%{skill_uuid: &1.skill_uuid, name: &1.skill.name, level: &1.proficiency_level})
+    |> Enum.map(&staged_entry(&1.skill, &1.proficiency_levels))
+  end
+
+  defp staged_entry(%Skill{} = skill, level_ids) do
+    %{skill_uuid: skill.uuid, name: skill.name, skill: skill, level_ids: level_ids || []}
   end
 
   # Skills not yet staged, filtered by the (case-insensitive) query, capped.
@@ -541,24 +547,17 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     |> Enum.take(@skill_match_limit)
   end
 
-  # Folds per-chip level edits (`skills[<uuid>][level]` form params) back
-  # into the staged list. Unknown/absent params leave the staged list as-is.
-  defp sync_staged_levels(staged, params) when is_map(params) do
-    Enum.map(staged, fn s ->
-      case params[s.skill_uuid] do
-        %{"level" => level} -> %{s | level: blank_to_nil(level)}
-        _ -> s
-      end
-    end)
-  end
-
-  defp sync_staged_levels(staged, _params), do: staged
+  # Single-select skills replace; multi-select toggle in/out.
+  defp toggle_level(ids, id, true), do: if(id in ids, do: List.delete(ids, id), else: ids ++ [id])
+  defp toggle_level(ids, id, false), do: if(ids == [id], do: [], else: [id])
 
   # Reconciles the DB assignments with the staged list after a successful
-  # person upsert: unassign what was removed, assign what's new, re-level
-  # what changed. Logs one activity row per change.
+  # person upsert: unassign what was removed, assign what's new, re-level what
+  # changed. The context re-validates level ids against the current DB skill —
+  # if a staged level was removed concurrently the assignment still lands
+  # (without that level) via the fallback. Logs one activity row per change.
   defp sync_skills(socket, person) do
-    desired = Map.new(socket.assigns.staged_skills, &{&1.skill_uuid, &1.level})
+    desired = Map.new(socket.assigns.staged_skills, &{&1.skill_uuid, &1.level_ids})
     current = Skills.list_for_person(person.uuid)
     current_map = Map.new(current, &{&1.skill_uuid, &1})
     actor = Activity.actor_uuid(socket)
@@ -577,29 +576,56 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
       end
     end)
 
-    Enum.each(desired, fn {skill_uuid, level} ->
+    Enum.each(desired, fn {skill_uuid, level_ids} ->
       case current_map[skill_uuid] do
-        nil ->
-          with {:ok, ps} <- Skills.assign_skill(person.uuid, skill_uuid, level) do
-            log_skill_change(actor, "staff.person_skill_added", skill_uuid, person.user_uuid, %{
-              "person_skill_uuid" => ps.uuid,
-              "proficiency_level" => level
-            })
-          end
-
-        %PersonSkill{proficiency_level: ^level} ->
-          :ok
-
-        %PersonSkill{} = ps ->
-          with {:ok, _} <- Skills.update_assignment_level(ps, level) do
-            log_skill_change(actor, "staff.person_skill_updated", skill_uuid, person.user_uuid, %{
-              "proficiency_level" => level
-            })
-          end
+        nil -> add_assignment(actor, person, skill_uuid, level_ids)
+        %PersonSkill{} = ps -> maybe_update_assignment(actor, person, ps, level_ids)
       end
     end)
 
     :ok
+  end
+
+  defp add_assignment(actor, person, skill_uuid, level_ids) do
+    with {:ok, ps} <- assign_with_fallback(person.uuid, skill_uuid, level_ids) do
+      log_skill_change(actor, "staff.person_skill_added", skill_uuid, person.user_uuid, %{
+        "person_skill_uuid" => ps.uuid,
+        "proficiency_levels" => ps.proficiency_levels
+      })
+    end
+  end
+
+  defp maybe_update_assignment(actor, person, ps, level_ids) do
+    if MapSet.new(ps.proficiency_levels) != MapSet.new(level_ids) do
+      with {:ok, updated} <- update_with_fallback(ps, level_ids) do
+        log_skill_change(actor, "staff.person_skill_updated", ps.skill_uuid, person.user_uuid, %{
+          "proficiency_levels" => updated.proficiency_levels
+        })
+      end
+    end
+  end
+
+  # Stale staged level ids (a level removed in another tab since load) would
+  # make the context reject the whole assignment — fall back to assigning the
+  # skill with no level rather than dropping it.
+  defp assign_with_fallback(person_uuid, skill_uuid, level_ids) do
+    case Skills.assign_skill(person_uuid, skill_uuid, level_ids) do
+      {:error, reason} when reason in [:invalid_levels, :too_many_levels] ->
+        Skills.assign_skill(person_uuid, skill_uuid, [])
+
+      other ->
+        other
+    end
+  end
+
+  defp update_with_fallback(ps, level_ids) do
+    case Skills.update_assignment_levels(ps, level_ids) do
+      {:error, reason} when reason in [:invalid_levels, :too_many_levels] ->
+        Skills.update_assignment_levels(ps, [])
+
+      other ->
+        other
+    end
   end
 
   defp log_skill_change(actor, action, skill_uuid, target_uuid, metadata) do
@@ -896,29 +922,38 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
                 <div :if={@staged_skills != []} class="flex flex-col gap-2">
                   <div
                     :for={s <- @staged_skills}
-                    class="flex items-center gap-2 rounded-box border border-base-300 px-3 py-2"
+                    class="flex flex-col gap-1.5 rounded-box border border-base-300 px-3 py-2"
                   >
-                    <input type="hidden" name={"skills[#{s.skill_uuid}][skill_uuid]"} value={s.skill_uuid} />
-                    <span class="flex-1 font-medium truncate">{s.name}</span>
-                    <select name={"skills[#{s.skill_uuid}][level]"} class="select select-sm w-40">
-                      <option value="" selected={is_nil(s.level)}>{PersonSkill.proficiency_label(nil)}</option>
-                      <option
-                        :for={lvl <- PersonSkill.proficiency_levels()}
-                        value={lvl}
-                        selected={s.level == lvl}
+                    <div class="flex items-center gap-2">
+                      <span class="flex-1 font-medium truncate">{s.name}</span>
+                      <button
+                        type="button"
+                        phx-click="remove_staged_skill"
+                        phx-value-uuid={s.skill_uuid}
+                        class="btn btn-ghost btn-sm btn-circle text-error"
+                        aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
                       >
-                        {PersonSkill.proficiency_label(lvl)}
-                      </option>
-                    </select>
-                    <button
-                      type="button"
-                      phx-click="remove_staged_skill"
-                      phx-value-uuid={s.skill_uuid}
-                      class="btn btn-ghost btn-sm btn-circle text-error"
-                      aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
-                    >
-                      <.icon name="hero-x-mark" class="w-4 h-4" />
-                    </button>
+                        <.icon name="hero-x-mark" class="w-4 h-4" />
+                      </button>
+                    </div>
+                    <%!-- Level chips: event-driven (single-select replaces,
+                         multi-select toggles), driven by the skill's own levels.
+                         Skills with no levels show nothing here. --%>
+                    <div :if={Skill.levels(s.skill) != []} class="flex flex-wrap gap-1.5">
+                      <button
+                        :for={{name, id} <- Skill.level_options(s.skill, assigns[:current_locale])}
+                        type="button"
+                        phx-click="toggle_staged_level"
+                        phx-value-uuid={s.skill_uuid}
+                        phx-value-id={id}
+                        class={[
+                          "btn btn-xs",
+                          if(id in s.level_ids, do: "btn-primary", else: "btn-outline")
+                        ]}
+                      >
+                        {name}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
