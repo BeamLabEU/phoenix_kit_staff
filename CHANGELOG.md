@@ -56,6 +56,15 @@ column (V131, soft-delete stash) and the `phoenix_kit_staff_skills` /
 - `mix.exs`: `phoenix_kit` constraint widened to
   `~> 1.7 and >= 1.7.132`; added `phoenix_kit_comments ~> 0.2`; deps now
   resolve through the `pk_dep/3` `<APP>_PATH` cross-repo override helper.
+- People-list search input is now debounced (`phx-debounce="300"`), and
+  the soft-delete handlers no longer reload the list twice per action
+  (the PubSub broadcast already drives a single reload).
+- Refreshed the dependency lock: `phoenix_kit` 1.7.146,
+  `phoenix_live_view` 1.2.1, `phoenix_kit_comments` 0.2.8 (plus
+  transitives — `phoenix` 1.8.8, `bandit` 1.12, `req` 0.6.1,
+  `tesla` 1.20, `tessera` 0.3.1, `credo` 1.7.19). `mix.exs` re-adds
+  `priv` to the package `files:` list (ships the `priv/gettext`
+  catalogs) and re-wires `.dialyzer_ignore.exs` via `ignore_warnings:`.
 
 ## [0.4.0] - 2026-06-04
 
