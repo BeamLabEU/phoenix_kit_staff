@@ -160,6 +160,10 @@ defmodule PhoenixKitStaff.Skills do
   level ids); broadcasts `:person_skill_added`. Validates the ids against the
   skill (must exist; ≤1 unless the skill allows multiple).
 
+  Refuses a trashed person with `{:error, :person_trashed}` — the UI pickers
+  already exclude trashed people, so this guards the direct-API path (mirrors
+  the rest of the soft-delete hardening).
+
   Runs in a transaction that `FOR UPDATE`-locks the skill row before validating,
   so it can't race a concurrent `update/2` and persist a just-removed level id.
   """
@@ -169,10 +173,16 @@ defmodule PhoenixKitStaff.Skills do
           [String.t()] | String.t() | nil
         ) ::
           {:ok, PersonSkill.t()}
-          | {:error, :skill_not_found | :invalid_levels | :too_many_levels | Ecto.Changeset.t()}
+          | {:error,
+             :skill_not_found
+             | :person_trashed
+             | :invalid_levels
+             | :too_many_levels
+             | Ecto.Changeset.t()}
   def assign_skill(person_uuid, skill_uuid, level_ids \\ []) do
     result =
       repo().transaction(fn ->
+        if person_trashed?(person_uuid), do: repo().rollback(:person_trashed)
         skill = lock_skill(skill_uuid) || repo().rollback(:skill_not_found)
         normalized = validated_levels!(skill, level_ids)
 
@@ -233,6 +243,15 @@ defmodule PhoenixKitStaff.Skills do
   # locked skill, or nil if it doesn't exist.
   defp lock_skill(skill_uuid) do
     Skill |> where([s], s.uuid == ^skill_uuid) |> lock("FOR UPDATE") |> repo().one()
+  end
+
+  # True when the person exists and is trashed. Used to reject assignment to a
+  # soft-deleted person on the direct-API path (the UI pickers already exclude
+  # them). A missing person is left to the changeset's FK constraint.
+  defp person_trashed?(person_uuid) do
+    Person
+    |> where([p], p.uuid == ^person_uuid and p.status == ^@soft_delete_status)
+    |> repo().exists?()
   end
 
   # Validate inside a transaction; roll back (aborting the txn) on a bad set so

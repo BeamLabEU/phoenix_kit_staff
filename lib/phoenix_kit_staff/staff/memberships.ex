@@ -43,24 +43,35 @@ defmodule PhoenixKitStaff.Staff.Memberships do
     |> repo().all()
   end
 
-  @doc "Adds a person to a team and broadcasts `:team_person_added`."
-  @spec add_team_person(UUIDv7.t() | String.t(), UUIDv7.t() | String.t()) ::
-          {:ok, TeamMembership.t()} | {:error, Ecto.Changeset.t(TeamMembership.t())}
-  def add_team_person(team_uuid, staff_person_uuid) do
-    with {:ok, tm} <-
-           %TeamMembership{}
-           |> TeamMembership.changeset(%{
-             team_uuid: team_uuid,
-             staff_person_uuid: staff_person_uuid
-           })
-           |> repo().insert() do
-      StaffPubSub.broadcast_team_membership(:team_person_added, %{
-        team_uuid: tm.team_uuid,
-        staff_person_uuid: tm.staff_person_uuid,
-        uuid: tm.uuid
-      })
+  @doc """
+  Adds a person to a team and broadcasts `:team_person_added`.
 
-      {:ok, tm}
+  Refuses a trashed person with `{:error, :person_trashed}` — the add-to-team
+  picker (`people_not_on_team/1`) already excludes trashed people, so this
+  guards the direct-API path (mirrors the rest of the soft-delete hardening).
+  """
+  @spec add_team_person(UUIDv7.t() | String.t(), UUIDv7.t() | String.t()) ::
+          {:ok, TeamMembership.t()}
+          | {:error, :person_trashed | Ecto.Changeset.t(TeamMembership.t())}
+  def add_team_person(team_uuid, staff_person_uuid) do
+    if person_trashed?(staff_person_uuid) do
+      {:error, :person_trashed}
+    else
+      with {:ok, tm} <-
+             %TeamMembership{}
+             |> TeamMembership.changeset(%{
+               team_uuid: team_uuid,
+               staff_person_uuid: staff_person_uuid
+             })
+             |> repo().insert() do
+        StaffPubSub.broadcast_team_membership(:team_person_added, %{
+          team_uuid: tm.team_uuid,
+          staff_person_uuid: tm.staff_person_uuid,
+          uuid: tm.uuid
+        })
+
+        {:ok, tm}
+      end
     end
   end
 
@@ -107,5 +118,14 @@ defmodule PhoenixKitStaff.Staff.Memberships do
       order_by: [asc: p.inserted_at]
     )
     |> repo().all()
+  end
+
+  # True when the person exists and is trashed. Used to reject adding a
+  # soft-deleted person to a team on the direct-API path (the picker already
+  # excludes them). A missing person is left to the changeset's FK constraint.
+  defp person_trashed?(staff_person_uuid) do
+    Person
+    |> where([p], p.uuid == ^staff_person_uuid and p.status == ^@soft_delete_status)
+    |> repo().exists?()
   end
 end

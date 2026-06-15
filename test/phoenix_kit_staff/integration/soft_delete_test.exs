@@ -207,4 +207,26 @@ defmodule PhoenixKitStaff.Integration.SoftDeleteTest do
       assert [] = Staff.list_team_memberships(team.uuid)
     end
   end
+
+  describe "context create-paths reject a trashed person (direct-API guard)" do
+    test "assign_skill/3 refuses a trashed person and inserts nothing" do
+      skill = fixture_skill()
+      {:ok, trashed} = Staff.trash_person(fixture_person())
+
+      assert {:error, :person_trashed} = Staff.assign_skill(trashed.uuid, skill.uuid, [])
+      # `list_skills_for_person/1` is keyed on the person (no trashed filter), so
+      # an empty result proves the rolled-back transaction left no row behind.
+      assert Staff.list_skills_for_person(trashed.uuid) == []
+    end
+
+    test "add_team_person/2 refuses a trashed person and inserts nothing" do
+      team = fixture_team()
+      {:ok, trashed} = Staff.trash_person(fixture_person())
+
+      assert {:error, :person_trashed} = Staff.add_team_person(team.uuid, trashed.uuid)
+      # `list_memberships_for_person/1` is keyed on the person (no trashed
+      # filter), so an empty result proves no membership row was inserted.
+      assert Staff.list_memberships_for_person(trashed.uuid) == []
+    end
+  end
 end
