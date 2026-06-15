@@ -52,6 +52,10 @@ heavily hardened against such calls. Consider returning `{:error,
 
 Not fixed in the direct commit; flagged for a follow-up if desired.
 
+**Follow-up:** Confirmed still open in [Mistral Review](MISTRAL_REVIEW.md#new-findings).
+The inconsistency remains — these are the only soft-delete write paths without
+guards against trashed people.
+
 ### NITPICK: `Staff.get_person/2` spec had a meaningless `| any()` union
 
 The spec was `UUIDv7.t() | String.t() | any()`, which collapses to `any()`.
