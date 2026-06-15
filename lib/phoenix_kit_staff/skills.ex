@@ -77,11 +77,17 @@ defmodule PhoenixKitStaff.Skills do
   `person_skills.proficiency_levels`, and if multiple→single each assignment is
   pruned to its first level (in skill order). This keeps assignments free of
   orphaned or over-count ids.
+
+  Takes a `FOR UPDATE` lock on the skill row first so a concurrent assignment
+  write (which locks the same row) can't validate against the old levels and
+  then insert a now-removed level id — the two serialize on the lock.
   """
   @spec update(Skill.t(), map()) :: {:ok, Skill.t()} | {:error, Ecto.Changeset.t(Skill.t())}
   def update(%Skill{} = skill, attrs) do
     result =
       repo().transaction(fn ->
+        lock_skill(skill.uuid)
+
         case skill |> Skill.changeset(attrs) |> repo().update() do
           {:ok, updated} ->
             reconcile_assignments(updated)
@@ -141,6 +147,9 @@ defmodule PhoenixKitStaff.Skills do
   Assigns a skill to a person at zero or more of the skill's levels (a list of
   level ids); broadcasts `:person_skill_added`. Validates the ids against the
   skill (must exist; ≤1 unless the skill allows multiple).
+
+  Runs in a transaction that `FOR UPDATE`-locks the skill row before validating,
+  so it can't race a concurrent `update/2` and persist a just-removed level id.
   """
   @spec assign_skill(
           UUIDv7.t() | String.t(),
@@ -150,41 +159,76 @@ defmodule PhoenixKitStaff.Skills do
           {:ok, PersonSkill.t()}
           | {:error, :skill_not_found | :invalid_levels | :too_many_levels | Ecto.Changeset.t()}
   def assign_skill(person_uuid, skill_uuid, level_ids \\ []) do
-    with skill when not is_nil(skill) <- get(skill_uuid),
-         {:ok, normalized} <- validate_level_ids(skill, List.wrap(level_ids)),
-         {:ok, ps} <-
-           %PersonSkill{}
-           |> PersonSkill.changeset(%{
-             staff_person_uuid: person_uuid,
-             skill_uuid: skill_uuid,
-             proficiency_levels: normalized
-           })
-           |> repo().insert() do
-      broadcast_person_skill(:person_skill_added, ps)
-      {:ok, ps}
-    else
-      nil -> {:error, :skill_not_found}
-      other -> other
+    result =
+      repo().transaction(fn ->
+        skill = lock_skill(skill_uuid) || repo().rollback(:skill_not_found)
+        normalized = validated_levels!(skill, level_ids)
+
+        case %PersonSkill{}
+             |> PersonSkill.changeset(%{
+               staff_person_uuid: person_uuid,
+               skill_uuid: skill_uuid,
+               proficiency_levels: normalized
+             })
+             |> repo().insert() do
+          {:ok, ps} -> ps
+          {:error, cs} -> repo().rollback(cs)
+        end
+      end)
+
+    case result do
+      {:ok, ps} ->
+        broadcast_person_skill(:person_skill_added, ps)
+        {:ok, ps}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
   @doc """
   Replaces an assignment's selected levels (a list of level ids); broadcasts
-  `:person_skill_updated`. Validates against the parent skill.
+  `:person_skill_updated`. Validates against the parent skill, under the same
+  `FOR UPDATE` skill-row lock as `assign_skill/3`.
   """
   @spec update_assignment_levels(PersonSkill.t(), [String.t()] | String.t() | nil) ::
           {:ok, PersonSkill.t()}
           | {:error, :skill_not_found | :invalid_levels | :too_many_levels | Ecto.Changeset.t()}
   def update_assignment_levels(%PersonSkill{} = ps, level_ids) do
-    with skill when not is_nil(skill) <- get(ps.skill_uuid),
-         {:ok, normalized} <- validate_level_ids(skill, List.wrap(level_ids)),
-         {:ok, updated} <-
-           ps |> PersonSkill.changeset(%{proficiency_levels: normalized}) |> repo().update() do
-      broadcast_person_skill(:person_skill_updated, updated)
-      {:ok, updated}
-    else
-      nil -> {:error, :skill_not_found}
-      other -> other
+    result =
+      repo().transaction(fn ->
+        skill = lock_skill(ps.skill_uuid) || repo().rollback(:skill_not_found)
+        normalized = validated_levels!(skill, level_ids)
+
+        case ps |> PersonSkill.changeset(%{proficiency_levels: normalized}) |> repo().update() do
+          {:ok, updated} -> updated
+          {:error, cs} -> repo().rollback(cs)
+        end
+      end)
+
+    case result do
+      {:ok, updated} ->
+        broadcast_person_skill(:person_skill_updated, updated)
+        {:ok, updated}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  # `FOR UPDATE`-locks a skill row for the surrounding transaction (serializes
+  # assignment writes against `update/2`'s level reconciliation). Returns the
+  # locked skill, or nil if it doesn't exist.
+  defp lock_skill(skill_uuid) do
+    Skill |> where([s], s.uuid == ^skill_uuid) |> lock("FOR UPDATE") |> repo().one()
+  end
+
+  # Validate inside a transaction; roll back (aborting the txn) on a bad set so
+  # the caller's `repo().transaction` returns `{:error, reason}`.
+  defp validated_levels!(skill, level_ids) do
+    case validate_level_ids(skill, List.wrap(level_ids)) do
+      {:ok, normalized} -> normalized
+      {:error, reason} -> repo().rollback(reason)
     end
   end
 
