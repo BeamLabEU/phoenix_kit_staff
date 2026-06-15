@@ -218,6 +218,22 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
     end
   end
 
+  describe "work location soft-dep (phoenix_kit_locations absent)" do
+    test "the work-location picker is hidden when the locations module is unavailable", %{
+      conn: conn
+    } do
+      person = fixture_person()
+
+      {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      # phoenix_kit_locations is not a dependency in the staff test env, so
+      # `location_options/0` returns [] and the `<.select>` is gated off via
+      # `:if={@location_options != []}` — pins the soft-dep degradation contract.
+      refute html =~ ~s|name="person[work_location]"|
+      refute html =~ "Work location"
+    end
+  end
+
   describe "404 fallback" do
     test "edit with bogus uuid redirects to people list", %{conn: conn} do
       bogus = Ecto.UUID.generate()
@@ -296,7 +312,9 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
       refute html =~ "Type to search skills"
     end
 
-    test "removing a staged skill brings the search box back when all were assigned", %{conn: conn} do
+    test "removing a staged skill brings the search box back when all were assigned", %{
+      conn: conn
+    } do
       person = fixture_person()
       skill = fixture_skill()
       {:ok, _} = Skills.assign_skill(person.uuid, skill.uuid, [])

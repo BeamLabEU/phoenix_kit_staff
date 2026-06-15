@@ -10,6 +10,7 @@ A PhoenixKit plugin module that manages staff. Implements the `PhoenixKit.Module
 - **Departments** — flat list of departments
 - **Teams** — teams across all departments
 - **Staff** — people on staff (each linked 1:1 to a `PhoenixKit.Users.Auth.User`)
+- **Skills** — the skill taxonomy + per-skill proficiency levels (see the Skills section below)
 
 ## What this module does NOT have (by design)
 

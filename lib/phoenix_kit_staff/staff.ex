@@ -86,6 +86,12 @@ defmodule PhoenixKitStaff.Staff do
 
   Returns `{:ok, person, user_status}` or `{:error, reason}`.
   """
+  @spec create_person_with_user(String.t(), map()) ::
+          {:ok, Person.t(), :created | :existing}
+          | {:error,
+             PhoenixKitStaff.Errors.error_atom()
+             | Ecto.Changeset.t()
+             | {:trashed_person_exists, Person.t()}}
   def create_person_with_user(email, person_attrs) do
     with {:ok, user, user_status} <- find_or_create_user_by_email(email),
          attrs = Map.put(person_attrs, "user_uuid", user.uuid),

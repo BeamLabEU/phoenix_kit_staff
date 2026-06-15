@@ -58,7 +58,7 @@ defmodule PhoenixKitStaff.ModuleCallbacksTest do
       end
     end
 
-    test "the four visible subtabs cover Overview/Departments/Teams/Staff", %{tabs: tabs} do
+    test "the visible subtabs cover Overview/Departments/Teams/Staff/Skills", %{tabs: tabs} do
       visible_ids =
         tabs
         |> Enum.filter(fn
@@ -72,6 +72,7 @@ defmodule PhoenixKitStaff.ModuleCallbacksTest do
       assert :admin_staff_departments in visible_ids
       assert :admin_staff_teams in visible_ids
       assert :admin_staff_people in visible_ids
+      assert :admin_staff_skills in visible_ids
     end
 
     test "every hidden subtab is parented under :admin_staff", %{tabs: tabs} do
