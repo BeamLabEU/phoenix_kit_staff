@@ -614,13 +614,14 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     end
   end
 
-  # Stale staged level ids (a level removed in another tab since load) would
-  # make the context reject the whole assignment — fall back to assigning the
-  # skill with no level rather than dropping it.
+  # Stale staged level ids (a level removed in another tab since load) make the
+  # context reject the whole set — retry with the still-valid subset (pruned to
+  # one if the skill no longer allows multiple) rather than dropping every
+  # level, so a single concurrently-removed id doesn't lose the valid ones too.
   defp assign_with_fallback(person_uuid, skill_uuid, level_ids) do
     case Skills.assign_skill(person_uuid, skill_uuid, level_ids) do
       {:error, reason} when reason in [:invalid_levels, :too_many_levels] ->
-        Skills.assign_skill(person_uuid, skill_uuid, [])
+        Skills.assign_skill(person_uuid, skill_uuid, surviving_level_ids(skill_uuid, level_ids))
 
       other ->
         other
@@ -630,10 +631,23 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   defp update_with_fallback(ps, level_ids) do
     case Skills.update_assignment_levels(ps, level_ids) do
       {:error, reason} when reason in [:invalid_levels, :too_many_levels] ->
-        Skills.update_assignment_levels(ps, [])
+        Skills.update_assignment_levels(ps, surviving_level_ids(ps.skill_uuid, level_ids))
 
       other ->
         other
+    end
+  end
+
+  # The staged ids that still exist on the current skill, in skill order, pruned
+  # to one when the skill no longer allows multiple. `[]` only if none survive.
+  defp surviving_level_ids(skill_uuid, level_ids) do
+    case Skills.get(skill_uuid) do
+      nil ->
+        []
+
+      skill ->
+        valid = Enum.filter(Skill.level_ids(skill), &(&1 in level_ids))
+        if skill.allow_multiple_levels, do: valid, else: Enum.take(valid, 1)
     end
   end
 

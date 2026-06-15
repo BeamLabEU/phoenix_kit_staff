@@ -122,6 +122,24 @@ defmodule PhoenixKitStaff.Integration.PersonSkillsTest do
       # kept the first in skill order
       assert ps.proficiency_levels == [ids["B"]]
     end
+
+    test "broadcasts a person-skill update to the person topic when an assignment changes" do
+      alias PhoenixKitStaff.PubSub, as: StaffPubSub
+
+      person = fixture_person()
+      {skill, ids} = fixture_skill_with_levels(["B", "C"], %{"allow_multiple_levels" => true})
+      {:ok, _} = Skills.assign_skill(person.uuid, skill.uuid, [ids["B"], ids["C"]])
+
+      # An open person page subscribes to the person topic; reconciliation must
+      # reach it so the displayed levels don't stay stale.
+      StaffPubSub.subscribe(StaffPubSub.topic_person(person.uuid))
+
+      kept = Enum.find(skill.levels, &(&1["id"] == ids["B"]))
+      {:ok, _} = Skills.update(skill, %{"levels" => [kept]})
+
+      assert_receive {:staff, :person_skill_updated, %{staff_person_uuid: psu}}
+      assert psu == person.uuid
+    end
   end
 
   describe "rosters (both directions)" do

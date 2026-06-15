@@ -86,12 +86,15 @@ defmodule PhoenixKitStaff.Skills do
   def update(%Skill{} = skill, attrs) do
     result =
       repo().transaction(fn ->
-        lock_skill(skill.uuid)
+        # Build the changeset from the FOR UPDATE-locked row, not the caller's
+        # (possibly stale) struct — so the update AND the reconciliation read
+        # the *current* `levels`/`allow_multiple_levels`. The lock is only
+        # meaningful if we read from it.
+        locked = lock_skill(skill.uuid) || skill
 
-        case skill |> Skill.changeset(attrs) |> repo().update() do
+        case locked |> Skill.changeset(attrs) |> repo().update() do
           {:ok, updated} ->
-            reconcile_assignments(updated)
-            updated
+            {updated, reconcile_assignments(updated)}
 
           {:error, cs} ->
             repo().rollback(cs)
@@ -99,8 +102,11 @@ defmodule PhoenixKitStaff.Skills do
       end)
 
     case result do
-      {:ok, updated} ->
+      {:ok, {updated, changed_assignments}} ->
         StaffPubSub.broadcast_skill(:skill_updated, %{uuid: updated.uuid, name: updated.name})
+        # Notify person pages whose assignments reconciliation just changed
+        # (a removed level / multiple→single prune) so they don't stay stale.
+        Enum.each(changed_assignments, &broadcast_person_skill(:person_skill_updated, &1))
         {:ok, updated}
 
       {:error, cs} ->
@@ -110,7 +116,8 @@ defmodule PhoenixKitStaff.Skills do
 
   # Strip ids no longer in the skill's levels from every assignment, reorder to
   # skill-levels order, and prune to ≤1 when the skill is single-select. Only
-  # touches rows that actually change.
+  # touches rows that actually change; returns the changed `PersonSkill` rows
+  # so the caller can broadcast per-person updates after the transaction commits.
   defp reconcile_assignments(%Skill{} = skill) do
     valid_ids = Skill.level_ids(skill)
     single? = not skill.allow_multiple_levels
@@ -118,12 +125,15 @@ defmodule PhoenixKitStaff.Skills do
     PersonSkill
     |> where([ps], ps.skill_uuid == ^skill.uuid)
     |> repo().all()
-    |> Enum.each(fn ps ->
+    |> Enum.flat_map(fn ps ->
       kept = Enum.filter(valid_ids, &(&1 in (ps.proficiency_levels || [])))
       kept = if single?, do: Enum.take(kept, 1), else: kept
 
       if kept != (ps.proficiency_levels || []) do
-        ps |> Ecto.Changeset.change(proficiency_levels: kept) |> repo().update!()
+        {:ok, updated} = ps |> Ecto.Changeset.change(proficiency_levels: kept) |> repo().update()
+        [updated]
+      else
+        []
       end
     end)
   end
