@@ -5,7 +5,10 @@ A [PhoenixKit](https://github.com/BeamLabEU/phoenix_kit) plugin that adds **depa
 ## Features
 
 - Departments and teams with cascading deletes
-- Staff profiles with employment metadata, skills, birthdays, emergency contacts
+- Staff profiles with employment metadata, birthdays, emergency contacts
+- Skills — a translatable skill taxonomy with **per-skill, optional proficiency
+  levels** (each skill defines its own levels; single- or multi-select per
+  skill), assigned to people many-to-many
 - Org tree view (departments → teams → people)
 - Upcoming-birthdays widget
 - Placeholder-user flow for inviting people who don't yet have an account
@@ -35,7 +38,9 @@ Run `mix deps.get`, then toggle the module on from **Admin > Modules**.
 
 ## Database
 
-Tables are created by the **V100** versioned migration inside `phoenix_kit` core. The parent app runs migrations via `mix phoenix_kit.install` / `mix phoenix_kit.update`.
+Tables are created by versioned migrations inside `phoenix_kit` core (**V100**
+for the base tables, **V135** for skills). The parent app runs migrations via
+`mix phoenix_kit.install` / `mix phoenix_kit.update`.
 
 Tables created:
 
@@ -43,6 +48,10 @@ Tables created:
 - `phoenix_kit_staff_teams` (FK → departments, cascading delete)
 - `phoenix_kit_staff_people` (FK → `phoenix_kit_users`, cascading delete)
 - `phoenix_kit_staff_team_memberships` (join table)
+- `phoenix_kit_staff_skills` (V135 — translatable, carries its own `levels`
+  JSONB + `allow_multiple_levels`)
+- `phoenix_kit_staff_person_skills` (V135 — person ↔ skill join; a
+  `proficiency_levels` JSONB array of the skill's selected level ids)
 
 All tables use UUIDv7 primary keys.
 
@@ -68,6 +77,15 @@ PhoenixKitStaff.Staff.org_tree/0
 PhoenixKitStaff.Staff.upcoming_birthdays/1
 PhoenixKitStaff.Staff.add_team_person/2
 PhoenixKitStaff.Staff.remove_team_person/2
+
+# Skills (taxonomy + per-skill levels + assignment)
+PhoenixKitStaff.Skills.list/1
+PhoenixKitStaff.Skills.create/1                  # accepts levels + allow_multiple_levels
+PhoenixKitStaff.Skills.update/2                  # reconciles assignments on level changes
+PhoenixKitStaff.Skills.assign_skill/3            # (person_uuid, skill_uuid, level_ids)
+PhoenixKitStaff.Skills.update_assignment_levels/2
+PhoenixKitStaff.Skills.list_for_person/1
+PhoenixKitStaff.Skills.list_people_for_skill/1
 ```
 
 ## Consumed by other plugins
