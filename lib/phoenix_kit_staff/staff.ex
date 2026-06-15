@@ -12,10 +12,10 @@ defmodule PhoenixKitStaff.Staff do
 
   alias PhoenixKit.Users.Auth
   alias PhoenixKit.Users.Auth.User
-  alias PhoenixKitStaff.Departments
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
-  alias PhoenixKitStaff.Schemas.{Person, TeamMembership}
+  alias PhoenixKitStaff.Schemas.Person
   alias PhoenixKitStaff.Skills
+  alias PhoenixKitStaff.Staff.{Memberships, Org}
 
   defp repo, do: PhoenixKit.RepoHelper.repo()
 
@@ -522,238 +522,37 @@ defmodule PhoenixKitStaff.Staff do
 
   # ── Upcoming birthdays ─────────────────────────────────────────────
 
-  @doc """
-  Returns upcoming birthdays within the given window (default 30 days),
-  sorted by days-until-birthday.
-  """
+  @doc "Upcoming birthdays within `window_days` (default 30). See `PhoenixKitStaff.Staff.Org`."
   @spec upcoming_birthdays(non_neg_integer()) :: [
           %{person: Person.t(), next_birthday: Date.t(), days_until: non_neg_integer()}
         ]
-  def upcoming_birthdays(window_days \\ 30) do
-    today = Date.utc_today()
-    window_days = max(window_days, 0)
-
-    from(p in Person,
-      where: p.status == "active" and not is_nil(p.date_of_birth),
-      # `today` is bound as a UTC date param (not Postgres `CURRENT_DATE`,
-      # which is the DB session timezone) so the SQL window matches the
-      # Elixir `days_until` computation below exactly, regardless of the
-      # connection's TimeZone setting.
-      where:
-        fragment(
-          """
-          ((CASE
-             WHEN (? + (EXTRACT(YEAR FROM ?)::int - EXTRACT(YEAR FROM ?)::int) * INTERVAL '1 year')::date < ?
-               THEN (? + (EXTRACT(YEAR FROM ?)::int - EXTRACT(YEAR FROM ?)::int + 1) * INTERVAL '1 year')::date
-             ELSE (? + (EXTRACT(YEAR FROM ?)::int - EXTRACT(YEAR FROM ?)::int) * INTERVAL '1 year')::date
-           END) - ?) <= ?
-          """,
-          p.date_of_birth,
-          type(^today, :date),
-          p.date_of_birth,
-          type(^today, :date),
-          p.date_of_birth,
-          type(^today, :date),
-          p.date_of_birth,
-          p.date_of_birth,
-          type(^today, :date),
-          p.date_of_birth,
-          type(^today, :date),
-          ^window_days
-        ),
-      preload: [:user]
-    )
-    |> repo().all()
-    |> Enum.map(fn p ->
-      {next, days} = next_birthday_and_days(p.date_of_birth, today)
-      %{person: p, next_birthday: next, days_until: days}
-    end)
-    |> Enum.sort_by(& &1.days_until)
-  end
-
-  defp next_birthday_and_days(dob, today) do
-    this_year = anniversary_in_year(dob, today.year)
-
-    next =
-      if Date.compare(this_year, today) == :lt do
-        anniversary_in_year(dob, today.year + 1)
-      else
-        this_year
-      end
-
-    {next, Date.diff(next, today)}
-  end
-
-  # Returns the anniversary of `dob` in `year`, normalising Feb 29 → Feb 28
-  # only when `year` itself is non-leap. Mirrors Postgres `INTERVAL '1 year'`
-  # arithmetic so the SQL filter and the Elixir display stay consistent.
-  defp anniversary_in_year(dob, year) do
-    case Date.new(year, dob.month, dob.day) do
-      {:ok, d} -> d
-      {:error, _} -> Date.new!(year, dob.month, 28)
-    end
-  end
+  def upcoming_birthdays(window_days \\ 30), do: Org.upcoming_birthdays(window_days)
 
   # ── Org tree ───────────────────────────────────────────────────────
 
-  @doc """
-  Returns the full org tree:
-  %{
-    departments: [%{department: ..., teams: [...], dept_only_people: [...]}],
-    unassigned_people: [...]
-  }
-  """
-  @spec org_tree() :: %{
-          departments: [
-            %{
-              department: PhoenixKitStaff.Schemas.Department.t(),
-              teams: [%{team: PhoenixKitStaff.Schemas.Team.t(), people: [Person.t()]}],
-              dept_only_people: [Person.t()]
-            }
-          ],
-          unassigned_people: [Person.t()]
-        }
-  def org_tree do
-    departments = Departments.list(preload: [:teams])
-    all_people = list_people()
-
-    # `list_people/0` already excludes trashed, so dept-only and
-    # unassigned buckets are clean. Team rosters come straight from
-    # memberships, so drop memberships whose person is trashed here.
-    all_memberships =
-      from(tm in TeamMembership, preload: [staff_person: [:user]])
-      |> repo().all()
-      |> Enum.reject(&(&1.staff_person.status == @soft_delete_status))
-
-    people_by_team =
-      Enum.group_by(all_memberships, & &1.team_uuid, & &1.staff_person)
-
-    person_team_ids = MapSet.new(all_memberships, & &1.staff_person_uuid)
-
-    dept_tree =
-      Enum.map(departments, fn dept ->
-        teams =
-          dept.teams
-          |> Enum.sort_by(& &1.name)
-          |> Enum.map(fn team ->
-            people =
-              Map.get(people_by_team, team.uuid, [])
-              |> Enum.sort_by(fn p -> p.user && p.user.email end)
-
-            %{team: team, people: people}
-          end)
-
-        dept_only_people =
-          all_people
-          |> Enum.filter(fn p ->
-            p.primary_department_uuid == dept.uuid and
-              not MapSet.member?(person_team_ids, p.uuid)
-          end)
-
-        %{department: dept, teams: teams, dept_only_people: dept_only_people}
-      end)
-
-    unassigned =
-      Enum.filter(all_people, fn p ->
-        p.primary_department_uuid == nil and
-          not MapSet.member?(person_team_ids, p.uuid)
-      end)
-
-    %{departments: dept_tree, unassigned_people: unassigned}
-  end
+  @doc "The full department → team → people org tree. See `PhoenixKitStaff.Staff.Org`."
+  defdelegate org_tree, to: Org
 
   # ── Team memberships ───────────────────────────────────────────────
 
-  @doc """
-  Memberships on a given team, preloaded with staff_person and user.
-  Trashed people are excluded — the team roster shows the active members
-  only (the membership row survives a trash, so restore brings them back).
-  """
-  @spec list_team_memberships(UUIDv7.t() | String.t()) :: [TeamMembership.t()]
-  def list_team_memberships(team_uuid) do
-    TeamMembership
-    |> join(:inner, [tm], p in assoc(tm, :staff_person))
-    |> where([tm, p], tm.team_uuid == ^team_uuid and p.status != ^@soft_delete_status)
-    |> preload(staff_person: [:user])
-    |> order_by([tm], asc: tm.inserted_at)
-    |> repo().all()
-  end
+  # Thin delegators — implementations live in `PhoenixKitStaff.Staff.Memberships`.
+  @doc "See `PhoenixKitStaff.Staff.Memberships.list_team_memberships/1`."
+  defdelegate list_team_memberships(team_uuid), to: Memberships
 
-  @doc "All memberships a given person belongs to, with team and department preloaded."
-  @spec list_memberships_for_person(UUIDv7.t() | String.t()) :: [TeamMembership.t()]
-  def list_memberships_for_person(person_uuid) do
-    TeamMembership
-    |> where([tm], tm.staff_person_uuid == ^person_uuid)
-    |> preload(team: [:department])
-    |> order_by([tm], asc: tm.inserted_at)
-    |> repo().all()
-  end
+  @doc "See `PhoenixKitStaff.Staff.Memberships.list_memberships_for_person/1`."
+  defdelegate list_memberships_for_person(person_uuid), to: Memberships
 
-  @doc "Adds a person to a team and broadcasts `:team_person_added`."
-  @spec add_team_person(UUIDv7.t() | String.t(), UUIDv7.t() | String.t()) ::
-          {:ok, TeamMembership.t()} | {:error, Ecto.Changeset.t(TeamMembership.t())}
-  def add_team_person(team_uuid, staff_person_uuid) do
-    with {:ok, tm} <-
-           %TeamMembership{}
-           |> TeamMembership.changeset(%{
-             team_uuid: team_uuid,
-             staff_person_uuid: staff_person_uuid
-           })
-           |> repo().insert() do
-      StaffPubSub.broadcast_team_membership(:team_person_added, %{
-        team_uuid: tm.team_uuid,
-        staff_person_uuid: tm.staff_person_uuid,
-        uuid: tm.uuid
-      })
+  @doc "See `PhoenixKitStaff.Staff.Memberships.add_team_person/2`."
+  defdelegate add_team_person(team_uuid, staff_person_uuid), to: Memberships
 
-      {:ok, tm}
-    end
-  end
+  @doc "See `PhoenixKitStaff.Staff.Memberships.remove_team_person/1`."
+  defdelegate remove_team_person(team_membership), to: Memberships
 
-  @doc "Removes a team membership (by struct or by team/person uuids) and broadcasts `:team_person_removed`."
-  @spec remove_team_person(TeamMembership.t()) ::
-          {:ok, TeamMembership.t()} | {:error, Ecto.Changeset.t(TeamMembership.t())}
-  @spec remove_team_person(UUIDv7.t() | String.t(), UUIDv7.t() | String.t()) ::
-          {:ok, TeamMembership.t()}
-          | {:error, Ecto.Changeset.t(TeamMembership.t())}
-          | {:error, :not_found}
-  def remove_team_person(%TeamMembership{} = tm) do
-    with {:ok, deleted} <- repo().delete(tm) do
-      StaffPubSub.broadcast_team_membership(:team_person_removed, %{
-        team_uuid: deleted.team_uuid,
-        staff_person_uuid: deleted.staff_person_uuid,
-        uuid: deleted.uuid
-      })
+  @doc "See `PhoenixKitStaff.Staff.Memberships.remove_team_person/2`."
+  defdelegate remove_team_person(team_uuid, staff_person_uuid), to: Memberships
 
-      {:ok, deleted}
-    end
-  end
-
-  def remove_team_person(team_uuid, staff_person_uuid) do
-    case repo().get_by(TeamMembership, team_uuid: team_uuid, staff_person_uuid: staff_person_uuid) do
-      nil -> {:error, :not_found}
-      tm -> remove_team_person(tm)
-    end
-  end
-
-  @doc "People not already on this team (for the add-to-team picker)."
-  @spec people_not_on_team(UUIDv7.t() | String.t()) :: [Person.t()]
-  def people_not_on_team(team_uuid) do
-    person_uuids_on_team =
-      from(tm in TeamMembership,
-        where: tm.team_uuid == ^team_uuid,
-        select: tm.staff_person_uuid
-      )
-
-    from(p in Person,
-      where:
-        p.uuid not in subquery(person_uuids_on_team) and
-          p.status != ^@soft_delete_status,
-      preload: [:user],
-      order_by: [asc: p.inserted_at]
-    )
-    |> repo().all()
-  end
+  @doc "See `PhoenixKitStaff.Staff.Memberships.people_not_on_team/1`."
+  defdelegate people_not_on_team(team_uuid), to: Memberships
 
   # ── Skill assignment (delegates to PhoenixKitStaff.Skills) ─────────
   # Skill CRUD + assignment live in `Skills` for cohesion; these thin
