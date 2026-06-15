@@ -127,44 +127,30 @@ noting as the org grows." Real fix would add a department-scoped
 list to the Departments context; out of scope for query-perf review
 follow-up.
 
-## Open (waiting on Max)
+## Resolved (2026-06-15)
 
-### **BLOCKER — Hex dep version mismatch prevents test verification**
+### ~~BLOCKER — Hex dep version mismatch prevents test verification~~ — RESOLVED
 
-The fixes above are correct by inspection but **cannot be verified by
-running `mix test`** in this repo as it stands today.
+The 2026-04-27 blocker (staff's Hex `phoenix_kit ~> 1.7` pin only reached
+V96, so the V100 staff tables never got created on the test DB) is gone.
+The workspace adopted resolution paths **#2 + #3**: `pk_dep/3` in `mix.exs`
+swaps the Hex pin for a local `path:` + `override: true` checkout when
+`PHOENIX_KIT_PATH` is set (and `phoenix_kit_parent` carries the permanent
+path deps). Tests now run against local core via
+`PHOENIX_KIT_PATH=../phoenix_kit mix test`.
 
-Staff's `mix.exs` declares `{:phoenix_kit, "~> 1.7"}` (Hex). The latest
-published version that resolver picks is **1.7.95**, which only ships
-migrations V01–V96 (`_build/dev/lib/phoenix_kit/ebin/Elixir.PhoenixKit.Migrations.Postgres.V96.beam`
-is the highest). The V100 staff-tables migration is in the local
-`/Users/maxdon/Desktop/Elixir/phoenix_kit/` repo (currently at
-`@version "1.7.101"`) but has never been published to Hex.
+The temporary test-infra described under "Fixed (test-infra prerequisites
+landed early)" above — the inline-V100-DDL `test/support/postgres/migrations/`
+file — was itself **subsequently superseded**: `test_helper.exs` now builds
+the schema via `PhoenixKit.Migration.ensure_current/2` (no module-owned DDL),
+which auto-applies every newly-shipped `Vxxx` (incl. the later V131 metadata
+and V135 skills migrations). See the module `AGENTS.md` Testing section.
 
-Result: on a fresh `phoenix_kit_staff_test` DB, the test_helper runs
-`PhoenixKit.Migrations.up()` which creates V01–V96 tables (auth, users,
-catalogue V97 partial, sync, publishing) but stops short of V100, so
-`phoenix_kit_staff_*` tables don't exist and every integration test
-fails with `relation "phoenix_kit_staff_people" does not exist`.
-
-This is the same blocker for `phoenix_kit_projects` (V101).
-
-Three resolution paths, ranked:
-
-1. **Publish a new `phoenix_kit` Hex release** containing V100+V101+V102+V103+V104.
-   Releases are boss-only per `feedback_phoenix_kit_releases.md`.
-2. **Wire staff (and later projects) into `phoenix_kit_parent`** via local
-   `path:` deps with `override: true`, run integration tests against the
-   parent's `_build`. Workspace AGENTS.md says feature modules use Hex
-   deps in their own `mix.exs`; the parent app is where path deps live.
-   This needs `phoenix_kit_parent/mix.exs` updated (it doesn't currently
-   reference staff or projects).
-3. **Temporary local override** — `git stash`-able edit to staff's
-   `mix.exs` swapping the Hex dep for `path: "../phoenix_kit"`,
-   verify, revert before commit. Smells like the original PR #2 work
-   was likely verified this way given there's no other plausible path.
-
-Need Max's direction before proceeding to Phase 2.
+The PR #2 perf fixes themselves remain live and verified on current code:
+`upcoming_birthdays/1` still pushes the day-window filter into Postgres
+(`staff.ex` `fragment`), `org_tree/0` still does the single-query
+`group_by`, and both are covered green by `staff_queries_test.exs` within
+the full suite (432 tests, 0 failures as of 2026-06-15).
 
 ## Files touched
 
@@ -201,7 +187,7 @@ Need Max's direction before proceeding to Phase 2.
 
 ## Open
 
-The pre-existing `teams_test.exs:64` constraint-name mapping failure
-is the only remaining red. It will get picked up in the Phase 2 sweep
-(C8 unit tests for changesets, C3 Errors module reorganisation —
-either lands the right shape).
+None. The pre-existing `teams_test.exs:64` constraint-name mapping
+failure flagged here was resolved in the PR #3 quality sweep
+(`unique_constraint` name mapping) — the full suite is green (432
+tests, 0 failures, 2026-06-15).
