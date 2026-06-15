@@ -554,6 +554,13 @@ GitHub Actions run on push and PRs: formatting check, `credo --strict`, `dialyze
 
 PR review files go in `dev_docs/pull_requests/{year}/{pr_number}-{slug}/` with `{AGENT}_REVIEW.md` naming (e.g., `CLAUDE_REVIEW.md`). See the root `phoenix_kit/AGENTS.md` section on PR reviews for the authoritative directory layout.
 
+**Every review must leave a paper trail.** If review feedback is applied directly
+on `main` (or merged into the PR branch) before the review doc was written,
+backfill the `{AGENT}_REVIEW.md` from the review-fix commit(s) so the findings
+are discoverable later. A commit message like "apply review fixes" or a
+`Co-Authored-By` line is not a substitute for the review file — it can't be
+found when the next person asks "what did the review of PR #N find?".
+
 Severity levels for review findings:
 
 - `BUG - CRITICAL` — Will cause crashes, data loss, or security issues
