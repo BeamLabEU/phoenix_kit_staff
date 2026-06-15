@@ -12,11 +12,16 @@ defmodule PhoenixKitStaff.Staff do
 
   alias PhoenixKit.Users.Auth
   alias PhoenixKit.Users.Auth.User
-  alias PhoenixKitStaff.Departments
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
-  alias PhoenixKitStaff.Schemas.{Person, TeamMembership}
+  alias PhoenixKitStaff.Schemas.Person
+  alias PhoenixKitStaff.Skills
+  alias PhoenixKitStaff.Staff.{Memberships, Org}
 
   defp repo, do: PhoenixKit.RepoHelper.repo()
+
+  # Soft-delete sentinel, mirrors `Person.soft_delete_status/0`. Defined
+  # here too so it's usable in guards and compile-time query pins.
+  @soft_delete_status "trashed"
 
   @email_regex ~r/^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -81,6 +86,12 @@ defmodule PhoenixKitStaff.Staff do
 
   Returns `{:ok, person, user_status}` or `{:error, reason}`.
   """
+  @spec create_person_with_user(String.t(), map()) ::
+          {:ok, Person.t(), :created | :existing}
+          | {:error,
+             PhoenixKitStaff.Errors.error_atom()
+             | Ecto.Changeset.t()
+             | {:trashed_person_exists, Person.t()}}
   def create_person_with_user(email, person_attrs) do
     with {:ok, user, user_status} <- find_or_create_user_by_email(email),
          attrs = Map.put(person_attrs, "user_uuid", user.uuid),
@@ -166,24 +177,44 @@ defmodule PhoenixKitStaff.Staff do
 
   # ── People ─────────────────────────────────────────────────────────
 
-  @doc "Lists people. Accepts `:preload`, `:status` filter, and `:search` (matches name or user email)."
+  @doc """
+  Lists people. Accepts `:preload`, `:status` filter, `:search` (matches
+  name or user email), and `:include_trashed` (default `false`).
+
+  Trashed (soft-deleted) people are **excluded by default**. Pass
+  `status: "trashed"` for the Trash view, or `include_trashed: true` to
+  list everything regardless of status.
+  """
   @spec list_people(keyword()) :: [Person.t()]
   def list_people(opts \\ []) do
     preload = Keyword.get(opts, :preload, [:user, :primary_department])
     status = Keyword.get(opts, :status)
+    include_trashed = Keyword.get(opts, :include_trashed, false)
     search = opts |> Keyword.get(:search) |> normalize_search()
 
     Person
-    |> maybe_filter_status(status)
+    |> scope_status(status, include_trashed)
     |> maybe_filter_search(search)
     |> order_by([p], asc: p.status, desc: p.inserted_at)
     |> preload(^preload)
     |> repo().all()
   end
 
-  defp maybe_filter_status(query, nil), do: query
-  defp maybe_filter_status(query, ""), do: query
-  defp maybe_filter_status(query, status), do: where(query, [p], p.status == ^status)
+  # Status scoping with trashed-exclusion by default:
+  #   * "trashed"           → only trashed (the Trash view)
+  #   * "active"/"inactive" → that status (inherently excludes trashed)
+  #   * nil/"" + include?   → everything
+  #   * nil/"" (default)    → everything except trashed
+  defp scope_status(query, @soft_delete_status, _include),
+    do: where(query, [p], p.status == ^@soft_delete_status)
+
+  defp scope_status(query, status, _include) when status in ["active", "inactive"],
+    do: where(query, [p], p.status == ^status)
+
+  defp scope_status(query, _blank, true), do: query
+
+  defp scope_status(query, _blank, false),
+    do: where(query, [p], p.status != ^@soft_delete_status)
 
   defp maybe_filter_search(query, nil), do: query
 
@@ -235,13 +266,40 @@ defmodule PhoenixKitStaff.Staff do
   @spec change_person(Person.t(), map()) :: Ecto.Changeset.t(Person.t())
   def change_person(%Person{} = p, attrs \\ %{}), do: Person.changeset(p, attrs)
 
-  @doc "Inserts a person and broadcasts `:person_created` on success."
-  @spec create_person(map()) :: {:ok, Person.t()} | {:error, Ecto.Changeset.t(Person.t())}
+  @doc """
+  Inserts a person and broadcasts `:person_created` on success.
+
+  Guards the strict 1:1 `user_uuid` unique constraint against a confusing
+  failure: if the target user already has a **trashed** staff profile,
+  re-adding them would trip the unique index. Instead this returns
+  `{:error, {:trashed_person_exists, trashed_person}}` so the caller can
+  offer to restore the existing record rather than creating a duplicate.
+  """
+  @spec create_person(map()) ::
+          {:ok, Person.t()}
+          | {:error, Ecto.Changeset.t(Person.t())}
+          | {:error, {:trashed_person_exists, Person.t()}}
   def create_person(attrs) do
-    with {:ok, person} <- %Person{} |> Person.changeset(attrs) |> repo().insert() do
-      StaffPubSub.broadcast_person(:person_created, %{uuid: person.uuid})
-      {:ok, person}
+    case trashed_person_for_user(user_uuid_from(attrs)) do
+      %Person{} = trashed ->
+        {:error, {:trashed_person_exists, trashed}}
+
+      nil ->
+        with {:ok, person} <- %Person{} |> Person.changeset(attrs) |> repo().insert() do
+          StaffPubSub.broadcast_person(:person_created, %{uuid: person.uuid})
+          {:ok, person}
+        end
     end
+  end
+
+  defp user_uuid_from(attrs), do: attrs["user_uuid"] || attrs[:user_uuid]
+
+  defp trashed_person_for_user(nil), do: nil
+
+  defp trashed_person_for_user(user_uuid) do
+    Person
+    |> where([p], p.user_uuid == ^user_uuid and p.status == ^@soft_delete_status)
+    |> repo().one()
   end
 
   @doc "Updates a person and broadcasts `:person_updated` on success."
@@ -254,231 +312,262 @@ defmodule PhoenixKitStaff.Staff do
     end
   end
 
-  @doc "Deletes a person and broadcasts `:person_deleted` on success."
-  @spec delete_person(Person.t()) :: {:ok, Person.t()} | {:error, Ecto.Changeset.t(Person.t())}
-  def delete_person(%Person{} = p) do
-    with {:ok, deleted} <- repo().delete(p) do
-      StaffPubSub.broadcast_person(:person_deleted, %{uuid: deleted.uuid})
-      {:ok, deleted}
+  @doc """
+  Soft-deletes a person: sets `status` to `"trashed"` and stashes the
+  prior lifecycle status under `metadata["trashed_from_status"]` so
+  `restore_person/1` can return them to active/inactive. Broadcasts
+  `:person_updated`. Returns `{:error, :already_trashed}` if it's
+  already trashed.
+
+  Project assignments and team memberships are deliberately left intact
+  (the FK rows survive), so the person — and their assignments — come
+  back cleanly on restore. This is the whole point over hard delete,
+  which would silently NULL out project assignments (FK is SET NULL).
+  """
+  @spec trash_person(Person.t()) ::
+          {:ok, Person.t()} | {:error, :already_trashed | Ecto.Changeset.t(Person.t())}
+  def trash_person(%Person{status: @soft_delete_status}), do: {:error, :already_trashed}
+
+  def trash_person(%Person{} = p) do
+    metadata = Map.put(p.metadata || %{}, "trashed_from_status", p.status)
+
+    with {:ok, updated} <-
+           p
+           |> Ecto.Changeset.change(status: @soft_delete_status, metadata: metadata)
+           |> repo().update() do
+      StaffPubSub.broadcast_person(:person_updated, %{uuid: updated.uuid})
+      {:ok, updated}
     end
   end
 
-  @doc "Total number of people."
+  @doc """
+  Restores a trashed person to the status they had before trashing
+  (read from `metadata["trashed_from_status"]`, validated against
+  `Person.statuses/0`, defaulting to `"active"`). Clears the stash key
+  but preserves any other metadata. Broadcasts `:person_updated`.
+  Returns `{:error, :not_trashed}` if the person isn't trashed.
+  """
+  @spec restore_person(Person.t()) ::
+          {:ok, Person.t()} | {:error, :not_trashed | Ecto.Changeset.t(Person.t())}
+  def restore_person(%Person{status: @soft_delete_status} = p) do
+    prior = restore_target_status(p.metadata)
+    metadata = Map.delete(p.metadata || %{}, "trashed_from_status")
+
+    with {:ok, updated} <-
+           p
+           |> Ecto.Changeset.change(status: prior, metadata: metadata)
+           |> repo().update() do
+      StaffPubSub.broadcast_person(:person_updated, %{uuid: updated.uuid})
+      {:ok, updated}
+    end
+  end
+
+  def restore_person(%Person{}), do: {:error, :not_trashed}
+
+  defp restore_target_status(metadata) do
+    case metadata do
+      %{"trashed_from_status" => s} -> if s in Person.statuses(), do: s, else: "active"
+      _ -> "active"
+    end
+  end
+
+  @doc """
+  Permanently deletes a person (hard `Repo.delete`) and broadcasts
+  `:person_deleted`. **Trash-only**: refuses a non-trashed person with
+  `{:error, :not_trashed}` so permanent deletion is always a deliberate
+  two-step (trash, then delete) — a stray direct call can't nuke an
+  active person.
+
+  The rescue clauses guard a *hypothetical* future `ON DELETE RESTRICT`
+  FK into `phoenix_kit_staff_people`. Today none exist — the projects
+  assignee FK is `ON DELETE SET NULL` and team memberships are
+  `ON DELETE CASCADE` — so a delete won't raise; it succeeds and the
+  caller is expected to have warned that project-assignment links get
+  cleared. The rescue stays as cheap insurance against a future
+  restricting consumer.
+  """
+  @spec delete_person(Person.t()) ::
+          {:ok, Person.t()}
+          | {:error, :not_trashed | :referenced_by_external | Ecto.Changeset.t(Person.t())}
+  def delete_person(%Person{uuid: uuid} = p) do
+    # DB-scoped delete keyed on the *current* status, not the in-memory
+    # struct — a stale `%Person{status: "trashed"}` can't delete a row
+    # that was restored to active in the meantime (TOCTOU-safe). 0 rows
+    # affected ⇒ not currently trashed (or already gone) ⇒ :not_trashed.
+    {count, _} =
+      from(x in Person, where: x.uuid == ^uuid and x.status == ^@soft_delete_status)
+      |> repo().delete_all()
+
+    if count == 1 do
+      StaffPubSub.broadcast_person(:person_deleted, %{uuid: uuid})
+      {:ok, p}
+    else
+      {:error, :not_trashed}
+    end
+  rescue
+    e in Ecto.ConstraintError ->
+      if e.type == :foreign_key,
+        do: {:error, :referenced_by_external},
+        else: reraise(e, __STACKTRACE__)
+
+    e in Postgrex.Error ->
+      if fk_or_not_null_violation?(e),
+        do: {:error, :referenced_by_external},
+        else: reraise(e, __STACKTRACE__)
+  end
+
+  defp fk_or_not_null_violation?(%Postgrex.Error{postgres: %{code: code}}),
+    do: code in [:foreign_key_violation, :not_null_violation]
+
+  defp fk_or_not_null_violation?(_), do: false
+
+  # ── Bulk soft-delete operations ────────────────────────────────────
+
+  @doc """
+  Bulk-trashes the given people. Per-row stashes the prior status into
+  `metadata["trashed_from_status"]` (in a single UPDATE — the SET
+  expressions read the pre-update row, so `status` there is still the
+  old value). Skips rows already trashed. Broadcasts one bulk event.
+  Returns `{:ok, trashed_count}`.
+  """
+  @spec bulk_trash([UUIDv7.t() | String.t()]) :: {:ok, non_neg_integer()}
+  def bulk_trash(uuids) when is_list(uuids) do
+    {count, _} =
+      from(p in Person,
+        where: p.uuid in ^uuids and p.status != ^@soft_delete_status,
+        update: [
+          set: [
+            status: ^@soft_delete_status,
+            metadata:
+              fragment(
+                "jsonb_set(coalesce(?, '{}'::jsonb), '{trashed_from_status}', to_jsonb(?::text))",
+                p.metadata,
+                p.status
+              ),
+            updated_at: ^DateTime.truncate(DateTime.utc_now(), :second)
+          ]
+        ]
+      )
+      |> repo().update_all([])
+
+    if count > 0, do: StaffPubSub.broadcast_people_bulk(:person_updated)
+    {:ok, count}
+  end
+
+  @doc """
+  Bulk-restores trashed people to their stashed prior status (validated
+  to `active`/`inactive`, else `active`), clearing the stash key.
+  Broadcasts one bulk event. Returns `{:ok, restored_count}`.
+  """
+  @spec bulk_restore([UUIDv7.t() | String.t()]) :: {:ok, non_neg_integer()}
+  def bulk_restore(uuids) when is_list(uuids) do
+    {count, _} =
+      from(p in Person,
+        where: p.uuid in ^uuids and p.status == ^@soft_delete_status,
+        update: [
+          set: [
+            status:
+              fragment(
+                "CASE WHEN (?->>'trashed_from_status') IN ('active','inactive') THEN (?->>'trashed_from_status') ELSE 'active' END",
+                p.metadata,
+                p.metadata
+              ),
+            metadata: fragment("(? - 'trashed_from_status')", p.metadata),
+            updated_at: ^DateTime.truncate(DateTime.utc_now(), :second)
+          ]
+        ]
+      )
+      |> repo().update_all([])
+
+    if count > 0, do: StaffPubSub.broadcast_people_bulk(:person_updated)
+    {:ok, count}
+  end
+
+  @doc """
+  Bulk permanent-deletes people. Broadcasts one bulk event. Returns
+  `{:ok, deleted_count}` or `{:error, :referenced_by_external}` if a
+  (hypothetical future) RESTRICT FK blocks the delete.
+  """
+  @spec bulk_delete([UUIDv7.t() | String.t()]) ::
+          {:ok, non_neg_integer()} | {:error, :referenced_by_external}
+  def bulk_delete(uuids) when is_list(uuids) do
+    # Trash-only, same contract as delete_person/1 — active rows in the
+    # selection are left untouched.
+    {count, _} =
+      from(p in Person, where: p.uuid in ^uuids and p.status == ^@soft_delete_status)
+      |> repo().delete_all()
+
+    if count > 0, do: StaffPubSub.broadcast_people_bulk(:person_deleted)
+    {:ok, count}
+  rescue
+    e in [Ecto.ConstraintError, Postgrex.Error] ->
+      if match?(%Ecto.ConstraintError{type: :foreign_key}, e) or fk_or_not_null_violation?(e),
+        do: {:error, :referenced_by_external},
+        else: reraise(e, __STACKTRACE__)
+  end
+
+  @doc "Number of non-trashed people (the active roster size)."
   @spec count_people() :: non_neg_integer()
-  def count_people, do: repo().aggregate(Person, :count, :uuid)
+  def count_people do
+    from(p in Person, where: p.status != ^@soft_delete_status)
+    |> repo().aggregate(:count, :uuid)
+  end
+
+  @doc "Number of trashed (soft-deleted) people."
+  @spec count_trashed() :: non_neg_integer()
+  def count_trashed do
+    from(p in Person, where: p.status == ^@soft_delete_status)
+    |> repo().aggregate(:count, :uuid)
+  end
 
   # ── Upcoming birthdays ─────────────────────────────────────────────
 
-  @doc """
-  Returns upcoming birthdays within the given window (default 30 days),
-  sorted by days-until-birthday.
-  """
+  @doc "Upcoming birthdays within `window_days` (default 30). See `PhoenixKitStaff.Staff.Org`."
   @spec upcoming_birthdays(non_neg_integer()) :: [
           %{person: Person.t(), next_birthday: Date.t(), days_until: non_neg_integer()}
         ]
-  def upcoming_birthdays(window_days \\ 30) do
-    today = Date.utc_today()
-    window_days = max(window_days, 0)
-
-    from(p in Person,
-      where: p.status == "active" and not is_nil(p.date_of_birth),
-      where:
-        fragment(
-          """
-          ((CASE
-             WHEN (? + (EXTRACT(YEAR FROM CURRENT_DATE)::int - EXTRACT(YEAR FROM ?)::int) * INTERVAL '1 year')::date < CURRENT_DATE
-               THEN (? + (EXTRACT(YEAR FROM CURRENT_DATE)::int - EXTRACT(YEAR FROM ?)::int + 1) * INTERVAL '1 year')::date
-             ELSE (? + (EXTRACT(YEAR FROM CURRENT_DATE)::int - EXTRACT(YEAR FROM ?)::int) * INTERVAL '1 year')::date
-           END) - CURRENT_DATE) <= ?
-          """,
-          p.date_of_birth,
-          p.date_of_birth,
-          p.date_of_birth,
-          p.date_of_birth,
-          p.date_of_birth,
-          p.date_of_birth,
-          ^window_days
-        ),
-      preload: [:user]
-    )
-    |> repo().all()
-    |> Enum.map(fn p ->
-      {next, days} = next_birthday_and_days(p.date_of_birth, today)
-      %{person: p, next_birthday: next, days_until: days}
-    end)
-    |> Enum.sort_by(& &1.days_until)
-  end
-
-  defp next_birthday_and_days(dob, today) do
-    this_year = anniversary_in_year(dob, today.year)
-
-    next =
-      if Date.compare(this_year, today) == :lt do
-        anniversary_in_year(dob, today.year + 1)
-      else
-        this_year
-      end
-
-    {next, Date.diff(next, today)}
-  end
-
-  # Returns the anniversary of `dob` in `year`, normalising Feb 29 → Feb 28
-  # only when `year` itself is non-leap. Mirrors Postgres `INTERVAL '1 year'`
-  # arithmetic so the SQL filter and the Elixir display stay consistent.
-  defp anniversary_in_year(dob, year) do
-    case Date.new(year, dob.month, dob.day) do
-      {:ok, d} -> d
-      {:error, _} -> Date.new!(year, dob.month, 28)
-    end
-  end
+  def upcoming_birthdays(window_days \\ 30), do: Org.upcoming_birthdays(window_days)
 
   # ── Org tree ───────────────────────────────────────────────────────
 
-  @doc """
-  Returns the full org tree:
-  %{
-    departments: [%{department: ..., teams: [...], dept_only_people: [...]}],
-    unassigned_people: [...]
-  }
-  """
-  @spec org_tree() :: %{
-          departments: [
-            %{
-              department: PhoenixKitStaff.Schemas.Department.t(),
-              teams: [%{team: PhoenixKitStaff.Schemas.Team.t(), people: [Person.t()]}],
-              dept_only_people: [Person.t()]
-            }
-          ],
-          unassigned_people: [Person.t()]
-        }
-  def org_tree do
-    departments = Departments.list(preload: [:teams])
-    all_people = list_people()
-
-    all_memberships =
-      from(tm in TeamMembership, preload: [staff_person: [:user]])
-      |> repo().all()
-
-    people_by_team =
-      Enum.group_by(all_memberships, & &1.team_uuid, & &1.staff_person)
-
-    person_team_ids = MapSet.new(all_memberships, & &1.staff_person_uuid)
-
-    dept_tree =
-      Enum.map(departments, fn dept ->
-        teams =
-          dept.teams
-          |> Enum.sort_by(& &1.name)
-          |> Enum.map(fn team ->
-            people =
-              Map.get(people_by_team, team.uuid, [])
-              |> Enum.sort_by(fn p -> p.user && p.user.email end)
-
-            %{team: team, people: people}
-          end)
-
-        dept_only_people =
-          all_people
-          |> Enum.filter(fn p ->
-            p.primary_department_uuid == dept.uuid and
-              not MapSet.member?(person_team_ids, p.uuid)
-          end)
-
-        %{department: dept, teams: teams, dept_only_people: dept_only_people}
-      end)
-
-    unassigned =
-      Enum.filter(all_people, fn p ->
-        p.primary_department_uuid == nil and
-          not MapSet.member?(person_team_ids, p.uuid)
-      end)
-
-    %{departments: dept_tree, unassigned_people: unassigned}
-  end
+  @doc "The full department → team → people org tree. See `PhoenixKitStaff.Staff.Org`."
+  defdelegate org_tree, to: Org
 
   # ── Team memberships ───────────────────────────────────────────────
 
-  @doc "Memberships on a given team, preloaded with staff_person and user."
-  @spec list_team_memberships(UUIDv7.t() | String.t()) :: [TeamMembership.t()]
-  def list_team_memberships(team_uuid) do
-    TeamMembership
-    |> where([tm], tm.team_uuid == ^team_uuid)
-    |> preload(staff_person: [:user])
-    |> order_by([tm], asc: tm.inserted_at)
-    |> repo().all()
-  end
+  # Thin delegators — implementations live in `PhoenixKitStaff.Staff.Memberships`.
+  @doc "See `PhoenixKitStaff.Staff.Memberships.list_team_memberships/1`."
+  defdelegate list_team_memberships(team_uuid), to: Memberships
 
-  @doc "All memberships a given person belongs to, with team and department preloaded."
-  @spec list_memberships_for_person(UUIDv7.t() | String.t()) :: [TeamMembership.t()]
-  def list_memberships_for_person(person_uuid) do
-    TeamMembership
-    |> where([tm], tm.staff_person_uuid == ^person_uuid)
-    |> preload(team: [:department])
-    |> order_by([tm], asc: tm.inserted_at)
-    |> repo().all()
-  end
+  @doc "See `PhoenixKitStaff.Staff.Memberships.list_memberships_for_person/1`."
+  defdelegate list_memberships_for_person(person_uuid), to: Memberships
 
-  @doc "Adds a person to a team and broadcasts `:team_person_added`."
-  @spec add_team_person(UUIDv7.t() | String.t(), UUIDv7.t() | String.t()) ::
-          {:ok, TeamMembership.t()} | {:error, Ecto.Changeset.t(TeamMembership.t())}
-  def add_team_person(team_uuid, staff_person_uuid) do
-    with {:ok, tm} <-
-           %TeamMembership{}
-           |> TeamMembership.changeset(%{
-             team_uuid: team_uuid,
-             staff_person_uuid: staff_person_uuid
-           })
-           |> repo().insert() do
-      StaffPubSub.broadcast_team_membership(:team_person_added, %{
-        team_uuid: tm.team_uuid,
-        staff_person_uuid: tm.staff_person_uuid,
-        uuid: tm.uuid
-      })
+  @doc "See `PhoenixKitStaff.Staff.Memberships.add_team_person/2`."
+  defdelegate add_team_person(team_uuid, staff_person_uuid), to: Memberships
 
-      {:ok, tm}
-    end
-  end
+  @doc "See `PhoenixKitStaff.Staff.Memberships.remove_team_person/1`."
+  defdelegate remove_team_person(team_membership), to: Memberships
 
-  @doc "Removes a team membership (by struct or by team/person uuids) and broadcasts `:team_person_removed`."
-  @spec remove_team_person(TeamMembership.t()) ::
-          {:ok, TeamMembership.t()} | {:error, Ecto.Changeset.t(TeamMembership.t())}
-  @spec remove_team_person(UUIDv7.t() | String.t(), UUIDv7.t() | String.t()) ::
-          {:ok, TeamMembership.t()}
-          | {:error, Ecto.Changeset.t(TeamMembership.t())}
-          | {:error, :not_found}
-  def remove_team_person(%TeamMembership{} = tm) do
-    with {:ok, deleted} <- repo().delete(tm) do
-      StaffPubSub.broadcast_team_membership(:team_person_removed, %{
-        team_uuid: deleted.team_uuid,
-        staff_person_uuid: deleted.staff_person_uuid,
-        uuid: deleted.uuid
-      })
+  @doc "See `PhoenixKitStaff.Staff.Memberships.remove_team_person/2`."
+  defdelegate remove_team_person(team_uuid, staff_person_uuid), to: Memberships
 
-      {:ok, deleted}
-    end
-  end
+  @doc "See `PhoenixKitStaff.Staff.Memberships.people_not_on_team/1`."
+  defdelegate people_not_on_team(team_uuid), to: Memberships
 
-  def remove_team_person(team_uuid, staff_person_uuid) do
-    case repo().get_by(TeamMembership, team_uuid: team_uuid, staff_person_uuid: staff_person_uuid) do
-      nil -> {:error, :not_found}
-      tm -> remove_team_person(tm)
-    end
-  end
+  # ── Skill assignment (delegates to PhoenixKitStaff.Skills) ─────────
+  # Skill CRUD + assignment live in `Skills` for cohesion; these thin
+  # delegators keep the person↔skill API reachable from `Staff`, mirroring
+  # how team membership lives here.
 
-  @doc "People not already on this team (for the add-to-team picker)."
-  @spec people_not_on_team(UUIDv7.t() | String.t()) :: [Person.t()]
-  def people_not_on_team(team_uuid) do
-    person_uuids_on_team =
-      from(tm in TeamMembership,
-        where: tm.team_uuid == ^team_uuid,
-        select: tm.staff_person_uuid
-      )
+  @doc "Delegates to `PhoenixKitStaff.Skills.assign_skill/3` (level_ids list)."
+  defdelegate assign_skill(person_uuid, skill_uuid, level_ids), to: Skills
 
-    from(p in Person,
-      where: p.uuid not in subquery(person_uuids_on_team),
-      preload: [:user],
-      order_by: [asc: p.inserted_at]
-    )
-    |> repo().all()
-  end
+  @doc "Delegates to `PhoenixKitStaff.Skills.unassign_skill/1`."
+  defdelegate unassign_skill(person_skill), to: Skills
+
+  @doc "Delegates to `PhoenixKitStaff.Skills.unassign_skill/2`."
+  defdelegate unassign_skill(person_uuid, skill_uuid), to: Skills
+
+  @doc "Delegates to `PhoenixKitStaff.Skills.list_for_person/1`."
+  defdelegate list_skills_for_person(person_uuid), to: Skills, as: :list_for_person
 end

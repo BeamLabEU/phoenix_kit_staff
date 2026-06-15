@@ -126,13 +126,17 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
 
       <%!-- Org tree --%>
       <%= if @org_tree.departments == [] do %>
-        <div class="text-center py-16 text-base-content/60 bg-base-100 rounded-lg border border-base-200">
-          <.icon name="hero-building-office-2" class="w-12 h-12 mx-auto mb-2 opacity-40" />
-          <p>{gettext("No departments yet.")}</p>
-          <.link navigate={Paths.new_department()} class="link link-primary text-sm">
-            {gettext("Create your first department")}
-          </.link>
-        </div>
+        <.empty_state
+          variant="card"
+          icon="hero-building-office-2"
+          title={gettext("No departments yet.")}
+        >
+          <:cta>
+            <.link navigate={Paths.new_department()} class="link link-primary text-sm">
+              {gettext("Create your first department")}
+            </.link>
+          </:cta>
+        </.empty_state>
       <% else %>
         <div class="flex flex-col gap-4">
           <div :for={node <- @org_tree.departments} class="card bg-base-100 shadow">
@@ -146,9 +150,19 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
                     {ngettext("1 team", "%{count} teams", length(node.teams))}
                   </span>
                 </.link>
-                <.link navigate={Paths.edit_department(node.department.uuid)} class="btn btn-ghost btn-xs">
-                  <.icon name="hero-pencil" class="w-3.5 h-3.5" />
-                </.link>
+                <.table_row_menu id={"dept-tree-menu-#{node.department.uuid}"}>
+                  <.table_row_menu_link
+                    navigate={Paths.department(node.department.uuid)}
+                    icon="hero-eye"
+                    label={Gettext.gettext(PhoenixKitWeb.Gettext, "View")}
+                  />
+                  <.table_row_menu_link
+                    navigate={Paths.edit_department(node.department.uuid)}
+                    icon="hero-pencil"
+                    label={Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
+                    variant="secondary"
+                  />
+                </.table_row_menu>
               </div>
               <p :if={node.department.description} class="text-sm text-base-content/60 mt-1">
                 {node.department.description}
@@ -171,9 +185,19 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
                       {length(t.people)}
                     </span>
                   </.link>
-                  <.link navigate={Paths.edit_team(t.team.uuid)} class="btn btn-ghost btn-xs">
-                    <.icon name="hero-pencil" class="w-3 h-3" />
-                  </.link>
+                  <.table_row_menu id={"team-tree-menu-#{t.team.uuid}"}>
+                    <.table_row_menu_link
+                      navigate={Paths.team(t.team.uuid)}
+                      icon="hero-eye"
+                      label={Gettext.gettext(PhoenixKitWeb.Gettext, "View")}
+                    />
+                    <.table_row_menu_link
+                      navigate={Paths.edit_team(t.team.uuid)}
+                      icon="hero-pencil"
+                      label={Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
+                      variant="secondary"
+                    />
+                  </.table_row_menu>
                 </div>
 
                 <%= if t.people == [] do %>

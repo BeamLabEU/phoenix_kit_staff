@@ -159,13 +159,14 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
       )
       |> render_submit()
 
+      # The audit row records the failed attempt WITHOUT the attempted email
+      # (PII-safe metadata, per AGENTS.md) — `db_pending`/`error_kind` is enough.
       assert_activity_logged("staff.person_created",
         actor_uuid: actor_uuid,
         resource_uuid: nil,
         metadata_has: %{
           "db_pending" => true,
-          "error_kind" => "changeset",
-          "attempted_email" => email
+          "error_kind" => "changeset"
         }
       )
     end
@@ -200,12 +201,285 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
     end
   end
 
+  describe "internal notes field removed" do
+    test "the edit form no longer renders the Internal notes field", %{conn: conn} do
+      person = fixture_person()
+
+      {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      refute html =~ "Internal notes"
+      # No notes input under any name (primary column or translations key).
+      refute html =~ "][notes]"
+      refute html =~ ~s|name="person[notes]"|
+      # Skills also no longer live on the form (V135 moved them to the
+      # structured Skill entity, managed on the person show page).
+      refute html =~ ~s|name="person[skills]"|
+      # A sibling translatable field that IS still on the form.
+      assert html =~ "Bio"
+    end
+  end
+
+  describe "work location soft-dep (phoenix_kit_locations absent)" do
+    test "the work-location picker is hidden when the locations module is unavailable", %{
+      conn: conn
+    } do
+      person = fixture_person()
+
+      {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      # phoenix_kit_locations is not a dependency in the staff test env, so
+      # `location_options/0` returns [] and the `<.select>` is gated off via
+      # `:if={@location_options != []}` — pins the soft-dep degradation contract.
+      refute html =~ ~s|name="person[work_location]"|
+      refute html =~ "Work location"
+    end
+  end
+
   describe "404 fallback" do
     test "edit with bogus uuid redirects to people list", %{conn: conn} do
       bogus = Ecto.UUID.generate()
 
       assert {:error, {:live_redirect, %{to: "/en/admin/staff/people"}}} =
                live(conn, "/en/admin/staff/people/#{bogus}/edit")
+    end
+
+    # Regression: editing a trashed person must not be possible in place
+    # (it would un-trash via the normal update path). Redirect to show.
+    test "edit of a trashed person redirects to the show page", %{conn: conn} do
+      person = fixture_person()
+      {:ok, trashed} = PhoenixKitStaff.Staff.trash_person(person)
+
+      assert {:error, {:live_redirect, %{to: to}}} =
+               live(conn, "/en/admin/staff/people/#{trashed.uuid}/edit")
+
+      assert to == "/en/admin/staff/people/#{trashed.uuid}"
+    end
+
+    # Regression: the save path re-checks current DB status, so a save
+    # from an edit LV opened before a concurrent trash can't un-trash
+    # the person (the mount guard alone wouldn't catch this race).
+    test "save after a concurrent trash refuses and leaves the person trashed", %{conn: conn} do
+      person = fixture_person()
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      # Another admin trashes the person while this edit LV is open.
+      {:ok, _} = PhoenixKitStaff.Staff.trash_person(person)
+
+      render_submit(view, "save", %{"person" => %{"status" => "active"}})
+
+      assert_redirect(view, "/en/admin/staff/people/#{person.uuid}")
+      assert PhoenixKitStaff.Staff.get_person(person.uuid).status == "trashed"
+    end
+  end
+
+  describe "skills picker (edit form — staged, persisted on Save)" do
+    alias PhoenixKitStaff.Skills
+
+    test "renders the searchable skills picker (skills exist)", %{conn: conn} do
+      person = fixture_person()
+      _skill = fixture_skill()
+      {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      assert html =~ "Skills"
+      assert html =~ "Type to search skills"
+      # The "manage the taxonomy" link points at the Skills admin page.
+      assert html =~ "Add / edit skills"
+      assert html =~ ~s|href="/en/admin/staff/skills"|
+    end
+
+    test "with no skills at all, shows an empty-state prompt linking to Skills", %{conn: conn} do
+      person = fixture_person()
+      {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      # No skills exist → the picker collapses to a prompt + link, and the
+      # search box is suppressed (there's nothing to search).
+      assert html =~ "No skills have been created yet."
+      assert html =~ "Add / edit skills"
+      assert html =~ ~s|href="/en/admin/staff/skills"|
+      refute html =~ "Type to search skills"
+    end
+
+    test "with every available skill already assigned, shows 'all added' and no search box", %{
+      conn: conn
+    } do
+      person = fixture_person()
+      skill = fixture_skill()
+      {:ok, _} = Skills.assign_skill(person.uuid, skill.uuid, [])
+
+      {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      # Every available skill is staged → the search box would be dead weight.
+      assert html =~ "All available skills are added."
+      refute html =~ "Type to search skills"
+    end
+
+    test "removing a staged skill brings the search box back when all were assigned", %{
+      conn: conn
+    } do
+      person = fixture_person()
+      skill = fixture_skill()
+      {:ok, _} = Skills.assign_skill(person.uuid, skill.uuid, [])
+
+      {:ok, view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+      assert html =~ "All available skills are added."
+
+      html =
+        view
+        |> element("button[phx-click='remove_staged_skill'][phx-value-uuid='#{skill.uuid}']")
+        |> render_click()
+
+      # Now one skill is free again → the search box returns.
+      assert html =~ "Type to search skills"
+      refute html =~ "All available skills are added."
+    end
+
+    test "refresh_skills flips the empty state to the picker after a skill is created", %{
+      conn: conn
+    } do
+      person = fixture_person()
+      {:ok, view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      assert html =~ "No skills have been created yet."
+      refute html =~ "Type to search skills"
+
+      # A skill gets created elsewhere (e.g. the Skills page opened in a new
+      # tab); returning to this tab fires phx-window-focus → refresh_skills.
+      _skill = fixture_skill()
+      html = render_hook(view, "refresh_skills", %{})
+
+      assert html =~ "Type to search skills"
+      refute html =~ "No skills have been created yet."
+    end
+
+    test "type-to-search narrows the add-able skills", %{conn: conn} do
+      person = fixture_person()
+      u = System.unique_integer([:positive])
+      match = fixture_skill(%{"name" => "Elixir-#{u}"})
+      other = fixture_skill(%{"name" => "Python-#{u}"})
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      html =
+        view
+        |> form("#person-form", %{"skill_search" => "Elixir-#{u}"})
+        |> render_change()
+
+      assert html =~ ~s|phx-value-uuid="#{match.uuid}"|
+      refute html =~ ~s|phx-value-uuid="#{other.uuid}"|
+    end
+
+    test "adding a skill stages it but does NOT persist until Save", %{
+      conn: conn,
+      actor_uuid: actor_uuid
+    } do
+      person = fixture_person()
+      skill = fixture_skill(%{"name" => "Elixir-#{System.unique_integer([:positive])}"})
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      # Stage the skill (a clean DB surfaces the lone skill in the initial
+      # matches, so the add button is present without searching first).
+      view
+      |> element("button[phx-click='add_staged_skill'][phx-value-uuid='#{skill.uuid}']")
+      |> render_click()
+
+      # Nothing is written, and no activity is logged, until Save.
+      assert Skills.list_for_person(person.uuid) == []
+      refute_activity_logged("staff.person_skill_added", resource_uuid: skill.uuid)
+
+      # Pressing Save persists the staged assignment + logs it.
+      view
+      |> form("#person-form", person: %{status: "active"})
+      |> render_submit()
+
+      assert [ps] = Skills.list_for_person(person.uuid)
+      assert ps.skill.uuid == skill.uuid
+
+      assert_activity_logged("staff.person_skill_added",
+        resource_uuid: skill.uuid,
+        actor_uuid: actor_uuid,
+        target_uuid: person.user_uuid
+      )
+    end
+
+    test "staging a new skill + picking a level chip persists the level on Save", %{conn: conn} do
+      person = fixture_person()
+
+      {skill, ids} =
+        fixture_skill_with_levels(["Beginner", "Expert"], %{
+          "name" => "Driving-#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      view
+      |> element("button[phx-click='add_staged_skill'][phx-value-uuid='#{skill.uuid}']")
+      |> render_click()
+
+      render_click(view, "toggle_staged_level", %{"uuid" => skill.uuid, "id" => ids["Expert"]})
+
+      view
+      |> form("#person-form", person: %{status: "active"})
+      |> render_submit()
+
+      assert [ps] = Skills.list_for_person(person.uuid)
+      assert ps.proficiency_levels == [ids["Expert"]]
+    end
+
+    test "toggling a staged level chip then saving updates the assignment", %{
+      conn: conn,
+      actor_uuid: actor_uuid
+    } do
+      person = fixture_person()
+      {skill, ids} = fixture_skill_with_levels(["Beginner", "Advanced"])
+      {:ok, _ps} = Skills.assign_skill(person.uuid, skill.uuid, [ids["Beginner"]])
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      # single-select: toggling "Advanced" replaces "Beginner" in the staged row
+      render_click(view, "toggle_staged_level", %{"uuid" => skill.uuid, "id" => ids["Advanced"]})
+
+      view
+      |> form("#person-form", person: %{status: "active"})
+      |> render_submit()
+
+      assert hd(Skills.list_for_person(person.uuid)).proficiency_levels == [ids["Advanced"]]
+
+      assert_activity_logged("staff.person_skill_updated",
+        resource_uuid: skill.uuid,
+        actor_uuid: actor_uuid,
+        target_uuid: person.user_uuid
+      )
+    end
+
+    test "removing a staged chip then saving unassigns the skill", %{
+      conn: conn,
+      actor_uuid: actor_uuid
+    } do
+      person = fixture_person()
+      skill = fixture_skill()
+      {:ok, _ps} = Skills.assign_skill(person.uuid, skill.uuid, [])
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      view
+      |> element("button[phx-click='remove_staged_skill'][phx-value-uuid='#{skill.uuid}']")
+      |> render_click()
+
+      # The assignment survives until Save (staging only).
+      assert [_] = Skills.list_for_person(person.uuid)
+
+      view
+      |> form("#person-form", person: %{status: "active"})
+      |> render_submit()
+
+      assert Skills.list_for_person(person.uuid) == []
+
+      assert_activity_logged("staff.person_skill_removed",
+        resource_uuid: skill.uuid,
+        actor_uuid: actor_uuid,
+        target_uuid: person.user_uuid
+      )
     end
   end
 end

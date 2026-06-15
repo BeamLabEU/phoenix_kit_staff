@@ -41,6 +41,20 @@ defmodule PhoenixKitStaff.Paths do
   @spec edit_team(UUIDv7.t() | String.t()) :: String.t()
   def edit_team(id), do: Routes.path("#{@base}/teams/#{id}/edit")
 
+  # Skills
+  @doc "Skills index."
+  @spec skills() :: String.t()
+  def skills, do: Routes.path("#{@base}/skills")
+  @doc "New-skill form."
+  @spec new_skill() :: String.t()
+  def new_skill, do: Routes.path("#{@base}/skills/new")
+  @doc "Show page for a single skill."
+  @spec skill(UUIDv7.t() | String.t()) :: String.t()
+  def skill(id), do: Routes.path("#{@base}/skills/#{id}")
+  @doc "Edit form for a skill."
+  @spec edit_skill(UUIDv7.t() | String.t()) :: String.t()
+  def edit_skill(id), do: Routes.path("#{@base}/skills/#{id}/edit")
+
   # People (staff)
   @doc "Staff index (people list)."
   @spec people() :: String.t()

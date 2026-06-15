@@ -24,7 +24,7 @@ defmodule PhoenixKitStaff.MixProject do
       ],
       description: "Staff module for PhoenixKit — departments, teams, and people.",
       package: package(),
-      dialyzer: [plt_add_apps: [:phoenix_kit]],
+      dialyzer: [plt_add_apps: [:phoenix_kit, :phoenix_kit_comments]],
       name: "PhoenixKitStaff",
       source_url: @source_url,
       docs: docs()
@@ -32,7 +32,7 @@ defmodule PhoenixKitStaff.MixProject do
   end
 
   def application do
-    [extra_applications: [:logger, :phoenix_kit]]
+    [extra_applications: [:logger, :phoenix_kit, :phoenix_kit_comments]]
   end
 
   def cli do
@@ -61,9 +61,27 @@ defmodule PhoenixKitStaff.MixProject do
     ]
   end
 
+  # phoenix_kit deps resolve from Hex by default. For cross-repo work against a
+  # local checkout, export <APP>_PATH — e.g. PHOENIX_KIT_PATH=../phoenix_kit or
+  # PHOENIX_KIT_AI_PATH=../phoenix_kit_ai. Unset => the published pin, so
+  # mix hex.publish is unaffected.
+  defp pk_dep(app, requirement, opts \\ []) do
+    env_var = String.upcase(Atom.to_string(app)) <> "_PATH"
+
+    case System.get_env(env_var) do
+      nil when opts == [] -> {app, requirement}
+      nil -> {app, requirement, opts}
+      path -> {app, [path: path, override: true] ++ opts}
+    end
+  end
+
   defp deps do
     [
-      {:phoenix_kit, "~> 1.7.125"},
+      pk_dep(:phoenix_kit, "~> 1.7 and >= 1.7.132"),
+      # Hard dep: PersonShowLive embeds the comment thread (Comments tab) and
+      # `use PhoenixKitComments.Embed` for the composer's Leaf-event forwarding,
+      # both compile-time. `~> 0.2` — Embed lives in the 0.2.x line.
+      pk_dep(:phoenix_kit_comments, "~> 0.2"),
       {:phoenix_live_view, "~> 1.1"},
       {:ecto_sql, "~> 3.13"},
       # Own Gettext backend for staff-specific (domain) UI strings; generic

@@ -99,7 +99,8 @@ defmodule PhoenixKitStaff.Integration.BroadcastsTest do
       # Per-person topic also received it
       assert_receive {:staff, :person_updated, %{uuid: ^uuid}}, 500
 
-      {:ok, _} = Staff.delete_person(person)
+      {:ok, trashed} = Staff.trash_person(person)
+      {:ok, _} = Staff.delete_person(trashed)
       assert_receive {:staff, :person_deleted, %{uuid: ^uuid}}, 500
     end
 

@@ -13,12 +13,17 @@ defmodule PhoenixKitStaff.Schemas.Person do
 
   alias PhoenixKit.Users.Auth.User
   alias PhoenixKitStaff.L10n
-  alias PhoenixKitStaff.Schemas.{Department, TeamMembership}
+  alias PhoenixKitStaff.Schemas.{Department, PersonSkill, TeamMembership}
 
   @primary_key {:uuid, UUIDv7, autogenerate: true}
   @foreign_key_type UUIDv7
 
+  # User-selectable lifecycle statuses (the form's status dropdown).
   @statuses ~w(active inactive)
+  # Soft-delete sentinel — set via `Staff.trash_person/2`, never offered
+  # in the form. Kept out of `@statuses` so the form dropdown stays
+  # active/inactive, but allowed by the changeset's status validation.
+  @soft_delete_status "trashed"
   @employment_types ~w(full_time part_time contractor intern temporary)
 
   # Person carries a `translations` JSONB for the subset of free-text
@@ -32,7 +37,11 @@ defmodule PhoenixKitStaff.Schemas.Person do
   # in the existing column to avoid a type-changing migration). It no
   # longer needs per-language overrides because the location row
   # owns its own translations.
-  @translatable_fields ~w(job_title bio skills notes)
+  #
+  # `skills` was a translatable free-text field; it was replaced (core
+  # V135) by the structured `Skill` entity + `person_skills` assignments,
+  # so it no longer lives here.
+  @translatable_fields ~w(job_title bio notes)
 
   @type translations_map :: %{optional(String.t()) => %{optional(String.t()) => String.t()}}
 
@@ -43,6 +52,7 @@ defmodule PhoenixKitStaff.Schemas.Person do
           primary_department_uuid: UUIDv7.t() | nil,
           primary_department: Department.t() | Ecto.Association.NotLoaded.t() | nil,
           team_memberships: [TeamMembership.t()] | Ecto.Association.NotLoaded.t(),
+          person_skills: [PersonSkill.t()] | Ecto.Association.NotLoaded.t(),
           status: String.t() | nil,
           name: String.t() | nil,
           job_title: String.t() | nil,
@@ -53,7 +63,6 @@ defmodule PhoenixKitStaff.Schemas.Person do
           work_phone: String.t() | nil,
           personal_phone: String.t() | nil,
           bio: String.t() | nil,
-          skills: String.t() | nil,
           notes: String.t() | nil,
           date_of_birth: Date.t() | nil,
           personal_email: String.t() | nil,
@@ -61,6 +70,7 @@ defmodule PhoenixKitStaff.Schemas.Person do
           emergency_contact_phone: String.t() | nil,
           emergency_contact_relationship: String.t() | nil,
           translations: translations_map(),
+          metadata: map(),
           inserted_at: DateTime.t() | nil,
           updated_at: DateTime.t() | nil
         }
@@ -76,7 +86,6 @@ defmodule PhoenixKitStaff.Schemas.Person do
     field(:work_phone, :string)
     field(:personal_phone, :string)
     field(:bio, :string)
-    field(:skills, :string)
     field(:notes, :string)
     field(:date_of_birth, :date)
     field(:personal_email, :string)
@@ -85,6 +94,7 @@ defmodule PhoenixKitStaff.Schemas.Person do
     field(:emergency_contact_relationship, :string)
 
     field(:translations, :map, default: %{})
+    field(:metadata, :map, default: %{})
 
     belongs_to(:user, User, foreign_key: :user_uuid, references: :uuid)
 
@@ -98,6 +108,11 @@ defmodule PhoenixKitStaff.Schemas.Person do
       on_delete: :delete_all
     )
 
+    has_many(:person_skills, PersonSkill,
+      foreign_key: :staff_person_uuid,
+      on_delete: :delete_all
+    )
+
     timestamps(type: :utc_datetime)
   end
 
@@ -105,16 +120,20 @@ defmodule PhoenixKitStaff.Schemas.Person do
   @optional ~w(primary_department_uuid name
                job_title employment_type
                employment_start_date employment_end_date work_location
-               work_phone personal_phone bio skills notes
+               work_phone personal_phone bio notes
                date_of_birth personal_email
                emergency_contact_name emergency_contact_phone
-               emergency_contact_relationship translations)a
+               emergency_contact_relationship translations metadata)a
 
   @spec changeset(t() | Ecto.Changeset.t(t()), map()) :: Ecto.Changeset.t(t())
   def changeset(person, attrs) do
     person
     |> cast(attrs, @required ++ @optional)
     |> validate_required(@required)
+    # Only user-selectable statuses pass the public changeset. The
+    # "trashed" sentinel is set exclusively by `Staff.trash_person/1`
+    # via a controlled `Ecto.Changeset.change/2` (not cast from params),
+    # so a crafted create/edit payload can't soft-delete out-of-band.
     |> validate_inclusion(:status, @statuses)
     |> validate_inclusion(:employment_type, @employment_types,
       message: gettext("must be one of: %{values}", values: Enum.join(@employment_types, ", "))
@@ -142,6 +161,15 @@ defmodule PhoenixKitStaff.Schemas.Person do
   def statuses, do: @statuses
   def employment_types, do: @employment_types
 
+  @doc "The soft-delete sentinel value stored in `status`."
+  @spec soft_delete_status() :: String.t()
+  def soft_delete_status, do: @soft_delete_status
+
+  @doc "Whether the person is soft-deleted (trashed)."
+  @spec trashed?(t()) :: boolean()
+  def trashed?(%__MODULE__{status: @soft_delete_status}), do: true
+  def trashed?(%__MODULE__{}), do: false
+
   @doc "DB-column field names that participate in the `translations` JSONB."
   @spec translatable_fields() :: [String.t()]
   def translatable_fields, do: @translatable_fields
@@ -151,9 +179,6 @@ defmodule PhoenixKitStaff.Schemas.Person do
 
   @spec localized_bio(t(), String.t() | nil) :: String.t() | nil
   def localized_bio(%__MODULE__{} = p, lang), do: L10n.localized_field(p, "bio", lang)
-
-  @spec localized_skills(t(), String.t() | nil) :: String.t() | nil
-  def localized_skills(%__MODULE__{} = p, lang), do: L10n.localized_field(p, "skills", lang)
 
   @spec localized_notes(t(), String.t() | nil) :: String.t() | nil
   def localized_notes(%__MODULE__{} = p, lang), do: L10n.localized_field(p, "notes", lang)
@@ -189,6 +214,7 @@ defmodule PhoenixKitStaff.Schemas.Person do
   @doc "Translated label for a status value (for UI display)."
   def status_label("active"), do: gettext("Active")
   def status_label("inactive"), do: gettext("Inactive")
+  def status_label("trashed"), do: gettext("Trashed")
   def status_label(other), do: other
 
   def employment_type_label("full_time"), do: gettext("Full-time")
@@ -198,14 +224,4 @@ defmodule PhoenixKitStaff.Schemas.Person do
   def employment_type_label("temporary"), do: gettext("Temporary")
   def employment_type_label(nil), do: nil
   def employment_type_label(other), do: other
-
-  @doc "Splits a comma-separated skills string into a list, trimming blanks."
-  def skill_list(nil), do: []
-
-  def skill_list(skills) when is_binary(skills) do
-    skills
-    |> String.split(",")
-    |> Enum.map(&String.trim/1)
-    |> Enum.reject(&(&1 == ""))
-  end
 end

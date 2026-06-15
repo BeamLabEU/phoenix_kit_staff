@@ -7,7 +7,7 @@ defmodule PhoenixKitStaff.Schemas.MultilangTest do
 
   use ExUnit.Case, async: true
 
-  alias PhoenixKitStaff.Schemas.{Department, Person, Team}
+  alias PhoenixKitStaff.Schemas.{Department, Person, Skill, Team}
 
   describe "Department.localized_<field>/2" do
     test "returns the language override when present" do
@@ -67,18 +67,16 @@ defmodule PhoenixKitStaff.Schemas.MultilangTest do
   end
 
   describe "Person.localized_<field>/2" do
-    test "all four translatable fields fall back independently" do
+    test "translatable fields fall back independently" do
       p = %Person{
         job_title: "Engineer",
         bio: "Builds things.",
-        skills: "Elixir",
         notes: "—",
         translations: %{"es-ES" => %{"job_title" => "Ingeniera", "bio" => "Construye cosas."}}
       }
 
       assert Person.localized_job_title(p, "es-ES") == "Ingeniera"
       assert Person.localized_bio(p, "es-ES") == "Construye cosas."
-      assert Person.localized_skills(p, "es-ES") == "Elixir"
       assert Person.localized_notes(p, "es-ES") == "—"
     end
   end
@@ -92,14 +90,18 @@ defmodule PhoenixKitStaff.Schemas.MultilangTest do
       assert Team.translatable_fields() == ~w(name description)
     end
 
-    test "Person exposes job_title, bio, skills, notes (NOT name or work_location)" do
+    test "Person exposes job_title, bio, notes (NOT name, skills, or work_location)" do
       fields = Person.translatable_fields()
       assert "job_title" in fields
       assert "bio" in fields
-      assert "skills" in fields
       assert "notes" in fields
       refute "name" in fields
+      refute "skills" in fields
       refute "work_location" in fields
+    end
+
+    test "Skill exposes name + description" do
+      assert Skill.translatable_fields() == ~w(name description)
     end
   end
 

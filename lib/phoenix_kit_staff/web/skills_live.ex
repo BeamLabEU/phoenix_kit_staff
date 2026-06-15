@@ -1,63 +1,62 @@
-defmodule PhoenixKitStaff.Web.TeamsLive do
-  @moduledoc "List teams across all departments."
+defmodule PhoenixKitStaff.Web.SkillsLive do
+  @moduledoc "List skills."
 
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitStaff.Gettext
 
   require Logger
 
-  alias PhoenixKitStaff.{Activity, Paths, Teams}
+  alias PhoenixKitStaff.{Activity, Paths, Skills}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
   alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def mount(_params, _session, socket) do
-    if connected?(socket), do: StaffPubSub.subscribe(StaffPubSub.topic_teams())
-    {:ok, assign(socket, page_title: gettext("Teams")) |> load_teams()}
+    if connected?(socket), do: StaffPubSub.subscribe(StaffPubSub.topic_skills())
+    {:ok, assign(socket, page_title: gettext("Skills")) |> load_skills()}
   end
 
-  defp load_teams(socket), do: assign(socket, teams: Teams.list())
+  defp load_skills(socket) do
+    assign(socket, skills: Skills.list(), person_counts: Skills.person_counts())
+  end
 
   @impl true
   def handle_info({:staff, _event, _payload}, socket) do
-    {:noreply, load_teams(socket)}
+    {:noreply, load_skills(socket)}
   end
 
   def handle_info(msg, socket) do
-    Logger.debug("[Staff] TeamsLive: unexpected handle_info #{inspect(msg)}")
+    Logger.debug("[Staff] SkillsLive: unexpected handle_info #{inspect(msg)}")
     {:noreply, socket}
   end
 
   @impl true
   def handle_event("delete", %{"uuid" => uuid}, socket) do
-    case Teams.get(uuid) do
+    case Skills.get(uuid) do
       nil ->
-        {:noreply, put_flash(socket, :error, gettext("Team not found."))}
+        {:noreply, put_flash(socket, :error, gettext("Skill not found."))}
 
-      team ->
-        case Teams.delete(team) do
+      skill ->
+        case Skills.delete(skill) do
           {:ok, _} ->
-            Activity.log("staff.team_deleted",
+            Activity.log("staff.skill_deleted",
               actor_uuid: Activity.actor_uuid(socket),
-              resource_type: "team",
-              resource_uuid: team.uuid,
-              metadata: %{"name" => team.name}
+              resource_type: "skill",
+              resource_uuid: skill.uuid,
+              metadata: %{"name" => skill.name}
             )
 
-            {:noreply,
-             socket
-             |> put_flash(:info, gettext("Team deleted."))
-             |> load_teams()}
+            {:noreply, socket |> put_flash(:info, gettext("Skill deleted.")) |> load_skills()}
 
           {:error, reason} ->
-            Helpers.log_operation_error("staff.team_deleted", socket,
+            Helpers.log_operation_error("staff.skill_deleted", socket,
               reason: reason,
-              resource_type: "team",
-              resource_uuid: team.uuid,
-              metadata: %{"name" => team.name}
+              resource_type: "skill",
+              resource_uuid: skill.uuid,
+              metadata: %{"name" => skill.name}
             )
 
-            {:noreply, put_flash(socket, :error, gettext("Could not delete team."))}
+            {:noreply, put_flash(socket, :error, gettext("Could not delete skill."))}
         end
     end
   end
@@ -67,20 +66,20 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
       <.admin_page_header
-        title={gettext("Teams")}
-        subtitle={gettext("Teams across all departments.")}
+        title={gettext("Skills")}
+        subtitle={gettext("Skills you can assign to staff.")}
       >
         <:actions>
-          <.link navigate={Paths.new_team()} class="btn btn-primary btn-sm">
-            <.icon name="hero-plus" class="w-4 h-4" /> {gettext("New team")}
+          <.link navigate={Paths.new_skill()} class="btn btn-primary btn-sm">
+            <.icon name="hero-plus" class="w-4 h-4" /> {gettext("New skill")}
           </.link>
         </:actions>
       </.admin_page_header>
 
-      <%= if @teams == [] do %>
-        <.empty_state icon="hero-user-group" title={gettext("No teams yet.")}>
+      <%= if @skills == [] do %>
+        <.empty_state icon="hero-academic-cap" title={gettext("No skills yet.")}>
           <:cta>
-            <.link navigate={Paths.new_team()} class="link link-primary text-sm">
+            <.link navigate={Paths.new_skill()} class="link link-primary text-sm">
               {gettext("Create your first")}
             </.link>
           </:cta>
@@ -92,31 +91,27 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
               <thead>
                 <tr>
                   <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}</th>
-                  <th>{gettext("Department")}</th>
+                  <th>{gettext("People")}</th>
                   <th class="text-right w-px whitespace-nowrap">{Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}</th>
                 </tr>
               </thead>
               <tbody>
-                <tr :for={team <- @teams} class="hover">
+                <tr :for={skill <- @skills} class="hover">
                   <td>
-                    <.link navigate={Paths.team(team.uuid)} class="link link-hover font-medium">
-                      {team.name}
+                    <.link navigate={Paths.skill(skill.uuid)} class="link link-hover font-medium">
+                      {skill.name}
                     </.link>
                   </td>
-                  <td>
-                    <.link navigate={Paths.department(team.department.uuid)} class="text-sm">
-                      {team.department.name}
-                    </.link>
-                  </td>
+                  <td>{Map.get(@person_counts, skill.uuid, 0)}</td>
                   <td class="text-right w-px whitespace-nowrap">
-                    <.table_row_menu id={"team-menu-#{team.uuid}"}>
+                    <.table_row_menu id={"skill-menu-#{skill.uuid}"}>
                       <.table_row_menu_link
-                        navigate={Paths.team(team.uuid)}
+                        navigate={Paths.skill(skill.uuid)}
                         icon="hero-eye"
                         label={Gettext.gettext(PhoenixKitWeb.Gettext, "View")}
                       />
                       <.table_row_menu_link
-                        navigate={Paths.edit_team(team.uuid)}
+                        navigate={Paths.edit_skill(skill.uuid)}
                         icon="hero-pencil"
                         label={Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
                         variant="secondary"
@@ -124,9 +119,14 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
                       <.table_row_menu_divider />
                       <.table_row_menu_button
                         phx-click="delete"
-                        phx-value-uuid={team.uuid}
+                        phx-value-uuid={skill.uuid}
                         phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
-                        data-confirm={gettext("Delete team %{name}? This removes all memberships.", name: team.name)}
+                        data-confirm={
+                          gettext("Delete skill %{name}? It will be removed from %{count} people.",
+                            name: skill.name,
+                            count: Map.get(@person_counts, skill.uuid, 0)
+                          )
+                        }
                         icon="hero-trash"
                         label={Gettext.gettext(PhoenixKitWeb.Gettext, "Delete")}
                         variant="error"

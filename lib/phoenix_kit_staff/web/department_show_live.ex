@@ -78,7 +78,11 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
           </div>
 
           <%= if @teams == [] do %>
-            <p class="text-sm text-base-content/60 py-4">{gettext("No teams in this department yet.")}</p>
+            <.empty_state
+              icon="hero-user-group"
+              title={gettext("No teams in this department yet.")}
+              class="py-6"
+            />
           <% else %>
             <div class="overflow-x-auto">
               <table class="table table-sm">

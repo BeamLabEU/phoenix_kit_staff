@@ -118,7 +118,7 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
       assert html =~ person.user.email
     end
 
-    test "delete event logs activity with actor_uuid + resource_uuid + target_uuid threaded", %{
+    test "trash event logs activity with actor_uuid + resource_uuid + target_uuid threaded", %{
       conn: conn,
       actor_uuid: actor_uuid
     } do
@@ -127,26 +127,62 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
       {:ok, view, _html} = live(conn, "/en/admin/staff/people")
 
       view
-      |> element("button[phx-click='delete'][phx-value-uuid='#{person.uuid}']")
+      |> element("button[phx-click='trash'][phx-value-uuid='#{person.uuid}']")
       |> render_click()
 
-      assert_activity_logged("staff.person_deleted",
+      assert_activity_logged("staff.person_trashed",
         actor_uuid: actor_uuid,
         resource_uuid: person.uuid
       )
 
-      assert render(view) =~ "Staff removed"
+      assert render(view) =~ "Staff moved to trash"
     end
 
-    test "delete with bogus uuid flashes not-found and does NOT log activity", %{conn: conn} do
+    test "trash with bogus uuid flashes not-found and does NOT log activity", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/en/admin/staff/people")
 
       bogus = Ecto.UUID.generate()
 
-      render_click(view, "delete", %{"uuid" => bogus})
+      render_click(view, "trash", %{"uuid" => bogus})
 
-      refute_activity_logged("staff.person_deleted", resource_uuid: bogus)
+      refute_activity_logged("staff.person_trashed", resource_uuid: bogus)
       assert render(view) =~ "Staff not found"
+    end
+
+    # Regression for a Codex finding: the bulk-select hook supplies the
+    # uuids client-side, so a malformed/adversarial payload must not crash
+    # the LV — `sanitize_uuids/1` drops anything that isn't a valid UUID.
+    test "bulk_trash ignores malformed uuids and trashes only the valid ones", %{conn: conn} do
+      person = fixture_person()
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people")
+
+      render_click(view, "bulk_trash", %{
+        "uuids" => [person.uuid, "not-a-uuid", 42, %{"k" => "v"}]
+      })
+
+      assert Process.alive?(view.pid)
+      assert PhoenixKitStaff.Staff.get_person(person.uuid).status == "trashed"
+    end
+
+    # Regression for a Codex finding: a zero-count bulk op (stale/already-
+    # trashed selection) must NOT write an audit row; a real one must.
+    test "bulk_trash logs activity only when it actually trashes someone", %{
+      conn: conn,
+      actor_uuid: actor_uuid
+    } do
+      already = fixture_person()
+      {:ok, already_trashed} = PhoenixKitStaff.Staff.trash_person(already)
+      fresh = fixture_person()
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people")
+
+      # No-op: the row is already trashed → count 0 → no log.
+      render_click(view, "bulk_trash", %{"uuids" => [already_trashed.uuid]})
+      refute_activity_logged("staff.people_bulk_trashed", actor_uuid: actor_uuid)
+
+      # Real action: count 1 → audit row present.
+      render_click(view, "bulk_trash", %{"uuids" => [fresh.uuid]})
+      assert_activity_logged("staff.people_bulk_trashed", actor_uuid: actor_uuid)
     end
   end
 
@@ -188,6 +224,97 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
       send(view.pid, {:staff, :person_deleted, %{uuid: person.uuid}})
 
       assert_redirect(view, "/en/admin/staff/people")
+    end
+
+    test "renders the Overview tab; Comments tab is hidden when the toggle is off",
+         %{conn: conn} do
+      person = fixture_person()
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
+
+      assert has_element?(view, ~s|button[role="tab"][phx-value-tab="overview"]|)
+      # phoenix_kit_comments is a hard dep now, so the Comments tab gates purely
+      # on the `comments_enabled` admin toggle — which defaults off in the test
+      # DB, so the tab (and the embedded thread) stays hidden.
+      refute has_element?(view, ~s|button[role="tab"][phx-value-tab="comments"]|)
+    end
+
+    test "renders the Comments tab + embedded thread when the toggle is on",
+         %{conn: conn} do
+      person = fixture_person()
+      {:ok, _} = PhoenixKit.Settings.update_boolean_setting("comments_enabled", true)
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
+
+      # Toggle on → the tab appears. (Hard dep means presence is the toggle,
+      # not "is the module installed" — the pre-hard-dep assertion was stale.)
+      assert has_element?(view, ~s|button[role="tab"][phx-value-tab="comments"]|)
+
+      # Switching to it makes the tab active and mounts the embedded
+      # CommentsComponent (its tables ship in core migrations, so they exist in
+      # the test DB via ensure_current) — the LV must stay alive through mount.
+      render_click(view, "switch_tab", %{"tab" => "comments"})
+      assert has_element?(view, ~s|button[phx-value-tab="comments"].tab-active|)
+      assert Process.alive?(view.pid)
+    end
+
+    test "switch_tab is safe even when the Comments tab is disabled",
+         %{conn: conn} do
+      person = fixture_person()
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
+
+      # With the toggle off the Comments tab is hidden; a stale/crafted
+      # "comments" value must clamp to a valid tab rather than render a blank
+      # panel or crash.
+      render_click(view, "switch_tab", %{"tab" => "comments"})
+      assert Process.alive?(view.pid)
+
+      html = render_click(view, "switch_tab", %{"tab" => "overview"})
+      assert html =~ person.user.email
+    end
+
+    test "leaf_changed is forwarded by the Embed hook without crashing",
+         %{conn: conn} do
+      person = fixture_person()
+
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
+
+      # The composer's Leaf editor sends {:leaf_changed, ...} to the host LV;
+      # `use PhoenixKitComments.Embed` attaches a :handle_info hook that forwards
+      # a pk-comments editor's event to the component (send_update) and halts.
+      # No component is mounted here (Overview tab), so the update lands nowhere
+      # — the contract is that it must not crash the LV.
+      send(
+        view.pid,
+        {:leaf_changed,
+         %{
+           editor_id: "pk-comments:staff-person-comments-#{person.uuid}:draft:top",
+           markdown: "hi"
+         }}
+      )
+
+      assert render(view) =~ person.user.email
+      assert Process.alive?(view.pid)
+    end
+
+    test "renders assigned skills read-only (name + level), no add/remove controls", %{conn: conn} do
+      person = fixture_person()
+
+      {skill, ids} =
+        fixture_skill_with_levels(["Expert"], %{
+          "name" => "Elixir-#{System.unique_integer([:positive])}"
+        })
+
+      {:ok, _} = PhoenixKitStaff.Skills.assign_skill(person.uuid, skill.uuid, [ids["Expert"]])
+
+      {:ok, view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
+
+      assert html =~ skill.name
+      assert html =~ "Expert"
+      # Read-only: no inline add form, no remove buttons (managed on edit).
+      refute has_element?(view, "#person-add-skill-form")
+      refute has_element?(view, "button[phx-click='remove_skill']")
     end
   end
 

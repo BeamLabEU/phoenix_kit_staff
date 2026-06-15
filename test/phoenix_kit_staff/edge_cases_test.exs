@@ -200,32 +200,6 @@ defmodule PhoenixKitStaff.EdgeCasesTest do
     end
   end
 
-  describe "Person.skill_list/1 edge cases" do
-    test "nil returns empty list" do
-      assert Person.skill_list(nil) == []
-    end
-
-    test "empty string returns empty list" do
-      assert Person.skill_list("") == []
-    end
-
-    test "single skill" do
-      assert Person.skill_list("Elixir") == ["Elixir"]
-    end
-
-    test "comma-separated trims whitespace and skips blanks" do
-      assert Person.skill_list("Elixir,  Phoenix , , LiveView") == [
-               "Elixir",
-               "Phoenix",
-               "LiveView"
-             ]
-    end
-
-    test "Unicode skills preserved" do
-      assert Person.skill_list("プログラミング, 設計") == ["プログラミング", "設計"]
-    end
-  end
-
   describe "Person.{status,employment_type}_label fall-through" do
     test "status_label returns translated string for known values" do
       # Pin the exact default-locale (en) output — a `gettext("Active")`

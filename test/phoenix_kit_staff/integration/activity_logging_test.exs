@@ -144,7 +144,8 @@ defmodule PhoenixKitStaff.Integration.ActivityLoggingTest do
     test "person.deleted", %{actor_uuid: actor_uuid} do
       person = fixture_person(%{"status" => "active"})
       original_uuid = person.uuid
-      {:ok, _} = Staff.delete_person(person)
+      {:ok, trashed} = Staff.trash_person(person)
+      {:ok, _} = Staff.delete_person(trashed)
 
       Activity.log("staff.person_deleted",
         actor_uuid: actor_uuid,
