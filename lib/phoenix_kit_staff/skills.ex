@@ -74,15 +74,15 @@ defmodule PhoenixKitStaff.Skills do
   @doc """
   Updates a skill and broadcasts `:skill_updated`.
 
-  Reconciles existing assignments to the new `levels`/`allow_multiple_levels`
-  **in the same transaction**: ids removed from `levels` are stripped from every
-  `person_skills.proficiency_levels`, and if multiple→single each assignment is
-  pruned to its first level (in skill order). This keeps assignments free of
-  orphaned or over-count ids.
+  Reconciles existing assignments to the new selectors **in the same
+  transaction**: option ids removed from every selector are stripped from each
+  `person_skills.proficiency_levels`, and a selector flipped multiple→single
+  prunes its assignments to a single option (in skill order). This keeps
+  assignments free of orphaned or over-count ids.
 
   Takes a `FOR UPDATE` lock on the skill row first so a concurrent assignment
-  write (which locks the same row) can't validate against the old levels and
-  then insert a now-removed level id — the two serialize on the lock.
+  write (which locks the same row) can't validate against the old selectors and
+  then insert a now-removed option id — the two serialize on the lock.
   """
   @spec update(Skill.t(), map()) :: {:ok, Skill.t()} | {:error, Ecto.Changeset.t(Skill.t())}
   def update(%Skill{} = skill, attrs) do
@@ -116,22 +116,20 @@ defmodule PhoenixKitStaff.Skills do
     end
   end
 
-  # Strip ids no longer in the skill's levels from every assignment, reorder to
-  # skill-levels order, and prune to ≤1 when the skill is single-select. Only
-  # touches rows that actually change; returns the changed `PersonSkill` rows
-  # so the caller can broadcast per-person updates after the transaction commits.
+  # Strip option ids no longer present in any selector, reorder to skill order,
+  # and prune each single-select selector to its first selected option (handles
+  # a multiple→single flip). Only touches rows that actually change; returns the
+  # changed `PersonSkill` rows so the caller can broadcast per-person updates
+  # after the transaction commits.
   defp reconcile_assignments(%Skill{} = skill) do
-    valid_ids = Skill.level_ids(skill)
-    single? = not skill.allow_multiple_levels
-
     PersonSkill
     |> where([ps], ps.skill_uuid == ^skill.uuid)
     |> repo().all()
     |> Enum.flat_map(fn ps ->
-      kept = Enum.filter(valid_ids, &(&1 in (ps.proficiency_levels || [])))
-      kept = if single?, do: Enum.take(kept, 1), else: kept
+      current = ps.proficiency_levels || []
+      kept = prune_level_ids(skill, current)
 
-      if kept != (ps.proficiency_levels || []) do
+      if kept != current do
         {:ok, updated} = ps |> Ecto.Changeset.change(proficiency_levels: kept) |> repo().update()
         [updated]
       else
@@ -139,6 +137,23 @@ defmodule PhoenixKitStaff.Skills do
       end
     end)
   end
+
+  @doc """
+  Filters `ids` to options that still exist on the skill, ordered by the skill's
+  selector→option order, pruning each single-select selector to its first
+  selected option. Unlike `validate_level_ids/2` this **trims** rather than
+  erroring on over-count — used by reconciliation and by the form's
+  concurrently-removed-level fallback.
+  """
+  @spec prune_level_ids(Skill.t(), [String.t()]) :: [String.t()]
+  def prune_level_ids(%Skill{} = skill, ids) when is_list(ids) do
+    Enum.flat_map(Skill.level_groups(skill), fn group ->
+      selected = group |> group_option_ids() |> Enum.filter(&(&1 in ids))
+      if Map.get(group, "allow_multiple"), do: selected, else: Enum.take(selected, 1)
+    end)
+  end
+
+  defp group_option_ids(group), do: group |> Skill.group_options() |> Enum.map(&Map.get(&1, "id"))
 
   @doc "Deletes a skill (cascades its assignments) and broadcasts `:skill_deleted`."
   @spec delete(Skill.t()) :: {:ok, Skill.t()} | {:error, Ecto.Changeset.t(Skill.t())}
@@ -264,9 +279,10 @@ defmodule PhoenixKitStaff.Skills do
   end
 
   @doc """
-  Validates a list of level ids against a skill: every id must exist in the
-  skill's `levels`, and there must be ≤1 unless `allow_multiple_levels`. Returns
-  the ids cleaned + reordered to the skill's level order on success.
+  Validates a list of selected option ids against a skill: every id must exist
+  in some selector, and each **single-select** selector may hold at most one of
+  its options. Returns the ids cleaned + reordered to the skill's
+  selector→option order on success.
   """
   @spec validate_level_ids(Skill.t(), [String.t()]) ::
           {:ok, [String.t()]} | {:error, :invalid_levels | :too_many_levels}
@@ -280,11 +296,12 @@ defmodule PhoenixKitStaff.Skills do
         |> Enum.reject(&(&1 == ""))
         |> Enum.uniq()
 
-      allowed = Skill.level_ids(skill)
+      allowed = Skill.all_option_ids(skill)
 
       cond do
         not Enum.all?(cleaned, &(&1 in allowed)) -> {:error, :invalid_levels}
-        not skill.allow_multiple_levels and length(cleaned) > 1 -> {:error, :too_many_levels}
+        over_selected?(skill, cleaned) -> {:error, :too_many_levels}
+        # Reorder to skill order; no pruning (cardinality already validated).
         true -> {:ok, Enum.filter(allowed, &(&1 in cleaned))}
       end
     else
@@ -293,6 +310,14 @@ defmodule PhoenixKitStaff.Skills do
   end
 
   def validate_level_ids(%Skill{}, _ids), do: {:error, :invalid_levels}
+
+  # True when any single-select selector has more than one of its options chosen.
+  defp over_selected?(%Skill{} = skill, ids) do
+    Enum.any?(Skill.level_groups(skill), fn group ->
+      not Map.get(group, "allow_multiple") and
+        Enum.count(group_option_ids(group), &(&1 in ids)) > 1
+    end)
+  end
 
   @doc "Removes an assignment (by struct or person/skill uuids); broadcasts `:person_skill_removed`."
   @spec unassign_skill(PersonSkill.t()) ::

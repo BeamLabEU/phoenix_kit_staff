@@ -98,28 +98,28 @@ defmodule PhoenixKitStaff.Integration.PersonSkillsTest do
   end
 
   describe "Skills.update/2 reconciles assignments" do
-    test "strips a removed level id from existing assignments" do
+    test "strips a removed option id from existing assignments" do
       person = fixture_person()
-      {skill, ids} = fixture_skill_with_levels(["B", "C"], %{"allow_multiple_levels" => true})
+      {skill, ids} = fixture_skill_with_levels(["B", "C"], %{"allow_multiple" => true})
       {:ok, _} = Skills.assign_skill(person.uuid, skill.uuid, [ids["B"], ids["C"]])
 
-      # drop level "C" from the skill
-      kept_level = Enum.find(skill.levels, &(&1["id"] == ids["B"]))
-      {:ok, _} = Skills.update(skill, %{"levels" => [kept_level]})
+      # Drop option "C" from the selector (preserving the selector + option ids).
+      {:ok, _} = Skills.update(skill, %{"levels" => [keep_options(skill, [ids["B"]])]})
 
       assert [ps] = Skills.list_for_person(person.uuid)
       assert ps.proficiency_levels == [ids["B"]]
     end
 
-    test "prunes assignments to one level when toggled multiple→single" do
+    test "prunes assignments to one option when a selector is toggled multiple→single" do
       person = fixture_person()
-      {skill, ids} = fixture_skill_with_levels(["B", "C"], %{"allow_multiple_levels" => true})
+      {skill, ids} = fixture_skill_with_levels(["B", "C"], %{"allow_multiple" => true})
       {:ok, _} = Skills.assign_skill(person.uuid, skill.uuid, [ids["B"], ids["C"]])
 
-      {:ok, _} = Skills.update(skill, %{"allow_multiple_levels" => false})
+      [selector] = skill.levels
+      {:ok, _} = Skills.update(skill, %{"levels" => [Map.put(selector, "allow_multiple", false)]})
 
       assert [ps] = Skills.list_for_person(person.uuid)
-      # kept the first in skill order
+      # kept the first in selector order
       assert ps.proficiency_levels == [ids["B"]]
     end
 
@@ -127,19 +127,51 @@ defmodule PhoenixKitStaff.Integration.PersonSkillsTest do
       alias PhoenixKitStaff.PubSub, as: StaffPubSub
 
       person = fixture_person()
-      {skill, ids} = fixture_skill_with_levels(["B", "C"], %{"allow_multiple_levels" => true})
+      {skill, ids} = fixture_skill_with_levels(["B", "C"], %{"allow_multiple" => true})
       {:ok, _} = Skills.assign_skill(person.uuid, skill.uuid, [ids["B"], ids["C"]])
 
       # An open person page subscribes to the person topic; reconciliation must
       # reach it so the displayed levels don't stay stale.
       StaffPubSub.subscribe(StaffPubSub.topic_person(person.uuid))
 
-      kept = Enum.find(skill.levels, &(&1["id"] == ids["B"]))
-      {:ok, _} = Skills.update(skill, %{"levels" => [kept]})
+      {:ok, _} = Skills.update(skill, %{"levels" => [keep_options(skill, [ids["B"]])]})
 
       assert_receive {:staff, :person_skill_updated, %{staff_person_uuid: psu}}
       assert psu == person.uuid
     end
+  end
+
+  describe "per-selector cardinality (multiple selectors)" do
+    test "single-select selector rejects 2 of its options; a sibling multi-select accepts several" do
+      person = fixture_person()
+
+      {skill, ids} =
+        fixture_skill_with_selectors([
+          {"Size", false, ["S", "M"]},
+          {"Colour", true, ["Red", "Green", "Blue"]}
+        ])
+
+      # Two options from the single-select "Size" selector is over-count.
+      assert {:error, :too_many_levels} =
+               Skills.assign_skill(person.uuid, skill.uuid, [ids["S"], ids["M"]])
+
+      # One Size + several Colours is fine, normalised to selector→option order.
+      assert {:ok, ps} =
+               Skills.assign_skill(person.uuid, skill.uuid, [
+                 ids["Blue"],
+                 ids["S"],
+                 ids["Red"]
+               ])
+
+      assert ps.proficiency_levels == [ids["S"], ids["Red"], ids["Blue"]]
+    end
+  end
+
+  # Rebuild a single-selector skill's `levels` attr, keeping only the given
+  # option ids (preserves the selector id, name, allow_multiple, and option ids).
+  defp keep_options(skill, option_ids) do
+    [selector] = skill.levels
+    Map.update!(selector, "options", fn opts -> Enum.filter(opts, &(&1["id"] in option_ids)) end)
   end
 
   describe "rosters (both directions)" do

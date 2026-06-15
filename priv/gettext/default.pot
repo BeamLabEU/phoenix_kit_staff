@@ -11,19 +11,19 @@
 msgid ""
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:233
+#: lib/phoenix_kit_staff/web/person_show_live.ex:234
 #, elixir-autogen, elixir-format
 msgid "%{date} · age %{age}"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:735
+#: lib/phoenix_kit_staff/web/person_form_live.ex:779
 #, elixir-autogen, elixir-format
 msgid "(editable — account not yet claimed)"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:868
-#: lib/phoenix_kit_staff/web/person_form_live.ex:869
-#: lib/phoenix_kit_staff/web/person_form_live.ex:892
+#: lib/phoenix_kit_staff/web/person_form_live.ex:912
+#: lib/phoenix_kit_staff/web/person_form_live.ex:913
+#: lib/phoenix_kit_staff/web/person_form_live.ex:936
 #, elixir-autogen, elixir-format
 msgid "+372 ..."
 msgstr ""
@@ -35,12 +35,12 @@ msgid_plural "%{count} teams"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:714
+#: lib/phoenix_kit_staff/web/person_form_live.ex:758
 #, elixir-autogen, elixir-format
 msgid "A short summary about this person"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:656
+#: lib/phoenix_kit_staff/web/person_form_live.ex:700
 #, elixir-autogen, elixir-format
 msgid "Add a new person on staff."
 msgstr ""
@@ -50,19 +50,19 @@ msgstr ""
 msgid "Add a team"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:203
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:189
 #: lib/phoenix_kit_staff/web/team_show_live.ex:154
 #, elixir-autogen, elixir-format
 msgid "Add staff"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:222
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:208
 #: lib/phoenix_kit_staff/web/team_show_live.ex:167
 #, elixir-autogen, elixir-format
 msgid "Adding…"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:524
+#: lib/phoenix_kit_staff/web/person_show_live.ex:525
 #, elixir-autogen, elixir-format
 msgid "Admin notes"
 msgstr ""
@@ -72,34 +72,34 @@ msgstr ""
 msgid "An account with that email already exists."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:712
+#: lib/phoenix_kit_staff/web/person_form_live.ex:756
 #, elixir-autogen, elixir-format
 msgid "Bio"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:409
+#: lib/phoenix_kit_staff/web/person_show_live.ex:410
 #, elixir-autogen, elixir-format
 msgid "Birthday"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:865
-#: lib/phoenix_kit_staff/web/person_show_live.ex:376
+#: lib/phoenix_kit_staff/web/person_form_live.ex:909
+#: lib/phoenix_kit_staff/web/person_show_live.ex:377
 #, elixir-autogen, elixir-format
 msgid "Contact"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:885
+#: lib/phoenix_kit_staff/web/person_form_live.ex:929
 #, elixir-autogen, elixir-format
 msgid "Contact's full name"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:816
+#: lib/phoenix_kit_staff/web/person_form_live.ex:860
 #, elixir-autogen, elixir-format
 msgid "Contractor"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:112
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:116
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:106
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:110
 #: lib/phoenix_kit_staff/web/team_show_live.ex:94
 #, elixir-autogen, elixir-format
 msgid "Could not add staff."
@@ -120,19 +120,19 @@ msgstr ""
 msgid "Could not remove staff from team."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:170
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:159
 #, elixir-autogen, elixir-format
 msgid "Could not remove staff."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:392
+#: lib/phoenix_kit_staff/web/person_form_live.ex:394
 #, elixir-autogen, elixir-format
 msgid "Could not rename email — %{errors}"
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/department_form_live.ex:209
-#: lib/phoenix_kit_staff/web/person_form_live.ex:1034
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:441
+#: lib/phoenix_kit_staff/web/person_form_live.ex:1095
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:543
 #: lib/phoenix_kit_staff/web/team_form_live.ex:237
 #, elixir-autogen, elixir-format
 msgid "Create"
@@ -165,7 +165,7 @@ msgstr ""
 msgid "Create your first department"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:874
+#: lib/phoenix_kit_staff/web/person_form_live.ex:918
 #, elixir-autogen, elixir-format
 msgid "Date of birth"
 msgstr ""
@@ -181,7 +181,7 @@ msgid "Delete team %{name}? This removes all memberships."
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/overview_live.ex:58
-#: lib/phoenix_kit_staff/web/person_show_live.ex:463
+#: lib/phoenix_kit_staff/web/person_show_live.ex:464
 #: lib/phoenix_kit_staff/web/team_form_live.ex:177
 #: lib/phoenix_kit_staff/web/teams_live.ex:95
 #, elixir-autogen, elixir-format
@@ -223,7 +223,7 @@ msgid "Departments, teams, and the people in them."
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/department_form_live.ex:39
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:69
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:72
 #: lib/phoenix_kit_staff/web/team_form_live.ex:44
 #, elixir-autogen, elixir-format
 msgid "Edit %{name}"
@@ -239,29 +239,29 @@ msgstr ""
 msgid "Email is required."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:882
-#: lib/phoenix_kit_staff/web/person_show_live.ex:421
+#: lib/phoenix_kit_staff/web/person_form_live.ex:926
+#: lib/phoenix_kit_staff/web/person_show_live.ex:422
 #, elixir-autogen, elixir-format
 msgid "Emergency contact"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:808
-#: lib/phoenix_kit_staff/web/person_show_live.ex:348
+#: lib/phoenix_kit_staff/web/person_form_live.ex:852
+#: lib/phoenix_kit_staff/web/person_show_live.ex:349
 #, elixir-autogen, elixir-format
 msgid "Employment"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:812
+#: lib/phoenix_kit_staff/web/person_form_live.ex:856
 #, elixir-autogen, elixir-format
 msgid "Employment type"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:825
+#: lib/phoenix_kit_staff/web/person_form_live.ex:869
 #, elixir-autogen, elixir-format
 msgid "End date"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:360
+#: lib/phoenix_kit_staff/web/person_show_live.ex:361
 #, elixir-autogen, elixir-format
 msgid "Ended"
 msgstr ""
@@ -276,17 +276,17 @@ msgstr ""
 msgid "Everyone on staff, linked to their PhoenixKit user."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:759
+#: lib/phoenix_kit_staff/web/person_form_live.ex:803
 #, elixir-autogen, elixir-format
 msgid "Existing accounts suggested. Typing a new email creates an unregistered placeholder — they'll claim it on signup or OAuth login."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:804
+#: lib/phoenix_kit_staff/web/person_form_live.ex:848
 #, elixir-autogen, elixir-format
 msgid "Full name"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:814
+#: lib/phoenix_kit_staff/web/person_form_live.ex:858
 #, elixir-autogen, elixir-format
 msgid "Full-time"
 msgstr ""
@@ -296,17 +296,17 @@ msgstr ""
 msgid "In department, not on any team"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:817
+#: lib/phoenix_kit_staff/web/person_form_live.ex:861
 #, elixir-autogen, elixir-format
 msgid "Intern"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:697
+#: lib/phoenix_kit_staff/web/person_form_live.ex:741
 #, elixir-autogen, elixir-format
 msgid "Job title"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:364
+#: lib/phoenix_kit_staff/web/person_show_live.ex:365
 #, elixir-autogen, elixir-format
 msgid "Location"
 msgstr ""
@@ -336,7 +336,7 @@ msgstr ""
 msgid "No departments yet."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:316
+#: lib/phoenix_kit_staff/web/people_live.ex:317
 #, elixir-autogen, elixir-format
 msgid "No staff match."
 msgstr ""
@@ -366,57 +366,57 @@ msgstr ""
 msgid "No teams yet."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:765
+#: lib/phoenix_kit_staff/web/person_form_live.ex:809
 #, elixir-autogen, elixir-format
 msgid "Not a valid email."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:455
+#: lib/phoenix_kit_staff/web/person_show_live.ex:456
 #, elixir-autogen, elixir-format
 msgid "Not on any teams yet."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:815
+#: lib/phoenix_kit_staff/web/person_form_live.ex:859
 #, elixir-autogen, elixir-format
 msgid "Part-time"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:872
-#: lib/phoenix_kit_staff/web/person_show_live.ex:406
+#: lib/phoenix_kit_staff/web/person_form_live.ex:916
+#: lib/phoenix_kit_staff/web/person_show_live.ex:407
 #, elixir-autogen, elixir-format
 msgid "Personal"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:877
-#: lib/phoenix_kit_staff/web/person_show_live.ex:382
+#: lib/phoenix_kit_staff/web/person_form_live.ex:921
+#: lib/phoenix_kit_staff/web/person_show_live.ex:383
 #, elixir-autogen, elixir-format
 msgid "Personal email"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:869
-#: lib/phoenix_kit_staff/web/person_show_live.ex:394
+#: lib/phoenix_kit_staff/web/person_form_live.ex:913
+#: lib/phoenix_kit_staff/web/person_show_live.ex:395
 #, elixir-autogen, elixir-format
 msgid "Personal phone"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:892
-#: lib/phoenix_kit_staff/web/person_show_live.ex:433
+#: lib/phoenix_kit_staff/web/person_form_live.ex:936
+#: lib/phoenix_kit_staff/web/person_show_live.ex:434
 #, elixir-autogen, elixir-format
 msgid "Phone"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:82
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:76
 #: lib/phoenix_kit_staff/web/team_show_live.ex:99
 #, elixir-autogen, elixir-format
 msgid "Pick someone first."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:851
+#: lib/phoenix_kit_staff/web/person_form_live.ex:895
 #, elixir-autogen, elixir-format
 msgid "Primary department"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:362
+#: lib/phoenix_kit_staff/web/people_live.ex:363
 #, elixir-autogen, elixir-format
 msgid "Primary dept"
 msgstr ""
@@ -426,8 +426,8 @@ msgstr ""
 msgid "Record not found."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:888
-#: lib/phoenix_kit_staff/web/person_show_live.ex:429
+#: lib/phoenix_kit_staff/web/person_form_live.ex:932
+#: lib/phoenix_kit_staff/web/person_show_live.ex:430
 #, elixir-autogen, elixir-format
 msgid "Relationship"
 msgstr ""
@@ -437,7 +437,7 @@ msgstr ""
 msgid "Remove this staff from the team?"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:302
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:271
 #: lib/phoenix_kit_staff/web/team_show_live.ex:210
 #, elixir-autogen, elixir-format
 msgid "Removing…"
@@ -448,15 +448,15 @@ msgstr ""
 msgid "Select department"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:220
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:206
 #: lib/phoenix_kit_staff/web/team_show_live.ex:165
 #, elixir-autogen, elixir-format
 msgid "Select staff"
 msgstr ""
 
 #: lib/phoenix_kit_staff.ex:33
-#: lib/phoenix_kit_staff/web/person_form_live.ex:894
-#: lib/phoenix_kit_staff/web/person_show_live.ex:486
+#: lib/phoenix_kit_staff/web/person_form_live.ex:938
+#: lib/phoenix_kit_staff/web/person_show_live.ex:487
 #: lib/phoenix_kit_staff/web/skills_live.ex:16
 #: lib/phoenix_kit_staff/web/skills_live.ex:69
 #, elixir-autogen, elixir-format
@@ -468,69 +468,69 @@ msgstr ""
 msgid "Something went wrong. Please try again."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:103
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:97
 #: lib/phoenix_kit_staff/web/team_show_live.ex:83
 #, elixir-autogen, elixir-format
 msgid "Staff added."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:490
+#: lib/phoenix_kit_staff/web/person_form_live.ex:492
 #, elixir-autogen, elixir-format
 msgid "Staff created for %{email}, but could not be added to the selected team. Please add them from the team page."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:500
+#: lib/phoenix_kit_staff/web/person_form_live.ex:502
 #, elixir-autogen, elixir-format
 msgid "Staff created, but could not be added to the selected team. Please add them from the team page."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:496
+#: lib/phoenix_kit_staff/web/person_form_live.ex:498
 #, elixir-autogen, elixir-format
 msgid "Staff created."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:482
+#: lib/phoenix_kit_staff/web/person_form_live.ex:484
 #, elixir-autogen, elixir-format
 msgid "Staff created. %{email} can claim their account by signing up or logging in via OAuth."
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/people_live.ex:157
 #: lib/phoenix_kit_staff/web/person_form_live.ex:58
-#: lib/phoenix_kit_staff/web/person_form_live.ex:405
+#: lib/phoenix_kit_staff/web/person_form_live.ex:407
 #: lib/phoenix_kit_staff/web/person_show_live.ex:32
 #, elixir-autogen, elixir-format
 msgid "Staff not found."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:167
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:156
 #: lib/phoenix_kit_staff/web/team_show_live.ex:118
 #, elixir-autogen, elixir-format
 msgid "Staff removed."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:509
+#: lib/phoenix_kit_staff/web/person_form_live.ex:511
 #, elixir-autogen, elixir-format
 msgid "Staff updated, but could not be added to the selected team. Please add them from the team page."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:505
+#: lib/phoenix_kit_staff/web/person_form_live.ex:507
 #, elixir-autogen, elixir-format
 msgid "Staff updated."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:824
+#: lib/phoenix_kit_staff/web/person_form_live.ex:868
 #, elixir-autogen, elixir-format
 msgid "Start date"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:356
+#: lib/phoenix_kit_staff/web/person_show_live.ex:357
 #, elixir-autogen, elixir-format
 msgid "Started"
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/overview_live.ex:61
-#: lib/phoenix_kit_staff/web/person_form_live.ex:858
-#: lib/phoenix_kit_staff/web/person_show_live.ex:462
+#: lib/phoenix_kit_staff/web/person_form_live.ex:902
+#: lib/phoenix_kit_staff/web/person_show_live.ex:463
 #, elixir-autogen, elixir-format
 msgid "Team"
 msgstr ""
@@ -560,7 +560,7 @@ msgstr ""
 #: lib/phoenix_kit_staff/web/department_show_live.ex:74
 #: lib/phoenix_kit_staff/web/departments_live.ex:97
 #: lib/phoenix_kit_staff/web/overview_live.ex:82
-#: lib/phoenix_kit_staff/web/person_show_live.ex:450
+#: lib/phoenix_kit_staff/web/person_show_live.ex:451
 #: lib/phoenix_kit_staff/web/teams_live.ex:16
 #: lib/phoenix_kit_staff/web/teams_live.ex:70
 #, elixir-autogen, elixir-format
@@ -572,7 +572,7 @@ msgstr ""
 msgid "Teams across all departments."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:818
+#: lib/phoenix_kit_staff/web/person_form_live.ex:862
 #, elixir-autogen, elixir-format
 msgid "Temporary"
 msgstr ""
@@ -587,7 +587,7 @@ msgstr ""
 msgid "This department was deleted."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:74
+#: lib/phoenix_kit_staff/web/person_show_live.ex:75
 #, elixir-autogen, elixir-format
 msgid "This staff member was deleted."
 msgstr ""
@@ -597,7 +597,7 @@ msgstr ""
 msgid "This team was deleted."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:769
+#: lib/phoenix_kit_staff/web/person_form_live.ex:813
 #, elixir-autogen, elixir-format
 msgid "This user already has a staff profile."
 msgstr ""
@@ -612,7 +612,7 @@ msgstr ""
 msgid "Top-level organizational units."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:744
+#: lib/phoenix_kit_staff/web/person_form_live.ex:788
 #, elixir-autogen, elixir-format
 msgid "Type or pick an email"
 msgstr ""
@@ -632,7 +632,7 @@ msgstr ""
 msgid "Update department details."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:657
+#: lib/phoenix_kit_staff/web/person_form_live.ex:701
 #, elixir-autogen, elixir-format
 msgid "Update staff profile."
 msgstr ""
@@ -642,33 +642,33 @@ msgstr ""
 msgid "Update team details."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:779
+#: lib/phoenix_kit_staff/web/person_form_live.ex:823
 #, elixir-autogen, elixir-format
 msgid "Will create a placeholder account — person claims it on signup."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:774
+#: lib/phoenix_kit_staff/web/person_form_live.ex:818
 #, elixir-autogen, elixir-format
 msgid "Will link to existing account."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:379
+#: lib/phoenix_kit_staff/web/person_show_live.ex:380
 #, elixir-autogen, elixir-format
 msgid "Work email"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:836
+#: lib/phoenix_kit_staff/web/person_form_live.ex:880
 #, elixir-autogen, elixir-format
 msgid "Work location"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:868
-#: lib/phoenix_kit_staff/web/person_show_live.ex:390
+#: lib/phoenix_kit_staff/web/person_form_live.ex:912
+#: lib/phoenix_kit_staff/web/person_show_live.ex:391
 #, elixir-autogen, elixir-format
 msgid "Work phone"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:761
+#: lib/phoenix_kit_staff/web/person_form_live.ex:805
 #, elixir-autogen, elixir-format
 msgid "You can rename a placeholder account while nobody has claimed it yet."
 msgstr ""
@@ -678,23 +678,23 @@ msgstr ""
 msgid "You need at least one department first."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:206
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:192
 #: lib/phoenix_kit_staff/web/team_show_live.ex:157
 #, elixir-autogen, elixir-format
 msgid "create one"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:805
+#: lib/phoenix_kit_staff/web/person_form_live.ex:849
 #, elixir-autogen, elixir-format
 msgid "e.g. Jane Smith"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:698
+#: lib/phoenix_kit_staff/web/person_form_live.ex:742
 #, elixir-autogen, elixir-format
 msgid "e.g. Senior Engineer"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:889
+#: lib/phoenix_kit_staff/web/person_form_live.ex:933
 #, elixir-autogen, elixir-format
 msgid "e.g. spouse, parent"
 msgstr ""
@@ -704,17 +704,17 @@ msgstr ""
 msgid "in %{days}d (%{date})"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:789
+#: lib/phoenix_kit_staff/web/person_form_live.ex:833
 #, elixir-autogen, elixir-format
 msgid "locked"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:879
+#: lib/phoenix_kit_staff/web/person_form_live.ex:923
 #, elixir-autogen, elixir-format
 msgid "non-work email"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:294
+#: lib/phoenix_kit_staff/web/people_live.ex:295
 #, elixir-autogen, elixir-format
 msgid "search by name or email"
 msgstr ""
@@ -724,7 +724,7 @@ msgstr ""
 msgid "tomorrow"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:229
+#: lib/phoenix_kit_staff/web/person_show_live.ex:230
 #, elixir-autogen, elixir-format
 msgid "🎂 in 1 day"
 msgid_plural "🎂 in %{count} days"
@@ -732,7 +732,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: lib/phoenix_kit_staff/web/overview_live.ex:114
-#: lib/phoenix_kit_staff/web/person_show_live.ex:228
+#: lib/phoenix_kit_staff/web/person_show_live.ex:229
 #, elixir-autogen, elixir-format
 msgid "🎂 today!"
 msgstr ""
@@ -768,7 +768,7 @@ msgid "New Team"
 msgstr ""
 
 #: lib/phoenix_kit_staff.ex:26
-#: lib/phoenix_kit_staff/web/person_show_live.ex:554
+#: lib/phoenix_kit_staff/web/person_show_live.ex:555
 #, elixir-autogen, elixir-format
 msgid "Overview"
 msgstr ""
@@ -783,7 +783,7 @@ msgstr ""
 msgid "A trashed staff profile already exists for this email — restore it instead of creating a new one."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:557
+#: lib/phoenix_kit_staff/web/person_show_live.ex:558
 #, elixir-autogen, elixir-format
 msgid "Comments"
 msgstr ""
@@ -794,38 +794,38 @@ msgid "Could not delete skill."
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/people_live.ex:246
-#: lib/phoenix_kit_staff/web/person_show_live.ex:191
+#: lib/phoenix_kit_staff/web/person_show_live.ex:192
 #, elixir-autogen, elixir-format
 msgid "Could not delete staff."
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/people_live.ex:186
-#: lib/phoenix_kit_staff/web/person_show_live.ex:132
+#: lib/phoenix_kit_staff/web/person_show_live.ex:133
 #, elixir-autogen, elixir-format
 msgid "Could not move staff to trash."
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/people_live.ex:214
-#: lib/phoenix_kit_staff/web/person_show_live.ex:153
+#: lib/phoenix_kit_staff/web/person_show_live.ex:154
 #, elixir-autogen, elixir-format
 msgid "Could not restore staff."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:146
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:135
 #, elixir-autogen, elixir-format
 msgid "Could not update level."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:279
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:336
 #, elixir-autogen, elixir-format
 msgid "Create a new skill."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:341
-#: lib/phoenix_kit_staff/web/people_live.ex:403
-#: lib/phoenix_kit_staff/web/people_live.ex:443
+#: lib/phoenix_kit_staff/web/people_live.ex:342
+#: lib/phoenix_kit_staff/web/people_live.ex:404
 #: lib/phoenix_kit_staff/web/people_live.ex:444
-#: lib/phoenix_kit_staff/web/person_show_live.ex:277
+#: lib/phoenix_kit_staff/web/people_live.ex:445
+#: lib/phoenix_kit_staff/web/person_show_live.ex:278
 #, elixir-autogen, elixir-format
 msgid "Delete permanently"
 msgstr ""
@@ -835,8 +835,8 @@ msgstr ""
 msgid "Delete skill %{name}? It will be removed from %{count} people."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:400
-#: lib/phoenix_kit_staff/web/person_show_live.ex:273
+#: lib/phoenix_kit_staff/web/people_live.ex:401
+#: lib/phoenix_kit_staff/web/person_show_live.ex:274
 #, elixir-autogen, elixir-format
 msgid "Deleting…"
 msgstr ""
@@ -846,39 +846,38 @@ msgstr ""
 msgid "Edit Skill"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:206
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:192
 #, elixir-autogen, elixir-format
 msgid "Everyone already has this skill (or there are no staff yet —"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:228
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:263
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:240
 #, elixir-autogen, elixir-format
 msgid "Level"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:423
-#: lib/phoenix_kit_staff/web/person_show_live.ex:287
+#: lib/phoenix_kit_staff/web/people_live.ex:424
+#: lib/phoenix_kit_staff/web/person_show_live.ex:288
 #, elixir-autogen, elixir-format
 msgid "Move this staff to the trash? The user account stays; restore anytime from the Trash filter."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:345
-#: lib/phoenix_kit_staff/web/people_live.ex:425
-#: lib/phoenix_kit_staff/web/person_show_live.ex:290
+#: lib/phoenix_kit_staff/web/people_live.ex:346
+#: lib/phoenix_kit_staff/web/people_live.ex:426
+#: lib/phoenix_kit_staff/web/person_show_live.ex:291
 #, elixir-autogen, elixir-format
 msgid "Move to trash"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:87
+#: lib/phoenix_kit_staff/web/people_live.ex:90
 #, elixir-autogen, elixir-format
 msgid "Moved 1 staff to trash."
 msgid_plural "Moved %{count} staff to trash."
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:422
-#: lib/phoenix_kit_staff/web/person_show_live.ex:286
+#: lib/phoenix_kit_staff/web/people_live.ex:423
+#: lib/phoenix_kit_staff/web/person_show_live.ex:287
 #, elixir-autogen, elixir-format
 msgid "Moving…"
 msgstr ""
@@ -888,18 +887,18 @@ msgstr ""
 msgid "New Skill"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:50
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:54
 #: lib/phoenix_kit_staff/web/skills_live.ex:74
 #, elixir-autogen, elixir-format
 msgid "New skill"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:255
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:232
 #, elixir-autogen, elixir-format
 msgid "No one has this skill yet."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:494
+#: lib/phoenix_kit_staff/web/person_show_live.ex:495
 #, elixir-autogen, elixir-format
 msgid "No skills assigned yet."
 msgstr ""
@@ -914,58 +913,58 @@ msgstr ""
 msgid "People"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:446
+#: lib/phoenix_kit_staff/web/people_live.ex:447
 #, elixir-autogen, elixir-format
 msgid "Permanently delete 1 staff? This cannot be undone and will clear their project-assignment links."
 msgid_plural "Permanently delete %{count} staff? This cannot be undone and will clear their project-assignment links."
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:401
-#: lib/phoenix_kit_staff/web/person_show_live.ex:274
+#: lib/phoenix_kit_staff/web/people_live.ex:402
+#: lib/phoenix_kit_staff/web/person_show_live.ex:275
 #, elixir-autogen, elixir-format
 msgid "Permanently delete this staff? This cannot be undone and will clear their project-assignment links."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:139
+#: lib/phoenix_kit_staff/web/people_live.ex:140
 #, elixir-autogen, elixir-format
 msgid "Permanently deleted 1 staff."
 msgid_plural "Permanently deleted %{count} staff."
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:303
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:272
 #, elixir-autogen, elixir-format
 msgid "Remove this skill from the person?"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:334
-#: lib/phoenix_kit_staff/web/people_live.ex:393
-#: lib/phoenix_kit_staff/web/person_show_live.ex:268
+#: lib/phoenix_kit_staff/web/people_live.ex:335
+#: lib/phoenix_kit_staff/web/people_live.ex:394
+#: lib/phoenix_kit_staff/web/person_show_live.ex:269
 #, elixir-autogen, elixir-format
 msgid "Restore"
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:67
-#: lib/phoenix_kit_staff/web/person_form_live.ex:411
+#: lib/phoenix_kit_staff/web/person_form_live.ex:413
 #, elixir-autogen, elixir-format
 msgid "Restore this staff before editing."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:105
+#: lib/phoenix_kit_staff/web/people_live.ex:107
 #, elixir-autogen, elixir-format
 msgid "Restored 1 staff."
 msgid_plural "Restored %{count} staff."
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:391
-#: lib/phoenix_kit_staff/web/person_show_live.ex:265
+#: lib/phoenix_kit_staff/web/people_live.ex:392
+#: lib/phoenix_kit_staff/web/person_show_live.ex:266
 #, elixir-autogen, elixir-format
 msgid "Restoring…"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:358
+#: lib/phoenix_kit_staff/web/people_live.ex:359
 #, elixir-autogen, elixir-format
 msgid "Select all staff"
 msgstr ""
@@ -975,7 +974,7 @@ msgstr ""
 msgid "Skill"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:224
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:277
 #, elixir-autogen, elixir-format
 msgid "Skill created."
 msgstr ""
@@ -985,14 +984,14 @@ msgstr ""
 msgid "Skill deleted."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:63
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:66
 #: lib/phoenix_kit_staff/web/skill_show_live.ex:30
 #: lib/phoenix_kit_staff/web/skills_live.ex:37
 #, elixir-autogen, elixir-format
 msgid "Skill not found."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:253
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:306
 #, elixir-autogen, elixir-format
 msgid "Skill updated."
 msgstr ""
@@ -1008,24 +1007,24 @@ msgid "Some staff are still referenced elsewhere and couldn't be deleted."
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/people_live.ex:173
-#: lib/phoenix_kit_staff/web/person_show_live.ex:129
+#: lib/phoenix_kit_staff/web/person_show_live.ex:130
 #, elixir-autogen, elixir-format
 msgid "Staff moved to trash."
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/people_live.ex:229
-#: lib/phoenix_kit_staff/web/person_show_live.ex:172
+#: lib/phoenix_kit_staff/web/person_show_live.ex:173
 #, elixir-autogen, elixir-format
 msgid "Staff permanently deleted."
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/people_live.ex:201
-#: lib/phoenix_kit_staff/web/person_show_live.ex:150
+#: lib/phoenix_kit_staff/web/person_show_live.ex:151
 #, elixir-autogen, elixir-format
 msgid "Staff restored."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_show_live.ex:110
+#: lib/phoenix_kit_staff/web/skill_show_live.ex:104
 #, elixir-autogen, elixir-format
 msgid "That person already has this skill."
 msgstr ""
@@ -1040,13 +1039,13 @@ msgstr ""
 msgid "This staff is already in the trash."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:302
+#: lib/phoenix_kit_staff/web/person_show_live.ex:303
 #, elixir-autogen, elixir-format
 msgid "This staff is in the trash. Restore to bring them back to the active roster."
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/people_live.ex:235
-#: lib/phoenix_kit_staff/web/person_show_live.ex:180
+#: lib/phoenix_kit_staff/web/person_show_live.ex:181
 #, elixir-autogen, elixir-format
 msgid "This staff is still referenced elsewhere and couldn't be deleted."
 msgstr ""
@@ -1056,122 +1055,148 @@ msgstr ""
 msgid "This staff isn't in the trash."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:316
+#: lib/phoenix_kit_staff/web/people_live.ex:317
 #, elixir-autogen, elixir-format
 msgid "Trash is empty."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:457
+#: lib/phoenix_kit_staff/web/people_live.ex:458
 #, elixir-autogen, elixir-format
 msgid "Trashed"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:458
+#: lib/phoenix_kit_staff/web/people_live.ex:459
 #, elixir-autogen, elixir-format
 msgid "Trashed (%{count})"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:280
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:337
 #, elixir-autogen, elixir-format
 msgid "Update skill details."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:330
+#: lib/phoenix_kit_staff/web/people_live.ex:331
 #, elixir-autogen, elixir-format
 msgid "selected"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:497
+#: lib/phoenix_kit_staff/web/person_show_live.ex:498
 #, elixir-autogen, elixir-format
 msgid "Add skills"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:489
+#: lib/phoenix_kit_staff/web/person_show_live.ex:490
 #, elixir-autogen, elixir-format
 msgid "Manage"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:998
+#: lib/phoenix_kit_staff/web/person_form_live.ex:1059
 #, elixir-autogen, elixir-format
 msgid "Type to search skills…"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:913
-#: lib/phoenix_kit_staff/web/person_form_live.ex:982
+#: lib/phoenix_kit_staff/web/person_form_live.ex:959
+#: lib/phoenix_kit_staff/web/person_form_live.ex:1043
 #, elixir-autogen, elixir-format
 msgid "Add a skill"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:923
-#: lib/phoenix_kit_staff/web/person_form_live.ex:976
-#: lib/phoenix_kit_staff/web/person_form_live.ex:989
-#: lib/phoenix_kit_staff/web/person_form_live.ex:1022
+#: lib/phoenix_kit_staff/web/person_form_live.ex:969
+#: lib/phoenix_kit_staff/web/person_form_live.ex:1037
+#: lib/phoenix_kit_staff/web/person_form_live.ex:1050
+#: lib/phoenix_kit_staff/web/person_form_live.ex:1083
 #, elixir-autogen, elixir-format
 msgid "Add / edit skills"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:1015
+#: lib/phoenix_kit_staff/web/person_form_live.ex:1076
 #, elixir-autogen, elixir-format
 msgid "No matching skills."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:916
+#: lib/phoenix_kit_staff/web/person_form_live.ex:962
 #, elixir-autogen, elixir-format
 msgid "No skills have been created yet."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:417
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:511
 #, elixir-autogen, elixir-format
 msgid "Add level"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:425
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:528
 #, elixir-autogen, elixir-format
 msgid "Add standard levels"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:343
-#, elixir-autogen, elixir-format
-msgid "Allow selecting multiple levels"
-msgstr ""
-
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:375
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:376
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:486
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:487
 #, elixir-autogen, elixir-format
 msgid "Level name"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:398
-#, elixir-autogen, elixir-format
-msgid "Move down"
-msgstr ""
-
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:388
-#, elixir-autogen, elixir-format
-msgid "Move up"
-msgstr ""
-
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:359
-#, elixir-autogen, elixir-format
-msgid "No levels — this skill is assigned without a proficiency level. Add some below, or leave empty."
-msgstr ""
-
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:346
-#, elixir-autogen, elixir-format
-msgid "On: a person can hold several of these levels at once (e.g. licence categories). Off: a single level."
-msgstr ""
-
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:353
-#, elixir-autogen, elixir-format
-msgid "Proficiency levels"
-msgstr ""
-
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:354
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:394
 #, elixir-autogen, elixir-format
 msgid "optional"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_form_live.ex:969
+#: lib/phoenix_kit_staff/web/person_form_live.ex:1030
 #, elixir-autogen, elixir-format
 msgid "All available skills are added."
+msgstr ""
+
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:520
+#, elixir-autogen, elixir-format
+msgid "Add selector"
+msgstr ""
+
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:426
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:476
+#, elixir-autogen, elixir-format
+msgid "Drag to reorder"
+msgstr ""
+
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:403
+#, elixir-autogen, elixir-format
+msgid "Editing %{lang} names"
+msgstr ""
+
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:393
+#, elixir-autogen, elixir-format
+msgid "Level selectors"
+msgstr ""
+
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:449
+#, elixir-autogen, elixir-format
+msgid "Multiple"
+msgstr ""
+
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:408
+#, elixir-autogen, elixir-format
+msgid "No selectors — this skill is assigned with no level. Add a selector (e.g. Proficiency, Difficulty), or leave empty."
+msgstr ""
+
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:447
+#, elixir-autogen, elixir-format
+msgid "On: multiple options can be selected at once. Off: a single option."
+msgstr ""
+
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:400
+#, elixir-autogen, elixir-format
+msgid "Selector and level names below are edited for the language selected above."
+msgstr ""
+
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:437
+#, elixir-autogen, elixir-format
+msgid "Selector name"
+msgstr ""
+
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:436
+#, elixir-autogen, elixir-format
+msgid "Selector name (e.g. Proficiency)"
+msgstr ""
+
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:449
+#, elixir-autogen, elixir-format
+msgid "Single"
 msgstr ""

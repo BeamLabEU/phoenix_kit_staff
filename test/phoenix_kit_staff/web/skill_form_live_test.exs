@@ -104,89 +104,162 @@ defmodule PhoenixKitStaff.Web.SkillFormLiveTest do
     end
   end
 
-  describe "levels editor" do
-    # The level inputs carry a generated id in their name: `level[<id>][name]`.
-    defp level_ids(html) do
-      ~r/level\[([0-9a-f]+)\]\[name\]/
-      |> Regex.scan(html)
-      |> Enum.map(&Enum.at(&1, 1))
-      |> Enum.uniq()
-    end
+  describe "levels editor (selectors)" do
+    # Selector/option inputs carry generated ids in their names:
+    # `group[<gid>][name]` and `option[<oid>][name]`.
+    defp group_ids(html), do: scan_ids(html, ~r/group\[([0-9a-f]+)\]\[name\]/)
+    defp option_ids(html), do: scan_ids(html, ~r/option\[([0-9a-f]+)\]\[name\]/)
 
-    test "seed standard levels + save persists them (with et translations)", %{conn: conn} do
+    defp scan_ids(html, re),
+      do: re |> Regex.scan(html) |> Enum.map(&Enum.at(&1, 1)) |> Enum.uniq()
+
+    test "seed standard levels + save persists one selector with its options (et translations)",
+         %{conn: conn} do
       {:ok, view, _html} = live(conn, "/en/admin/staff/skills/new")
       name = "Seeded-#{System.unique_integer([:positive])}"
 
       render_click(view, "seed_standard_levels")
-      # the seeded names render in the editor
       assert render(view) =~ "Beginner"
 
       view |> form("#skill-form", skill: %{name: name}) |> render_submit()
 
       [skill] = Enum.filter(Skills.list(), &(&1.name == name))
-      names = Enum.map(skill.levels, & &1["name"])
-      assert names == ["Beginner", "Intermediate", "Advanced", "Expert"]
-      # seed pre-fills et translations
-      assert hd(skill.levels)["translations"]["et"] == "Algaja"
+      assert [selector] = skill.levels
+      assert selector["name"] == "Proficiency"
+
+      assert Enum.map(selector["options"], & &1["name"]) ==
+               ["Beginner", "Intermediate", "Advanced", "Expert"]
+
+      # seed pre-fills et translations on the selector and its options
+      assert selector["translations"]["et"] == "Oskustase"
+      assert hd(selector["options"])["translations"]["et"] == "Algaja"
     end
 
-    test "add a custom level, name it, and save persists it", %{conn: conn} do
+    test "add a selector + a custom option, name it, and save persists it", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/en/admin/staff/skills/new")
       sname = "Custom-#{System.unique_integer([:positive])}"
-      lname = "Cadet"
 
-      html = render_click(view, "add_level")
-      [id] = level_ids(html)
+      html = render_click(view, "add_selector")
+      [gid] = group_ids(html)
+
+      html = render_click(view, "add_option", %{"group-id" => gid})
+      [oid] = option_ids(html)
 
       view
       |> form("#skill-form", %{
         "skill" => %{"name" => sname},
-        "level" => %{id => %{"name" => lname}}
+        "group" => %{gid => %{"name" => "Rank"}},
+        "option" => %{oid => %{"name" => "Cadet"}}
       })
       |> render_submit()
 
       [skill] = Enum.filter(Skills.list(), &(&1.name == sname))
-      assert [%{"name" => "Cadet"}] = skill.levels
+      assert [%{"name" => "Rank", "options" => [%{"name" => "Cadet"}]}] = skill.levels
     end
 
-    test "remove a seeded level before saving drops it", %{conn: conn} do
+    test "remove a seeded option before saving drops it", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/en/admin/staff/skills/new")
       sname = "Trimmed-#{System.unique_integer([:positive])}"
 
       html = render_click(view, "seed_standard_levels")
-      [first_id | _] = level_ids(html)
-      render_click(view, "remove_level", %{"id" => first_id})
+      [gid] = group_ids(html)
+      [first_oid | _] = option_ids(html)
+      render_click(view, "remove_option", %{"group-id" => gid, "option-id" => first_oid})
 
       view |> form("#skill-form", skill: %{name: sname}) |> render_submit()
 
       [skill] = Enum.filter(Skills.list(), &(&1.name == sname))
-      names = Enum.map(skill.levels, & &1["name"])
-      assert names == ["Intermediate", "Advanced", "Expert"]
+      [selector] = skill.levels
+      assert Enum.map(selector["options"], & &1["name"]) == ["Intermediate", "Advanced", "Expert"]
     end
 
-    test "level-name inputs are language-keyed so a switch refreshes the value", %{conn: conn} do
+    test "remove a whole selector before saving drops it", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/skills/new")
+      sname = "Dropped-#{System.unique_integer([:positive])}"
+
+      html = render_click(view, "seed_standard_levels")
+      [gid] = group_ids(html)
+      render_click(view, "remove_selector", %{"group-id" => gid})
+
+      view |> form("#skill-form", skill: %{name: sname}) |> render_submit()
+
+      [skill] = Enum.filter(Skills.list(), &(&1.name == sname))
+      assert skill.levels == []
+    end
+
+    test "selector + option name inputs are language-keyed so a switch refreshes the value",
+         %{conn: conn} do
       {:ok, view, _html} = live(conn, "/en/admin/staff/skills/new")
       html = render_click(view, "seed_standard_levels")
-      [id | _] = level_ids(html)
+      [gid] = group_ids(html)
+      [oid | _] = option_ids(html)
 
-      # The input id carries the active language (H2): morphdom replaces the
-      # node on switch_language so the value refreshes to that language's text.
-      assert html =~ ~s(id="level-#{id}-name-)
-      # On the primary tab the primary name shows (the et override sits in the
-      # level's translations until the et tab is active).
+      # The input ids carry the active language: morphdom replaces the node on
+      # switch_language so the value refreshes to that language's text.
+      assert html =~ ~s(id="selector-#{gid}-name-)
+      assert html =~ ~s(id="option-#{oid}-name-)
+      # On the primary tab the primary names show (et overrides sit in the
+      # selector/option translations until the et tab is active).
       assert html =~ "Beginner"
     end
 
-    test "toggling allow-multiple + save persists the flag", %{conn: conn} do
+    test "toggling a selector to multiple + save persists allow_multiple", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/en/admin/staff/skills/new")
       sname = "Multi-#{System.unique_integer([:positive])}"
 
-      render_submit(view, "save", %{
-        "skill" => %{"name" => sname, "allow_multiple_levels" => "true"}
-      })
+      html = render_click(view, "seed_standard_levels")
+      [gid] = group_ids(html)
+      render_click(view, "toggle_selector_multiple", %{"group-id" => gid})
+
+      view |> form("#skill-form", skill: %{name: sname}) |> render_submit()
 
       [skill] = Enum.filter(Skills.list(), &(&1.name == sname))
-      assert skill.allow_multiple_levels == true
+      assert [%{"allow_multiple" => true}] = skill.levels
+    end
+
+    test "reorder_options (drag-drop) persists the new option order within a selector",
+         %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/skills/new")
+      sname = "OptOrder-#{System.unique_integer([:positive])}"
+
+      html = render_click(view, "seed_standard_levels")
+      [_gid] = group_ids(html)
+      [a, b, c, d] = option_ids(html)
+
+      # The SortableGrid hook pushes the dropped order as `ordered_ids`; the
+      # handler locates the owning selector by its option-id set.
+      render_click(view, "reorder_options", %{"ordered_ids" => [d, a, b, c]})
+
+      view |> form("#skill-form", skill: %{name: sname}) |> render_submit()
+
+      [skill] = Enum.filter(Skills.list(), &(&1.name == sname))
+      [selector] = skill.levels
+
+      assert Enum.map(selector["options"], & &1["name"]) ==
+               ["Expert", "Beginner", "Intermediate", "Advanced"]
+    end
+
+    test "reorder_selectors (drag-drop) persists the new selector order", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/skills/new")
+      sname = "SelOrder-#{System.unique_integer([:positive])}"
+
+      render_click(view, "add_selector")
+      html = render_click(view, "add_selector")
+      [g1, g2] = group_ids(html)
+
+      render_click(view, "reorder_selectors", %{"ordered_ids" => [g2, g1]})
+
+      view
+      |> form("#skill-form", %{
+        "skill" => %{"name" => sname},
+        "group" => %{g1 => %{"name" => "Alpha"}, g2 => %{"name" => "Beta"}}
+      })
+      |> render_submit()
+
+      [skill] = Enum.filter(Skills.list(), &(&1.name == sname))
+      # Reordered to [g2, g1] before save → Beta precedes Alpha. (Named
+      # selectors with no options are kept by normalization.)
+      assert Enum.map(skill.levels, & &1["name"]) == ["Beta", "Alpha"]
     end
   end
 end

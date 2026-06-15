@@ -49,9 +49,15 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
       # Structured skills (replaced the old free-text field): assign two so
       # the at-a-glance badges + the Skills card render. Elixir carries an
       # "Expert" level so the localized level label shows on the assignment.
-      {:ok, elixir} = Skills.create(%{"name" => "Elixir", "levels" => [%{"name" => "Expert"}]})
+      {:ok, elixir} =
+        Skills.create(%{
+          "name" => "Elixir",
+          "levels" => [%{"options" => [%{"name" => "Expert"}]}]
+        })
+
       {:ok, phoenix} = Skills.create(%{"name" => "Phoenix"})
-      {:ok, _} = Skills.assign_skill(person.uuid, elixir.uuid, [hd(elixir.levels)["id"]])
+      expert_id = elixir.levels |> hd() |> Map.get("options") |> hd() |> Map.get("id")
+      {:ok, _} = Skills.assign_skill(person.uuid, elixir.uuid, [expert_id])
       {:ok, _} = Skills.assign_skill(person.uuid, phoenix.uuid, [])
 
       {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}")

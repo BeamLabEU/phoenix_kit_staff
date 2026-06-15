@@ -55,12 +55,13 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     assign(socket, person_skills: Skills.list_for_person(socket.assigns.person.uuid))
   end
 
-  # Localized, comma-joined names of an assignment's selected levels (stray ids
-  # — e.g. a level deleted from the skill — resolve to nil and are dropped).
+  # Localized, comma-joined names of an assignment's selected level options
+  # across all selectors (stray ids — e.g. an option deleted from the skill —
+  # resolve to nil and are dropped). Stored ids are already in skill order.
   defp level_names(%{skill: %Skill{} = skill, proficiency_levels: ids}, locale)
        when is_list(ids) do
     ids
-    |> Enum.map(&Skill.localized_level_name(skill, &1, locale))
+    |> Enum.map(&Skill.localized_option_name(skill, &1, locale))
     |> Enum.reject(&is_nil/1)
     |> Enum.join(", ")
   end

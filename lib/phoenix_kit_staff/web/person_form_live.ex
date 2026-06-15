@@ -227,7 +227,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     staged =
       Enum.map(socket.assigns.staged_skills, fn s ->
         if s.skill_uuid == skill_uuid do
-          %{s | level_ids: toggle_level(s.level_ids, level_id, s.skill.allow_multiple_levels)}
+          %{s | level_ids: Skill.toggle_option(s.skill, s.level_ids, level_id)}
         else
           s
         end
@@ -549,15 +549,20 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     |> Enum.take(@skill_match_limit)
   end
 
-  # Single-select skills replace; multi-select toggle in/out.
-  defp toggle_level(ids, id, true), do: if(id in ids, do: List.delete(ids, id), else: ids ++ [id])
-  defp toggle_level(ids, id, false), do: if(ids == [id], do: [], else: [id])
-
   # True when every available skill is already staged — the search box would be
   # dead weight, so the picker shows an "all added" prompt instead.
   defp all_skills_staged?(all_skills, staged) do
     staged_uuids = MapSet.new(staged, & &1.skill_uuid)
     all_skills != [] and Enum.all?(all_skills, &MapSet.member?(staged_uuids, &1.uuid))
+  end
+
+  # Localized selector name for a staged skill's group label ("" when blank — a
+  # single unnamed/legacy selector renders its chips without a heading).
+  defp group_label(skill, group, lang) do
+    case Skill.localized_group_name(skill, group, lang) do
+      name when is_binary(name) -> name
+      _ -> ""
+    end
   end
 
   # Reconciles the DB assignments with the staged list after a successful
@@ -666,15 +671,11 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   end
 
   # The staged ids that still exist on the current skill, in skill order, pruned
-  # to one when the skill no longer allows multiple. `[]` only if none survive.
+  # per single-select selector. `[]` only if none survive.
   defp surviving_level_ids(skill_uuid, level_ids) do
     case Skills.get(skill_uuid) do
-      nil ->
-        []
-
-      skill ->
-        valid = Enum.filter(Skill.level_ids(skill), &(&1 in level_ids))
-        if skill.allow_multiple_levels, do: valid, else: Enum.take(valid, 1)
+      nil -> []
+      skill -> Skills.prune_level_ids(skill, level_ids)
     end
   end
 
@@ -988,23 +989,38 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
                         <.icon name="hero-x-mark" class="w-4 h-4" />
                       </button>
                     </div>
-                    <%!-- Level chips: event-driven (single-select replaces,
-                         multi-select toggles), driven by the skill's own levels.
-                         Skills with no levels show nothing here. --%>
-                    <div :if={Skill.levels(s.skill) != []} class="flex flex-wrap gap-1.5">
-                      <button
-                        :for={{name, id} <- Skill.level_options(s.skill, assigns[:current_locale])}
-                        type="button"
-                        phx-click="toggle_staged_level"
-                        phx-value-uuid={s.skill_uuid}
-                        phx-value-id={id}
-                        class={[
-                          "btn btn-xs",
-                          if(id in s.level_ids, do: "btn-primary", else: "btn-outline")
-                        ]}
+                    <%!-- Level chips per selector: event-driven (single-select
+                         replaces within the selector, multi-select toggles),
+                         driven by the skill's own selectors. A skill with no
+                         options shows nothing here; named selectors show a label. --%>
+                    <div :if={Skill.all_option_ids(s.skill) != []} class="flex flex-col gap-1.5">
+                      <div
+                        :for={group <- Skill.level_groups(s.skill)}
+                        :if={Skill.group_options(group) != []}
+                        class="flex flex-col gap-1"
                       >
-                        {name}
-                      </button>
+                        <span
+                          :if={group_label(s.skill, group, assigns[:current_locale]) != ""}
+                          class="text-xs font-medium text-base-content/50"
+                        >
+                          {group_label(s.skill, group, assigns[:current_locale])}
+                        </span>
+                        <div class="flex flex-wrap gap-1.5">
+                          <button
+                            :for={{name, id} <- Skill.option_choices(s.skill, group, assigns[:current_locale])}
+                            type="button"
+                            phx-click="toggle_staged_level"
+                            phx-value-uuid={s.skill_uuid}
+                            phx-value-id={id}
+                            class={[
+                              "btn btn-xs",
+                              if(id in s.level_ids, do: "btn-primary", else: "btn-outline")
+                            ]}
+                          >
+                            {name}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

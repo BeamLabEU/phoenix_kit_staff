@@ -68,13 +68,7 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
 
   @impl true
   def handle_event("toggle_add_level", %{"id" => id}, socket) do
-    selected =
-      toggle_level(
-        socket.assigns.add_selected_levels,
-        id,
-        socket.assigns.skill.allow_multiple_levels
-      )
-
+    selected = Skill.toggle_option(socket.assigns.skill, socket.assigns.add_selected_levels, id)
     {:noreply, assign(socket, :add_selected_levels, selected)}
   end
 
@@ -120,12 +114,7 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
   def handle_event("toggle_level", %{"uuid" => ps_uuid, "id" => level_id}, socket) do
     case Enum.find(socket.assigns.assignments, &(&1.uuid == ps_uuid)) do
       %PersonSkill{} = ps ->
-        new_ids =
-          toggle_level(
-            ps.proficiency_levels,
-            level_id,
-            socket.assigns.skill.allow_multiple_levels
-          )
+        new_ids = Skill.toggle_option(socket.assigns.skill, ps.proficiency_levels, level_id)
 
         case Skills.update_assignment_levels(ps, new_ids) do
           {:ok, updated} ->
@@ -175,14 +164,11 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
     end
   end
 
-  defp toggle_level(ids, id, true), do: if(id in ids, do: List.delete(ids, id), else: ids ++ [id])
-  defp toggle_level(ids, id, false), do: if(ids == [id], do: [], else: [id])
-
   defp locale(socket_or_assigns), do: Map.get(socket_or_assigns, :current_locale)
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :has_levels, Skill.levels(assigns.skill) != [])
+    assigns = assign(assigns, :has_levels, Skill.all_option_ids(assigns.skill) != [])
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
@@ -224,22 +210,13 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
                 </button>
               </div>
 
-              <div :if={@has_levels}>
-                <span class="label-text text-sm">{gettext("Level")}</span>
-                <div class="flex flex-wrap gap-1.5 mt-1">
-                  <button
-                    :for={{name, id} <- Skill.level_options(@skill, locale(assigns))}
-                    type="button"
-                    phx-click="toggle_add_level"
-                    phx-value-id={id}
-                    class={[
-                      "btn btn-xs",
-                      if(id in @add_selected_levels, do: "btn-primary", else: "btn-outline")
-                    ]}
-                  >
-                    {name}
-                  </button>
-                </div>
+              <div :if={@has_levels} class="mt-1">
+                <.level_picker
+                  skill={@skill}
+                  lang={locale(assigns)}
+                  selected={@add_selected_levels}
+                  event="toggle_add_level"
+                />
               </div>
             </.form>
           <% end %>
@@ -272,21 +249,13 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
                     </.link>
                   </td>
                   <td :if={@has_levels}>
-                    <div class="flex flex-wrap gap-1.5">
-                      <button
-                        :for={{name, id} <- Skill.level_options(@skill, locale(assigns))}
-                        type="button"
-                        phx-click="toggle_level"
-                        phx-value-uuid={a.uuid}
-                        phx-value-id={id}
-                        class={[
-                          "btn btn-xs",
-                          if(id in a.proficiency_levels, do: "btn-primary", else: "btn-outline")
-                        ]}
-                      >
-                        {name}
-                      </button>
-                    </div>
+                    <.level_picker
+                      skill={@skill}
+                      lang={locale(assigns)}
+                      selected={a.proficiency_levels}
+                      event="toggle_level"
+                      ps_uuid={a.uuid}
+                    />
                   </td>
                   <td class="text-right w-px whitespace-nowrap">
                     <.table_row_menu id={"assignment-menu-#{a.uuid}"}>
@@ -319,4 +288,49 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
 
   defp person_label(%Person{} = person), do: Person.display_name(person)
   defp person_label(_), do: "—"
+
+  # Per-selector toggle chips. Each selector with at least one option renders
+  # its (localized) name plus a chip per option; `event` is the LV event pushed
+  # on click (`toggle_add_level` for the add form, `toggle_level` for a roster
+  # row, where `ps_uuid` identifies the assignment).
+  attr(:skill, Skill, required: true)
+  attr(:lang, :string, default: nil)
+  attr(:selected, :list, required: true)
+  attr(:event, :string, required: true)
+  attr(:ps_uuid, :string, default: nil)
+
+  defp level_picker(assigns) do
+    ~H"""
+    <div class="flex flex-col gap-2">
+      <div
+        :for={group <- Skill.level_groups(@skill)}
+        :if={Skill.group_options(group) != []}
+        class="flex flex-col gap-1"
+      >
+        <span :if={group_label(@skill, group, @lang) != ""} class="text-xs font-medium text-base-content/50">
+          {group_label(@skill, group, @lang)}
+        </span>
+        <div class="flex flex-wrap gap-1.5">
+          <button
+            :for={{name, id} <- Skill.option_choices(@skill, group, @lang)}
+            type="button"
+            phx-click={@event}
+            phx-value-id={id}
+            phx-value-uuid={@ps_uuid}
+            class={["btn btn-xs", if(id in @selected, do: "btn-primary", else: "btn-outline")]}
+          >
+            {name}
+          </button>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp group_label(skill, group, lang) do
+    case Skill.localized_group_name(skill, group, lang) do
+      name when is_binary(name) -> name
+      _ -> ""
+    end
+  end
 end
