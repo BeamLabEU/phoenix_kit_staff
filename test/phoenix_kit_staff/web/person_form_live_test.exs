@@ -159,13 +159,14 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
       )
       |> render_submit()
 
+      # The audit row records the failed attempt WITHOUT the attempted email
+      # (PII-safe metadata, per AGENTS.md) — `db_pending`/`error_kind` is enough.
       assert_activity_logged("staff.person_created",
         actor_uuid: actor_uuid,
         resource_uuid: nil,
         metadata_has: %{
           "db_pending" => true,
-          "error_kind" => "changeset",
-          "attempted_email" => email
+          "error_kind" => "changeset"
         }
       )
     end

@@ -322,10 +322,12 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
          |> push_navigate(to: Paths.person(trashed.uuid))}
 
       {:error, atom} when is_atom(atom) ->
+        # PII-safe metadata: never log the attempted email (per AGENTS.md);
+        # `log_operation_error` already records db_pending/error_kind/error_atom.
         Helpers.log_operation_error("staff.person_created", socket,
           reason: atom,
           resource_type: "staff_person",
-          metadata: %{"attempted_email" => email}
+          metadata: %{}
         )
 
         {:noreply, put_flash(socket, :error, Errors.message(atom))}
@@ -334,7 +336,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
         Helpers.log_operation_error("staff.person_created", socket,
           reason: cs,
           resource_type: "staff_person",
-          metadata: %{"attempted_email" => email}
+          metadata: %{}
         )
 
         {:noreply,
@@ -372,7 +374,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
           resource_type: "staff_person",
           resource_uuid: socket.assigns.person.uuid,
           target_uuid: socket.assigns.person.user_uuid,
-          metadata: %{"attempted_email" => new_email, "phase" => "rename_email"}
+          metadata: %{"phase" => "rename_email"}
         )
 
         {:noreply, put_flash(socket, :error, Errors.message(atom))}
