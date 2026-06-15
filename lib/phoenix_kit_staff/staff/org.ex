@@ -133,7 +133,7 @@ defmodule PhoenixKitStaff.Staff.Org do
           |> Enum.map(fn team ->
             people =
               Map.get(people_by_team, team.uuid, [])
-              |> Enum.sort_by(fn p -> p.user && p.user.email end)
+              |> Enum.sort_by(fn p -> (p.user && p.user.email) || "" end)
 
             %{team: team, people: people}
           end)

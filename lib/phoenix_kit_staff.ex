@@ -70,7 +70,7 @@ defmodule PhoenixKitStaff do
   # ── Optional callbacks ────────────────────────────────────────────
 
   @impl PhoenixKit.Module
-  def version, do: "0.3.0"
+  def version, do: "0.5.0"
 
   @impl PhoenixKit.Module
   def permission_metadata do

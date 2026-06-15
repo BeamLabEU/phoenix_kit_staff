@@ -28,6 +28,9 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
   end
 
   @impl true
+  # Every mutation here broadcasts on `topic_people` (delivered to self), so the
+  # list reloads through this clause. The mutation handlers therefore do NOT call
+  # `load_people/1` themselves — doing both ran the list query twice per action.
   def handle_info({:staff, _event, _payload}, socket), do: {:noreply, load_people(socket)}
 
   def handle_info(msg, socket) do
@@ -85,8 +88,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
      |> put_flash(
        :info,
        ngettext("Moved 1 staff to trash.", "Moved %{count} staff to trash.", count)
-     )
-     |> load_people()}
+     )}
   end
 
   def handle_event("bulk_restore", %{"uuids" => uuids}, socket) do
@@ -102,8 +104,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
 
     {:noreply,
      socket
-     |> put_flash(:info, ngettext("Restored 1 staff.", "Restored %{count} staff.", count))
-     |> load_people()}
+     |> put_flash(:info, ngettext("Restored 1 staff.", "Restored %{count} staff.", count))}
   end
 
   # The bulk-select hook can't carry a data-confirm, so a permanent bulk
@@ -137,8 +138,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
          |> put_flash(
            :info,
            ngettext("Permanently deleted 1 staff.", "Permanently deleted %{count} staff.", count)
-         )
-         |> load_people()}
+         )}
 
       {:error, :referenced_by_external} ->
         {:noreply,
@@ -170,7 +170,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
           metadata: %{}
         )
 
-        socket |> put_flash(:info, gettext("Staff moved to trash.")) |> load_people()
+        put_flash(socket, :info, gettext("Staff moved to trash."))
 
       {:error, :already_trashed} ->
         put_flash(socket, :error, gettext("This staff is already in the trash."))
@@ -198,7 +198,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
           metadata: %{}
         )
 
-        socket |> put_flash(:info, gettext("Staff restored.")) |> load_people()
+        put_flash(socket, :info, gettext("Staff restored."))
 
       {:error, :not_trashed} ->
         put_flash(socket, :error, gettext("This staff isn't in the trash."))
@@ -226,7 +226,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
           metadata: %{}
         )
 
-        socket |> put_flash(:info, gettext("Staff permanently deleted.")) |> load_people()
+        put_flash(socket, :info, gettext("Staff permanently deleted."))
 
       {:error, :referenced_by_external} ->
         put_flash(
@@ -291,6 +291,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
             label={Gettext.gettext(PhoenixKitWeb.Gettext, "Search")}
             type="search"
             value={@search}
+            phx-debounce="300"
             placeholder={gettext("search by name or email")}
           />
           <.select

@@ -574,14 +574,21 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     current
     |> Enum.reject(&Map.has_key?(desired, &1.skill_uuid))
     |> Enum.each(fn ps ->
-      with {:ok, _} <- Skills.unassign_skill(ps) do
-        log_skill_change(
-          actor,
-          "staff.person_skill_removed",
-          ps.skill_uuid,
-          person.user_uuid,
-          %{}
-        )
+      case Skills.unassign_skill(ps) do
+        {:ok, _} ->
+          log_skill_change(
+            actor,
+            "staff.person_skill_removed",
+            ps.skill_uuid,
+            person.user_uuid,
+            %{}
+          )
+
+        {:error, reason} ->
+          Logger.warning(
+            "[Staff] PersonFormLive: failed to unassign skill #{ps.skill_uuid} " <>
+              "from person #{person.uuid}: #{inspect(reason)}"
+          )
       end
     end)
 
@@ -596,20 +603,40 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   end
 
   defp add_assignment(actor, person, skill_uuid, level_ids) do
-    with {:ok, ps} <- assign_with_fallback(person.uuid, skill_uuid, level_ids) do
-      log_skill_change(actor, "staff.person_skill_added", skill_uuid, person.user_uuid, %{
-        "person_skill_uuid" => ps.uuid,
-        "proficiency_levels" => ps.proficiency_levels
-      })
+    case assign_with_fallback(person.uuid, skill_uuid, level_ids) do
+      {:ok, ps} ->
+        log_skill_change(actor, "staff.person_skill_added", skill_uuid, person.user_uuid, %{
+          "person_skill_uuid" => ps.uuid,
+          "proficiency_levels" => ps.proficiency_levels
+        })
+
+      {:error, reason} ->
+        Logger.warning(
+          "[Staff] PersonFormLive: failed to assign skill #{skill_uuid} " <>
+            "to person #{person.uuid}: #{inspect(reason)}"
+        )
     end
   end
 
   defp maybe_update_assignment(actor, person, ps, level_ids) do
     if MapSet.new(ps.proficiency_levels) != MapSet.new(level_ids) do
-      with {:ok, updated} <- update_with_fallback(ps, level_ids) do
-        log_skill_change(actor, "staff.person_skill_updated", ps.skill_uuid, person.user_uuid, %{
-          "proficiency_levels" => updated.proficiency_levels
-        })
+      case update_with_fallback(ps, level_ids) do
+        {:ok, updated} ->
+          log_skill_change(
+            actor,
+            "staff.person_skill_updated",
+            ps.skill_uuid,
+            person.user_uuid,
+            %{
+              "proficiency_levels" => updated.proficiency_levels
+            }
+          )
+
+        {:error, reason} ->
+          Logger.warning(
+            "[Staff] PersonFormLive: failed to update skill #{ps.skill_uuid} levels " <>
+              "for person #{person.uuid}: #{inspect(reason)}"
+          )
       end
     end
   end
@@ -910,11 +937,13 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             <div class="divider text-xs text-base-content/50 my-0">{gettext("Skills")}</div>
 
             <%!-- Skills are staged on the form and written to the database
-                 only when Save is pressed (below). Each row's hidden +
-                 level inputs POST with the person form; add/remove restage
-                 in-memory via phx-click — no DB write happens here. The
-                 rows + search field mirror the form's other fields (full
-                 width, `label-text font-semibold` labels, `input w-full`).
+                 only when Save is pressed (below). The staged rows carry NO
+                 form inputs — they live entirely in `@staged_skills` assigns
+                 and are reconciled against the DB in `sync_skills/2` after the
+                 person upsert. Add/remove/level-toggle restage in-memory via
+                 phx-click — no DB write happens here. The rows + search field
+                 mirror the form's other fields (full width,
+                 `label-text font-semibold` labels, `input w-full`).
 
                  Skills are a global taxonomy created on the Skills admin
                  page, so the picker only assigns *existing* ones. The

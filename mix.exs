@@ -1,7 +1,7 @@
 defmodule PhoenixKitStaff.MixProject do
   use Mix.Project
 
-  @version "0.3.0"
+  @version "0.5.0"
   @source_url "https://github.com/BeamLabEU/phoenix_kit_staff"
 
   def project do
@@ -24,7 +24,10 @@ defmodule PhoenixKitStaff.MixProject do
       ],
       description: "Staff module for PhoenixKit — departments, teams, and people.",
       package: package(),
-      dialyzer: [plt_add_apps: [:phoenix_kit, :phoenix_kit_comments]],
+      dialyzer: [
+        plt_add_apps: [:phoenix_kit, :phoenix_kit_comments],
+        ignore_warnings: ".dialyzer_ignore.exs"
+      ],
       name: "PhoenixKitStaff",
       source_url: @source_url,
       docs: docs()
@@ -49,6 +52,10 @@ defmodule PhoenixKitStaff.MixProject do
       precommit: [
         "compile --force --warnings-as-errors",
         "deps.unlock --check-unused",
+        # Scan for retired Hex deps. Run via `cmd` so Hex bootstraps in a fresh
+        # process — the hex.* archive tasks aren't resolvable via Mix.Task.run
+        # inside an alias.
+        "cmd mix hex.audit",
         "quality.ci"
       ],
       "test.setup": [
@@ -101,7 +108,7 @@ defmodule PhoenixKitStaff.MixProject do
     [
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url},
-      files: ~w(lib .formatter.exs mix.exs README.md CHANGELOG.md LICENSE)
+      files: ~w(lib priv .formatter.exs mix.exs README.md CHANGELOG.md LICENSE)
     ]
   end
 

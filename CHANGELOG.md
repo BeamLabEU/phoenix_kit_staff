@@ -4,6 +4,94 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0] - 2026-06-15
+
+Structured skills taxonomy with per-skill dynamic proficiency levels,
+soft-delete for people, a Comments tab on the person profile, and an
+admin-UI quality sweep (kebab row menus + core empty-states). Merged as
+PR #10.
+
+**Requires `phoenix_kit ~> 1.7 and >= 1.7.132`** for the `metadata` JSONB
+column (V131, soft-delete stash) and the `phoenix_kit_staff_skills` /
+`phoenix_kit_staff_person_skills` tables (V135). Adds a hard dep on
+`phoenix_kit_comments ~> 0.2` for the person Comments tab.
+
+### Added
+- **Structured skills.** A first-class, translatable `Skill` taxonomy
+  (`phoenix_kit_staff_skills`, globally unique `lower(name)`) replacing
+  the old free-text `Person.skills` (V135 migrates + drops it). Each
+  skill defines its **own** proficiency levels — a `levels` JSONB array
+  of translatable `%{"id", "name", "translations"}` maps with stable ids
+  plus an `allow_multiple_levels` boolean. New context
+  `PhoenixKitStaff.Skills` (skill CRUD + person↔skill assignment), new
+  schemas `Skill` + `PersonSkill` (join carrying a `proficiency_levels`
+  array of selected level ids), and thin `Staff` delegators.
+- **Skills admin subtab** with `SkillsLive` / `SkillFormLive` /
+  `SkillShowLive`. Assignment works from two directions: the skill show
+  (skill → people, event-driven level toggle chips persisted
+  immediately) and the person edit form (person → skills, staged
+  multi-select reconciled to the DB on save).
+- **Soft-delete (people).** `trash_person` / `restore_person` (sentinel
+  `status = "trashed"`, prior status stashed in
+  `metadata["trashed_from_status"]`), permanent `delete_person` (Trash
+  view only), and set-based `bulk_trash` / `bulk_restore` /
+  `bulk_delete`. `list_people/1` excludes trashed by default;
+  `count_trashed/0` is separate. `PeopleLive` gains a "Trashed (N)"
+  filter, core bulk-select, and a per-row kebab; `PersonShowLive` shows
+  a trashed banner with Restore / Delete-permanently.
+- **Comments tab** on `PersonShowLive` via the `phoenix_kit_comments`
+  embed (`use PhoenixKitComments.Embed` for Leaf-event forwarding).
+- New activity actions: `staff.person_trashed/restored`,
+  `staff.people_bulk_trashed/restored/deleted`,
+  `staff.skill_created/updated/deleted`,
+  `staff.person_skill_added/removed/updated`.
+
+### Changed
+- **Admin-UI sweep.** Row actions across Departments / Teams / People /
+  team-show / overview moved to the core `<.table_row_menu>` kebab; the
+  seven hand-rolled empty-state blocks now use the core `<.empty_state>`
+  component. `staff.person_deleted` now means the **permanent** delete.
+- `Staff` context split: team-membership and org-tree logic extracted to
+  `PhoenixKitStaff.Staff.Memberships` and `PhoenixKitStaff.Staff.Org`.
+- `mix.exs`: `phoenix_kit` constraint widened to
+  `~> 1.7 and >= 1.7.132`; added `phoenix_kit_comments ~> 0.2`; deps now
+  resolve through the `pk_dep/3` `<APP>_PATH` cross-repo override helper.
+
+## [0.4.0] - 2026-06-04
+
+Internationalization release — the staff module now owns a Gettext
+backend with Estonian + Russian translations, and the multilang
+free-text overrides finally render in the UI.
+
+### Added
+- **`PhoenixKitStaff.Gettext` backend** for staff-specific (domain) UI
+  strings, with full **Estonian (et)** and **Russian (ru)** catalogs in
+  `priv/gettext` (146 msgids each, plurals included). Generic strings
+  already translated workspace-wide stay routed to core's
+  `PhoenixKitWeb.Gettext` (the hybrid-backend pattern). Admin `%Tab{}`
+  labels carry `gettext_backend:` and stay extractable via
+  `PhoenixKitStaff.__tab_label_strings__/0`.
+- **`PhoenixKitStaff.L10n.current_content_lang/0`** — resolves the active
+  content language (`Gettext.get_locale/1`) for read-path translation
+  lookups, mirroring `phoenix_kit_projects`.
+
+### Changed
+- **Localized read paths.** The overview, list, and show LiveViews now
+  render Department/Team names + descriptions and Person job titles, bios,
+  skills, and notes through their `localized_*/2` helpers (primary-column
+  fallback), so the `translations` JSONB overrides entered in the forms
+  are actually displayed in the browsing locale. Previously these helpers
+  had no callers and the overrides were write-only.
+
+### Fixed
+- **Hex packaging:** `priv` is now included in the package `files:` list,
+  so published builds ship the `priv/gettext` catalogs. Without it the
+  compiled Gettext backend had an empty catalog for Hex consumers and
+  every staff string fell back to English.
+- Dropped a dead `preload: [:teams]` in `DepartmentShowLive`.
+- `mix.exs` now wires `.dialyzer_ignore.exs` explicitly via
+  `ignore_warnings:` (matching `phoenix_kit_projects`).
+
 ## [0.3.0] - 2026-05-29
 
 Feature release — multilingual free-text fields, a single full-name
