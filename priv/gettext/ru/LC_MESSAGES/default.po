@@ -133,7 +133,7 @@ msgstr "Не удалось переименовать почту — %{errors}"
 
 #: lib/phoenix_kit_staff/web/department_form_live.ex:209
 #: lib/phoenix_kit_staff/web/person_form_live.ex:1095
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:543
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:567
 #: lib/phoenix_kit_staff/web/team_form_live.ex:237
 #, elixir-autogen, elixir-format
 msgid "Create"
@@ -833,7 +833,7 @@ msgstr "Не удалось восстановить сотрудника."
 msgid "Could not update level."
 msgstr "Не удалось обновить уровень."
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:336
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:334
 #, elixir-autogen, elixir-format
 msgid "Create a new skill."
 msgstr "Создать новый навык."
@@ -1099,7 +1099,7 @@ msgstr "В корзине"
 msgid "Trashed (%{count})"
 msgstr "В корзине (%{count})"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:337
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:335
 #, elixir-autogen, elixir-format
 msgid "Update skill details."
 msgstr "Обновить данные навыка."
@@ -1148,23 +1148,23 @@ msgstr "Нет подходящих навыков."
 msgid "No skills have been created yet."
 msgstr "Навыки ещё не созданы."
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:511
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:534
 #, elixir-autogen, elixir-format
 msgid "Add level"
 msgstr "Добавить уровень"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:528
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:551
 #, elixir-autogen, elixir-format
 msgid "Add standard levels"
 msgstr "Добавить стандартные уровни"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:486
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:487
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:509
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:510
 #, elixir-autogen, elixir-format
 msgid "Level name"
 msgstr "Название уровня"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:394
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:391
 #, elixir-autogen, elixir-format
 msgid "optional"
 msgstr "необязательно"
@@ -1174,58 +1174,48 @@ msgstr "необязательно"
 msgid "All available skills are added."
 msgstr "Все доступные навыки добавлены."
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:520
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:543
 #, elixir-autogen, elixir-format
 msgid "Add selector"
 msgstr "Добавить группу"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:426
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:476
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:449
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:499
 #, elixir-autogen, elixir-format
 msgid "Drag to reorder"
 msgstr "Перетащите для изменения порядка"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:403
-#, elixir-autogen, elixir-format
-msgid "Editing %{lang} names"
-msgstr "Редактирование названий (%{lang})"
-
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:393
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:390
 #, elixir-autogen, elixir-format
 msgid "Level selectors"
 msgstr "Группы уровней"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:449
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:472
 #, elixir-autogen, elixir-format
 msgid "Multiple"
 msgstr "Несколько"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:408
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:431
 #, elixir-autogen, elixir-format
 msgid "No selectors — this skill is assigned with no level. Add a selector (e.g. Proficiency, Difficulty), or leave empty."
 msgstr "Групп нет — навык назначается без уровня. Добавьте группу (напр. Уровень владения, Сложность) или оставьте пустым."
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:447
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:470
 #, elixir-autogen, elixir-format
 msgid "On: multiple options can be selected at once. Off: a single option."
 msgstr "Вкл.: можно выбрать несколько вариантов сразу. Выкл.: только один вариант."
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:400
-#, elixir-autogen, elixir-format
-msgid "Selector and level names below are edited for the language selected above."
-msgstr "Названия групп и уровней ниже редактируются на языке, выбранном выше."
-
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:437
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:460
 #, elixir-autogen, elixir-format
 msgid "Selector name"
 msgstr "Название группы"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:436
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:459
 #, elixir-autogen, elixir-format
 msgid "Selector name (e.g. Proficiency)"
 msgstr "Название группы (напр. Уровень владения)"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:449
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:472
 #, elixir-autogen, elixir-format
 msgid "Single"
 msgstr "Один"

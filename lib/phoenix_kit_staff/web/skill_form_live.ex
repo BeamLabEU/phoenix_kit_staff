@@ -325,8 +325,6 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :on_secondary_lang?, secondary_lang?(assigns))
-
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
       <.admin_page_header
@@ -386,23 +384,13 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
           <%!-- Selectors editor — inside the form, OUTSIDE the multilang wrapper
                (structure is shared across languages; only selector/option names
                are translatable, edited for the active language). --%>
-          <div class="card-body border-t border-base-200 pt-4 flex flex-col gap-4">
-            <div class="flex items-center justify-between gap-2 flex-wrap">
-              <label class="label p-0">
-                <span class="label-text font-semibold">
-                  {gettext("Level selectors")}
-                  <span class="label-text-alt text-base-content/50 font-normal">{gettext("optional")}</span>
-                </span>
-              </label>
-              <span
-                :if={@on_secondary_lang?}
-                class="badge badge-ghost badge-sm gap-1"
-                title={gettext("Selector and level names below are edited for the language selected above.")}
-              >
-                <.icon name="hero-language" class="w-3.5 h-3.5" />
-                {gettext("Editing %{lang} names", lang: String.upcase(@current_lang))}
+          <div class="card-body pt-4 flex flex-col gap-4">
+            <label class="label p-0">
+              <span class="label-text font-semibold">
+                {gettext("Level selectors")}
+                <span class="label-text-alt text-base-content/50 font-normal">{gettext("optional")}</span>
               </span>
-            </div>
+            </label>
 
             <%!-- Skeleton shown instantly on language switch (the switcher's JS
                  toggles all `[data-translatable=skeletons]`/`[=fields]`); the
@@ -584,12 +572,6 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
       </div>
     </div>
     """
-  end
-
-  # True when multilang is on and a non-primary language tab is active (so the
-  # selector/option name inputs are editing a translation, not the primary name).
-  defp secondary_lang?(assigns) do
-    assigns[:multilang_enabled] && assigns[:current_lang] != assigns[:primary_language]
   end
 
   defp blank_to(nil, fallback), do: fallback

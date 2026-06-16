@@ -132,7 +132,7 @@ msgstr ""
 
 #: lib/phoenix_kit_staff/web/department_form_live.ex:209
 #: lib/phoenix_kit_staff/web/person_form_live.ex:1095
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:543
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:567
 #: lib/phoenix_kit_staff/web/team_form_live.ex:237
 #, elixir-autogen, elixir-format
 msgid "Create"
@@ -816,7 +816,7 @@ msgstr ""
 msgid "Could not update level."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:336
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:334
 #, elixir-autogen, elixir-format
 msgid "Create a new skill."
 msgstr ""
@@ -1070,7 +1070,7 @@ msgstr ""
 msgid "Trashed (%{count})"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:337
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:335
 #, elixir-autogen, elixir-format
 msgid "Update skill details."
 msgstr ""
@@ -1119,23 +1119,23 @@ msgstr ""
 msgid "No skills have been created yet."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:511
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:534
 #, elixir-autogen, elixir-format
 msgid "Add level"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:528
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:551
 #, elixir-autogen, elixir-format
 msgid "Add standard levels"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:486
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:487
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:509
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:510
 #, elixir-autogen, elixir-format
 msgid "Level name"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:394
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:391
 #, elixir-autogen, elixir-format
 msgid "optional"
 msgstr ""
@@ -1145,58 +1145,48 @@ msgstr ""
 msgid "All available skills are added."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:520
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:543
 #, elixir-autogen, elixir-format
 msgid "Add selector"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:426
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:476
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:449
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:499
 #, elixir-autogen, elixir-format
 msgid "Drag to reorder"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:403
-#, elixir-autogen, elixir-format
-msgid "Editing %{lang} names"
-msgstr ""
-
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:393
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:390
 #, elixir-autogen, elixir-format
 msgid "Level selectors"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:449
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:472
 #, elixir-autogen, elixir-format
 msgid "Multiple"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:408
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:431
 #, elixir-autogen, elixir-format
 msgid "No selectors — this skill is assigned with no level. Add a selector (e.g. Proficiency, Difficulty), or leave empty."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:447
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:470
 #, elixir-autogen, elixir-format
 msgid "On: multiple options can be selected at once. Off: a single option."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:400
-#, elixir-autogen, elixir-format
-msgid "Selector and level names below are edited for the language selected above."
-msgstr ""
-
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:437
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:460
 #, elixir-autogen, elixir-format
 msgid "Selector name"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:436
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:459
 #, elixir-autogen, elixir-format
 msgid "Selector name (e.g. Proficiency)"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:449
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:472
 #, elixir-autogen, elixir-format
 msgid "Single"
 msgstr ""

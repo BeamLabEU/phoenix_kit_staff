@@ -132,7 +132,7 @@ msgstr "E-posti ümbernimetamine ebaõnnestus — %{errors}"
 
 #: lib/phoenix_kit_staff/web/department_form_live.ex:209
 #: lib/phoenix_kit_staff/web/person_form_live.ex:1095
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:543
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:567
 #: lib/phoenix_kit_staff/web/team_form_live.ex:237
 #, elixir-autogen, elixir-format
 msgid "Create"
@@ -831,7 +831,7 @@ msgstr "Töötajat ei õnnestunud taastada."
 msgid "Could not update level."
 msgstr "Taset ei õnnestunud uuendada."
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:336
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:334
 #, elixir-autogen, elixir-format
 msgid "Create a new skill."
 msgstr "Loo uus oskus."
@@ -1091,7 +1091,7 @@ msgstr "Prügikastis"
 msgid "Trashed (%{count})"
 msgstr "Prügikastis (%{count})"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:337
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:335
 #, elixir-autogen, elixir-format
 msgid "Update skill details."
 msgstr "Uuenda oskuse andmeid."
@@ -1140,23 +1140,23 @@ msgstr "Sobivaid oskusi pole."
 msgid "No skills have been created yet."
 msgstr "Ühtegi oskust pole veel loodud."
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:511
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:534
 #, elixir-autogen, elixir-format
 msgid "Add level"
 msgstr "Lisa tase"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:528
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:551
 #, elixir-autogen, elixir-format
 msgid "Add standard levels"
 msgstr "Lisa standardtasemed"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:486
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:487
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:509
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:510
 #, elixir-autogen, elixir-format
 msgid "Level name"
 msgstr "Taseme nimi"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:394
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:391
 #, elixir-autogen, elixir-format
 msgid "optional"
 msgstr "valikuline"
@@ -1166,58 +1166,48 @@ msgstr "valikuline"
 msgid "All available skills are added."
 msgstr "Kõik saadaolevad oskused on lisatud."
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:520
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:543
 #, elixir-autogen, elixir-format
 msgid "Add selector"
 msgstr "Lisa rühm"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:426
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:476
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:449
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:499
 #, elixir-autogen, elixir-format
 msgid "Drag to reorder"
 msgstr "Lohista ümberjärjestamiseks"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:403
-#, elixir-autogen, elixir-format
-msgid "Editing %{lang} names"
-msgstr "Muudad %{lang} nimesid"
-
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:393
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:390
 #, elixir-autogen, elixir-format
 msgid "Level selectors"
 msgstr "Tasemerühmad"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:449
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:472
 #, elixir-autogen, elixir-format
 msgid "Multiple"
 msgstr "Mitu"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:408
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:431
 #, elixir-autogen, elixir-format
 msgid "No selectors — this skill is assigned with no level. Add a selector (e.g. Proficiency, Difficulty), or leave empty."
 msgstr "Rühmasid pole — see oskus määratakse tasemeta. Lisa rühm (nt Oskustase, Raskusaste) või jäta tühjaks."
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:447
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:470
 #, elixir-autogen, elixir-format
 msgid "On: multiple options can be selected at once. Off: a single option."
 msgstr "Sees: korraga saab valida mitu valikut. Väljas: ainult üks valik."
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:400
-#, elixir-autogen, elixir-format
-msgid "Selector and level names below are edited for the language selected above."
-msgstr "Allolevad rühmade ja tasemete nimed muudetakse ülal valitud keeles."
-
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:437
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:460
 #, elixir-autogen, elixir-format
 msgid "Selector name"
 msgstr "Rühma nimi"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:436
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:459
 #, elixir-autogen, elixir-format
 msgid "Selector name (e.g. Proficiency)"
 msgstr "Rühma nimi (nt Oskustase)"
 
-#: lib/phoenix_kit_staff/web/skill_form_live.ex:449
+#: lib/phoenix_kit_staff/web/skill_form_live.ex:472
 #, elixir-autogen, elixir-format
 msgid "Single"
 msgstr "Üks"
