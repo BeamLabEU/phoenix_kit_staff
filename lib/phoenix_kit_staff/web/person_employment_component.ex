@@ -32,6 +32,8 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
      socket
      |> assign(:employments, Employments.list_for_person(person.uuid))
      |> assign_new(:editing_uuid, fn -> nil end)
+     |> assign_new(:form_open?, fn -> false end)
+     |> assign_new(:prefill_source, fn -> nil end)
      |> assign_new(:type_options, fn -> type_options() end)
      |> assign_new(:dept_options, fn -> dept_options() end)
      |> assign_new(:team_options, fn -> team_options() end)
@@ -41,7 +43,21 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
 
   # ── Events ─────────────────────────────────────────────────────────
 
+  # Reveal the add form pre-filled from the current/last span (minus the dates):
+  # a role change reads as "update the current role" rather than a blank entry.
   @impl true
+  def handle_event("show_add_form", _params, socket) do
+    current = Employments.current_for_person(socket.assigns.person.uuid)
+
+    {:noreply,
+     assign(socket,
+       editing_uuid: nil,
+       form_open?: true,
+       prefill_source: current,
+       form: to_form(Employment.changeset(prefill_base(current), %{}), as: :employment)
+     )}
+  end
+
   def handle_event("validate_employment", %{"employment" => attrs}, socket) do
     cs = %Employment{} |> Employment.changeset(attrs) |> Map.put(:action, :validate)
     {:noreply, assign(socket, :form, to_form(cs, as: :employment))}
@@ -84,6 +100,8 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
         {:noreply,
          assign(socket,
            editing_uuid: uuid,
+           form_open?: true,
+           prefill_source: nil,
            form: to_form(Employment.changeset(span, %{}), as: :employment)
          )}
     end
@@ -116,9 +134,27 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
   defp reload(socket),
     do: assign(socket, :employments, Employments.list_for_person(socket.assigns.person.uuid))
 
-  defp reset_form(socket), do: assign(socket, editing_uuid: nil, form: new_form())
+  defp reset_form(socket),
+    do:
+      assign(socket, editing_uuid: nil, form_open?: false, prefill_source: nil, form: new_form())
 
   defp new_form, do: to_form(Employment.changeset(%Employment{}, %{}), as: :employment)
+
+  # The "add" form starts from the current/last span's non-date fields so a new
+  # role is an edit-from-current; the dates stay blank (the user sets the new
+  # start; an empty end keeps it open and auto-closes the prior span on save).
+  defp prefill_base(nil), do: %Employment{}
+
+  defp prefill_base(%Employment{} = span) do
+    %Employment{
+      employment_type: span.employment_type,
+      job_title: span.job_title,
+      primary_department_uuid: span.primary_department_uuid,
+      primary_team_uuid: span.primary_team_uuid,
+      work_location: span.work_location,
+      notes: span.notes
+    }
+  end
 
   defp type_options do
     Enum.map(Person.employment_types(), &{Person.employment_type_label(&1), &1})
@@ -186,12 +222,19 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col gap-4">
-      <%!-- Add / edit span --%>
-      <div class="card bg-base-100 shadow">
+      <%!-- Add / edit span (revealed on demand) --%>
+      <div :if={@form_open?} class="card bg-base-100 shadow">
         <div class="card-body">
           <h2 class="card-title text-lg">
             {if @editing_uuid, do: gettext("Edit employment"), else: gettext("Add employment")}
           </h2>
+
+          <p :if={@prefill_source} class="text-sm text-base-content/60 -mt-1">
+            {gettext(
+              "Carried over from %{role} — set the new start date and change whatever differs.",
+              role: title(@prefill_source, @locale)
+            )}
+          </p>
 
           <.form
             for={@form}
@@ -249,10 +292,6 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
 
             <.textarea field={@form[:notes]} label={gettext("Notes")} />
 
-            <p class="text-xs text-base-content/50">
-              {gettext("Leave the end date empty for the current role. Starting a new current role ends the previous one.")}
-            </p>
-
             <div class="flex justify-end gap-2">
               <button
                 :if={@editing_uuid}
@@ -277,15 +316,26 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
         </div>
       </div>
 
-      <%!-- Timeline --%>
+      <%!-- Timeline (leads the tab; the add form opens above on demand) --%>
       <div class="card bg-base-100 shadow">
         <div class="card-body">
-          <h2 class="card-title text-lg">
-            {gettext("Employment history")} ({length(@employments)})
-          </h2>
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="card-title text-lg">
+              {gettext("Employment history")} ({length(@employments)})
+            </h2>
+            <button
+              :if={!@form_open?}
+              type="button"
+              phx-target={@myself}
+              phx-click="show_add_form"
+              class="btn btn-primary btn-sm"
+            >
+              <.icon name="hero-plus" class="w-4 h-4" /> {gettext("Add employment")}
+            </button>
+          </div>
 
           <p :if={@employments == []} class="text-sm text-base-content/60 py-2">
-            {gettext("No employment recorded yet. Add the first span above.")}
+            {gettext("No employment recorded yet.")}
           </p>
 
           <div :if={@employments != []} class="flex flex-col gap-2">

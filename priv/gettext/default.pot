@@ -176,7 +176,7 @@ msgid "Delete team %{name}? This removes all memberships."
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/overview_live.ex:58
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:221
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:264
 #: lib/phoenix_kit_staff/web/person_show_live.ex:435
 #: lib/phoenix_kit_staff/web/team_form_live.ex:177
 #: lib/phoenix_kit_staff/web/teams_live.ex:95
@@ -246,12 +246,12 @@ msgstr ""
 msgid "Employment"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:207
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:250
 #, elixir-autogen, elixir-format
 msgid "Employment type"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:237
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:280
 #, elixir-autogen, elixir-format
 msgid "End date"
 msgstr ""
@@ -281,7 +281,7 @@ msgstr ""
 msgid "In department, not on any team"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:213
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:256
 #, elixir-autogen, elixir-format
 msgid "Job title"
 msgstr ""
@@ -483,13 +483,13 @@ msgstr ""
 msgid "Staff updated."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:234
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:277
 #, elixir-autogen, elixir-format
 msgid "Start date"
 msgstr ""
 
 #: lib/phoenix_kit_staff/web/overview_live.ex:61
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:227
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:270
 #: lib/phoenix_kit_staff/web/person_form_live.ex:812
 #: lib/phoenix_kit_staff/web/person_show_live.ex:434
 #, elixir-autogen, elixir-format
@@ -613,7 +613,7 @@ msgstr ""
 msgid "Work email"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:245
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:288
 #, elixir-autogen, elixir-format
 msgid "Work location"
 msgstr ""
@@ -645,7 +645,7 @@ msgstr ""
 msgid "e.g. Jane Smith"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:214
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:257
 #, elixir-autogen, elixir-format
 msgid "e.g. Senior Engineer"
 msgstr ""
@@ -1147,52 +1147,43 @@ msgstr ""
 msgid "Single"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:177
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:213
 #, elixir-autogen, elixir-format
 msgid "(untitled role)"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:193
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:229
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:333
 #, elixir-autogen, elixir-format
 msgid "Add employment"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:300
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:350
 #, elixir-autogen, elixir-format
 msgid "Current"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:193
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:229
 #, elixir-autogen, elixir-format
 msgid "Edit employment"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:284
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:324
 #, elixir-autogen, elixir-format
 msgid "Employment history"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:332
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:382
 #, elixir-autogen, elixir-format
 msgid "End now"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:333
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:383
 #, elixir-autogen, elixir-format
 msgid "End this role today"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:253
-#, elixir-autogen, elixir-format
-msgid "Leave the end date empty for the current role. Starting a new current role ends the previous one."
-msgstr ""
-
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:288
-#, elixir-autogen, elixir-format
-msgid "No employment recorded yet. Add the first span above."
-msgstr ""
-
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:250
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:293
 #, elixir-autogen, elixir-format
 msgid "Notes"
 msgstr ""
@@ -1202,17 +1193,27 @@ msgstr ""
 msgid "Organization"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:342
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:392
 #, elixir-autogen, elixir-format
 msgid "Remove this employment record?"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:172
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:208
 #, elixir-autogen, elixir-format
 msgid "no dates"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:170
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:206
 #, elixir-autogen, elixir-format
 msgid "present"
+msgstr ""
+
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:233
+#, elixir-autogen, elixir-format
+msgid "Carried over from %{role} — set the new start date and change whatever differs."
+msgstr ""
+
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:338
+#, elixir-autogen, elixir-format
+msgid "No employment recorded yet."
 msgstr ""

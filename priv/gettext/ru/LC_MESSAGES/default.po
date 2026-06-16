@@ -177,7 +177,7 @@ msgid "Delete team %{name}? This removes all memberships."
 msgstr "Удалить команду %{name}? Это удалит всех участников."
 
 #: lib/phoenix_kit_staff/web/overview_live.ex:58
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:221
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:264
 #: lib/phoenix_kit_staff/web/person_show_live.ex:435
 #: lib/phoenix_kit_staff/web/team_form_live.ex:177
 #: lib/phoenix_kit_staff/web/teams_live.ex:95
@@ -247,12 +247,12 @@ msgstr "Экстренный контакт"
 msgid "Employment"
 msgstr "Занятость"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:207
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:250
 #, elixir-autogen, elixir-format
 msgid "Employment type"
 msgstr "Тип занятости"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:237
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:280
 #, elixir-autogen, elixir-format
 msgid "End date"
 msgstr "Дата окончания"
@@ -285,7 +285,7 @@ msgstr "Полное имя"
 msgid "In department, not on any team"
 msgstr "В отделе, но не в команде"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:213
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:256
 #, elixir-autogen, elixir-format
 msgid "Job title"
 msgstr "Должность"
@@ -495,13 +495,13 @@ msgstr ""
 msgid "Staff updated."
 msgstr "Данные сотрудника обновлены."
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:234
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:277
 #, elixir-autogen, elixir-format
 msgid "Start date"
 msgstr "Дата начала"
 
 #: lib/phoenix_kit_staff/web/overview_live.ex:61
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:227
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:270
 #: lib/phoenix_kit_staff/web/person_form_live.ex:812
 #: lib/phoenix_kit_staff/web/person_show_live.ex:434
 #, elixir-autogen, elixir-format
@@ -627,7 +627,7 @@ msgstr "Будет связан с существующим аккаунтом."
 msgid "Work email"
 msgstr "Рабочая почта"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:245
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:288
 #, elixir-autogen, elixir-format
 msgid "Work location"
 msgstr "Место работы"
@@ -659,7 +659,7 @@ msgstr "создать"
 msgid "e.g. Jane Smith"
 msgstr "напр. Иван Иванов"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:214
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:257
 #, elixir-autogen, elixir-format
 msgid "e.g. Senior Engineer"
 msgstr "напр. ведущий инженер"
@@ -1176,52 +1176,43 @@ msgstr "Название группы (напр. Уровень владения
 msgid "Single"
 msgstr "Один"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:177
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:213
 #, elixir-autogen, elixir-format
 msgid "(untitled role)"
 msgstr "(без названия)"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:193
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:229
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:333
 #, elixir-autogen, elixir-format
 msgid "Add employment"
 msgstr "Добавить трудовой период"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:300
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:350
 #, elixir-autogen, elixir-format
 msgid "Current"
 msgstr "Текущий"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:193
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:229
 #, elixir-autogen, elixir-format
 msgid "Edit employment"
 msgstr "Изменить трудовой период"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:284
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:324
 #, elixir-autogen, elixir-format
 msgid "Employment history"
 msgstr "История трудоустройства"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:332
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:382
 #, elixir-autogen, elixir-format
 msgid "End now"
 msgstr "Завершить сейчас"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:333
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:383
 #, elixir-autogen, elixir-format
 msgid "End this role today"
 msgstr "Завершить эту роль сегодня"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:253
-#, elixir-autogen, elixir-format
-msgid "Leave the end date empty for the current role. Starting a new current role ends the previous one."
-msgstr "Оставьте дату окончания пустой для текущей роли. Начало новой текущей роли завершает предыдущую."
-
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:288
-#, elixir-autogen, elixir-format
-msgid "No employment recorded yet. Add the first span above."
-msgstr "Трудовые периоды ещё не добавлены. Добавьте первый период выше."
-
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:250
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:293
 #, elixir-autogen, elixir-format
 msgid "Notes"
 msgstr "Заметки"
@@ -1231,17 +1222,27 @@ msgstr "Заметки"
 msgid "Organization"
 msgstr "Организация"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:342
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:392
 #, elixir-autogen, elixir-format
 msgid "Remove this employment record?"
 msgstr "Удалить эту запись о трудоустройстве?"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:172
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:208
 #, elixir-autogen, elixir-format
 msgid "no dates"
 msgstr "без дат"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:170
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:206
 #, elixir-autogen, elixir-format
 msgid "present"
 msgstr "по настоящее время"
+
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:233
+#, elixir-autogen, elixir-format
+msgid "Carried over from %{role} — set the new start date and change whatever differs."
+msgstr "Перенесено из роли %{role} — укажите новую дату начала и измените то, что отличается."
+
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:338
+#, elixir-autogen, elixir-format
+msgid "No employment recorded yet."
+msgstr "Трудовые периоды ещё не добавлены."

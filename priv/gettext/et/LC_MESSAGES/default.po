@@ -177,7 +177,7 @@ msgid "Delete team %{name}? This removes all memberships."
 msgstr "Kustutada meeskond %{name}? See eemaldab kõik liikmesused."
 
 #: lib/phoenix_kit_staff/web/overview_live.ex:58
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:221
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:264
 #: lib/phoenix_kit_staff/web/person_show_live.ex:435
 #: lib/phoenix_kit_staff/web/team_form_live.ex:177
 #: lib/phoenix_kit_staff/web/teams_live.ex:95
@@ -247,12 +247,12 @@ msgstr "Hädaolukorra kontakt"
 msgid "Employment"
 msgstr "Töösuhe"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:207
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:250
 #, elixir-autogen, elixir-format
 msgid "Employment type"
 msgstr "Töösuhte tüüp"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:237
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:280
 #, elixir-autogen, elixir-format
 msgid "End date"
 msgstr "Lõppkuupäev"
@@ -285,7 +285,7 @@ msgstr "Täisnimi"
 msgid "In department, not on any team"
 msgstr "Osakonnas, kuid mitte üheski meeskonnas"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:213
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:256
 #, elixir-autogen, elixir-format
 msgid "Job title"
 msgstr "Ametinimetus"
@@ -495,13 +495,13 @@ msgstr ""
 msgid "Staff updated."
 msgstr "Töötaja andmed uuendatud."
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:234
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:277
 #, elixir-autogen, elixir-format
 msgid "Start date"
 msgstr "Alguskuupäev"
 
 #: lib/phoenix_kit_staff/web/overview_live.ex:61
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:227
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:270
 #: lib/phoenix_kit_staff/web/person_form_live.ex:812
 #: lib/phoenix_kit_staff/web/person_show_live.ex:434
 #, elixir-autogen, elixir-format
@@ -625,7 +625,7 @@ msgstr "Seob olemasoleva kontoga."
 msgid "Work email"
 msgstr "Töö e-post"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:245
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:288
 #, elixir-autogen, elixir-format
 msgid "Work location"
 msgstr "Töökoht"
@@ -658,7 +658,7 @@ msgstr "loo üks"
 msgid "e.g. Jane Smith"
 msgstr "nt Jane Smith"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:214
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:257
 #, elixir-autogen, elixir-format
 msgid "e.g. Senior Engineer"
 msgstr "nt vaneminsener"
@@ -1168,52 +1168,43 @@ msgstr "Rühma nimi (nt Oskustase)"
 msgid "Single"
 msgstr "Üks"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:177
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:213
 #, elixir-autogen, elixir-format
 msgid "(untitled role)"
 msgstr "(nimeta roll)"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:193
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:229
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:333
 #, elixir-autogen, elixir-format
 msgid "Add employment"
 msgstr "Lisa töösuhe"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:300
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:350
 #, elixir-autogen, elixir-format
 msgid "Current"
 msgstr "Praegune"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:193
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:229
 #, elixir-autogen, elixir-format
 msgid "Edit employment"
 msgstr "Muuda töösuhet"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:284
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:324
 #, elixir-autogen, elixir-format
 msgid "Employment history"
 msgstr "Töösuhte ajalugu"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:332
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:382
 #, elixir-autogen, elixir-format
 msgid "End now"
 msgstr "Lõpeta nüüd"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:333
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:383
 #, elixir-autogen, elixir-format
 msgid "End this role today"
 msgstr "Lõpeta see roll täna"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:253
-#, elixir-autogen, elixir-format
-msgid "Leave the end date empty for the current role. Starting a new current role ends the previous one."
-msgstr "Jäta lõppkuupäev praeguse rolli puhul tühjaks. Uue praeguse rolli alustamine lõpetab eelmise."
-
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:288
-#, elixir-autogen, elixir-format
-msgid "No employment recorded yet. Add the first span above."
-msgstr "Töösuhteid pole veel lisatud. Lisa esimene periood ülal."
-
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:250
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:293
 #, elixir-autogen, elixir-format
 msgid "Notes"
 msgstr "Märkmed"
@@ -1223,17 +1214,27 @@ msgstr "Märkmed"
 msgid "Organization"
 msgstr "Organisatsioon"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:342
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:392
 #, elixir-autogen, elixir-format
 msgid "Remove this employment record?"
 msgstr "Eemaldada see töösuhte kirje?"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:172
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:208
 #, elixir-autogen, elixir-format
 msgid "no dates"
 msgstr "kuupäevadeta"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:170
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:206
 #, elixir-autogen, elixir-format
 msgid "present"
 msgstr "praeguseni"
+
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:233
+#, elixir-autogen, elixir-format
+msgid "Carried over from %{role} — set the new start date and change whatever differs."
+msgstr "Üle kantud rollist %{role} — määra uus alguskuupäev ja muuda, mis erineb."
+
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:338
+#, elixir-autogen, elixir-format
+msgid "No employment recorded yet."
+msgstr "Töösuhteid pole veel lisatud."

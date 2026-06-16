@@ -20,7 +20,9 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponentTest do
     view
   end
 
-  test "the Employment tab renders the add form + history heading", %{conn: conn} do
+  test "the tab leads with the history + an Add button; the form is revealed on demand", %{
+    conn: conn
+  } do
     person = fixture_person()
     {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
 
@@ -29,6 +31,31 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponentTest do
     assert html =~ "Add employment"
     assert html =~ "Employment history"
     assert html =~ "No employment recorded yet"
+    # The add form is hidden until the user asks for it.
+    refute has_element?(view, "##{form_id(person)}")
+
+    view |> element("button[phx-click='show_add_form']") |> render_click()
+    assert has_element?(view, "##{form_id(person)}")
+  end
+
+  test "the add form pre-fills non-date fields from the current span", %{conn: conn} do
+    person = fixture_person()
+
+    _span =
+      fixture_employment(person.uuid, %{
+        "job_title" => "Staff Engineer",
+        "employment_type" => "full_time",
+        "employment_start_date" => "2020-01-01"
+      })
+
+    view = open_employment_tab(conn, person)
+    html = view |> element("button[phx-click='show_add_form']") |> render_click()
+
+    # The current role is carried over so adding reads as "update the role"…
+    assert html =~ "Carried over from"
+    assert html =~ ~s(value="Staff Engineer")
+    # …but the start date stays blank for the new span (no ISO value on the input).
+    refute html =~ ~s(value="2020-01-01")
   end
 
   test "adding a span persists it, mirrors onto Person, and logs activity", %{
@@ -37,6 +64,9 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponentTest do
   } do
     person = fixture_person()
     view = open_employment_tab(conn, person)
+
+    # The add form is hidden by default — reveal it first.
+    view |> element("button[phx-click='show_add_form']") |> render_click()
 
     view
     |> form("##{form_id(person)}",
