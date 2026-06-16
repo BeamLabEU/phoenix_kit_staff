@@ -36,6 +36,10 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponentTest do
 
     view |> element("button[phx-click='show_add_form']") |> render_click()
     assert has_element?(view, "##{form_id(person)}")
+
+    # Cancel closes it again (available in add mode, not just when editing).
+    view |> element("button[phx-click='cancel_edit']") |> render_click()
+    refute has_element?(view, "##{form_id(person)}")
   end
 
   test "the add form pre-fills non-date fields from the current span", %{conn: conn} do
@@ -54,7 +58,9 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponentTest do
     # The current role is carried over so adding reads as "update the role"…
     assert html =~ "Carried over from"
     assert html =~ ~s(value="Staff Engineer")
-    # …but the start date stays blank for the new span (no ISO value on the input).
+    # …the start date defaults to today (not the prior span's start) so the new
+    # open span reads "today – present" instead of being date-less…
+    assert html =~ ~s(value="#{Date.to_iso8601(Date.utc_today())}")
     refute html =~ ~s(value="2020-01-01")
   end
 

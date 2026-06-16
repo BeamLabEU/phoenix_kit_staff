@@ -141,9 +141,11 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
   defp new_form, do: to_form(Employment.changeset(%Employment{}, %{}), as: :employment)
 
   # The "add" form starts from the current/last span's non-date fields so a new
-  # role is an edit-from-current; the dates stay blank (the user sets the new
-  # start; an empty end keeps it open and auto-closes the prior span on save).
-  defp prefill_base(nil), do: %Employment{}
+  # role is an edit-from-current. The start date defaults to today (a new role
+  # usually starts now; visible + editable) so leaving it untouched yields
+  # "today – present" rather than a date-less span; the end stays blank (open,
+  # which auto-closes the prior span on save).
+  defp prefill_base(nil), do: %Employment{employment_start_date: Date.utc_today()}
 
   defp prefill_base(%Employment{} = span) do
     %Employment{
@@ -152,7 +154,8 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
       primary_department_uuid: span.primary_department_uuid,
       primary_team_uuid: span.primary_team_uuid,
       work_location: span.work_location,
-      notes: span.notes
+      notes: span.notes,
+      employment_start_date: Date.utc_today()
     }
   end
 
@@ -231,7 +234,7 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
 
           <p :if={@prefill_source} class="text-sm text-base-content/60 -mt-1">
             {gettext(
-              "Carried over from %{role} — set the new start date and change whatever differs.",
+              "Carried over from %{role}, starting today — adjust the dates and change whatever differs.",
               role: title(@prefill_source, @locale)
             )}
           </p>
@@ -294,7 +297,6 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
 
             <div class="flex justify-end gap-2">
               <button
-                :if={@editing_uuid}
                 type="button"
                 phx-target={@myself}
                 phx-click="cancel_edit"
