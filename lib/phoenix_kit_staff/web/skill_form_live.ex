@@ -404,13 +404,38 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
               </span>
             </div>
 
-            <p :if={@staged_groups == []} class="text-sm text-base-content/60">
-              {gettext("No selectors — this skill is assigned with no level. Add a selector (e.g. Proficiency, Difficulty), or leave empty.")}
-            </p>
+            <%!-- Skeleton shown instantly on language switch (the switcher's JS
+                 toggles all `[data-translatable=skeletons]`/`[=fields]`); the
+                 lang-keyed ids make morphdom reset both after the debounced swap.
+                 Distinct id prefix avoids colliding with the name/desc wrapper. --%>
+            <div
+              :if={@multilang_enabled}
+              id={"selector-skeletons-#{@current_lang}"}
+              data-translatable="skeletons"
+              class="hidden"
+              aria-hidden="true"
+            >
+              <div class="border border-base-300 rounded-box p-3 flex flex-col gap-2">
+                <div class="bg-base-content/15 rounded h-8 w-full animate-pulse"></div>
+                <div class="pl-6 flex flex-col gap-2">
+                  <div class="bg-base-content/15 rounded h-7 w-2/3 animate-pulse"></div>
+                  <div class="bg-base-content/15 rounded h-7 w-2/3 animate-pulse"></div>
+                </div>
+              </div>
+            </div>
 
-            <.draggable_list
-              :if={@staged_groups != []}
-              id="skill-selectors"
+            <div
+              id={if @multilang_enabled, do: "selector-fields-#{@current_lang}", else: "selector-fields"}
+              data-translatable="fields"
+              class="flex flex-col gap-4"
+            >
+              <p :if={@staged_groups == []} class="text-sm text-base-content/60">
+                {gettext("No selectors — this skill is assigned with no level. Add a selector (e.g. Proficiency, Difficulty), or leave empty.")}
+              </p>
+
+              <.draggable_list
+                :if={@staged_groups != []}
+                id="skill-selectors"
               items={@staged_groups}
               item_id={&Map.get(&1, "id")}
               on_reorder="reorder_selectors"
@@ -527,6 +552,7 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
               >
                 <.icon name="hero-sparkles" class="w-4 h-4" /> {gettext("Add standard levels")}
               </button>
+            </div>
             </div>
           </div>
 
