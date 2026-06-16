@@ -9,11 +9,13 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   require Logger
 
   alias PhoenixKit.Users.Auth
-  alias PhoenixKitStaff.{Activity, Departments, Errors, Paths, Skills, Staff, Teams}
+  alias PhoenixKitStaff.{Activity, Errors, Paths, Skills, Staff, Teams}
   alias PhoenixKitStaff.Schemas.{Person, PersonSkill, Skill}
   alias PhoenixKitStaff.Web.Helpers
 
-  @translatable_field_atoms [:job_title, :bio]
+  # job_title moved to the Employment tab (per-span); bio is the only
+  # form-edited translatable field now.
+  @translatable_field_atoms [:bio]
 
   # How many skill matches to surface in the type-to-search dropdown.
   @skill_match_limit 8
@@ -39,10 +41,8 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
       email_status: :blank,
       eligible_users: Staff.eligible_users(),
       email_editable?: true,
-      dept_options: dept_options(),
-      team_options: [],
+      team_options: team_options(),
       selected_team_uuid: nil,
-      location_options: location_options(),
       all_skills: all_skills,
       staged_skills: [],
       skill_search: "",
@@ -80,10 +80,8 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
           email_status: :blank,
           eligible_users: [],
           email_editable?: placeholder_user?(person.user),
-          dept_options: dept_options(),
-          team_options: team_options_for(person.primary_department_uuid),
+          team_options: team_options(),
           selected_team_uuid: nil,
-          location_options: location_options(),
           all_skills: all_skills,
           staged_skills: staged,
           skill_search: "",
@@ -100,50 +98,12 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
       Map.get(user.custom_fields || %{}, "source") == "staff_placeholder"
   end
 
-  defp dept_options do
-    Departments.list() |> Enum.map(&{&1.name, &1.uuid})
-  end
-
-  defp team_options_for(nil), do: []
-
-  defp team_options_for(dept_uuid) do
-    Teams.list(department_uuid: dept_uuid) |> Enum.map(&{&1.name, &1.uuid})
-  end
-
-  # Soft dep on `phoenix_kit_locations` — staff has no compile-time
-  # link to that package. Returns `[]` when the module isn't installed
-  # or is toggled off in Admin > Modules; the form hides the picker in
-  # that case. Rescues DB errors so a transient outage on the
-  # locations side doesn't take this form down with it.
-  defp location_options do
-    # Resolve the optional module through `Code.ensure_loaded/1`: binding
-    # `mod` to the runtime result keeps PhoenixKitLocations out of
-    # compile-time analysis, so a missing dep neither trips the compiler's
-    # undefined-function warning (`--warnings-as-errors`) nor dialyzer —
-    # and we avoid `apply/3` (and the credo finding that comes with it).
-    with true <- locations_module_enabled?(),
-         {:module, mod} <- Code.ensure_loaded(PhoenixKitLocations.Locations) do
-      try do
-        mod.list_locations(status: "active")
-        |> Enum.map(fn loc -> {loc.name, loc.uuid} end)
-      rescue
-        e in [Postgrex.Error, DBConnection.ConnectionError, Ecto.QueryError] ->
-          Logger.warning("[Staff] locations lookup failed: #{Exception.message(e)}")
-          []
-      end
-    else
-      _ -> []
-    end
-  end
-
-  defp locations_module_enabled? do
-    # Same soft-dep dispatch: `mod` comes from a runtime lookup, so the
-    # optional PhoenixKitLocations is never named at compile time;
-    # `function_exported?/3` gates the call.
-    case Code.ensure_loaded(PhoenixKitLocations) do
-      {:module, mod} -> function_exported?(mod, :enabled?, 0) and mod.enabled?()
-      {:error, _} -> false
-    end
+  # All teams as {name, uuid} options. The form sets the person's (single)
+  # primary team membership; the dependent dept→team filtering moved out with
+  # the department picker (department is now driven by the Employment tab's
+  # current span). Work location + employment fields live on the Employment tab.
+  defp team_options do
+    Teams.list() |> Enum.map(&{&1.name, &1.uuid})
   end
 
   defp assign_form(socket, cs), do: assign(socket, form: to_form(cs))
@@ -169,7 +129,6 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
       |> Staff.change_person(attrs)
       |> Map.put(:action, :validate)
 
-    dept_uuid = attrs["primary_department_uuid"]
     team_uuid = params["team_uuid"]
     email = Map.get(params, "email", socket.assigns.email) |> String.trim()
 
@@ -184,7 +143,6 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
      |> assign(
        email: email,
        email_status: email_status(email, socket.assigns.eligible_users),
-       team_options: team_options_for(blank_to_nil(dept_uuid)),
        selected_team_uuid: blank_to_nil(team_uuid),
        skill_search: search,
        skill_matches:
@@ -727,21 +685,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             current_lang={@current_lang}
           >
             <div class="card-body pt-3 pb-6 flex flex-col gap-3">
-              <.translatable_field
-                field_name="job_title"
-                form_prefix="person"
-                changeset={@form.source}
-                schema_field={:job_title}
-                multilang_enabled={@multilang_enabled}
-                current_lang={@current_lang}
-                primary_language={@primary_language}
-                lang_data={Helpers.lang_data(@form, @current_lang)}
-                secondary_name={"person[translations][#{@current_lang}][job_title]"}
-                lang_data_key="job_title"
-                label={gettext("Job title")}
-                placeholder={gettext("e.g. Senior Engineer")}
-              />
-
+              <%!-- job_title moved to the Employment tab (per-span). Bio stays. --%>
               <.translatable_field
                 field_name="bio"
                 form_prefix="person"
@@ -849,53 +793,19 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
               placeholder={gettext("e.g. Jane Smith")}
             />
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Employment")}</div>
-
-            <.select
-              field={@form[:employment_type]}
-              label={gettext("Employment type")}
-              options={[
-                {gettext("Full-time"), "full_time"},
-                {gettext("Part-time"), "part_time"},
-                {gettext("Contractor"), "contractor"},
-                {gettext("Intern"), "intern"},
-                {gettext("Temporary"), "temporary"}
-              ]}
-              prompt={Gettext.gettext(PhoenixKitWeb.Gettext, "—")}
-            />
-
-            <div class="grid grid-cols-2 gap-2">
-              <.input field={@form[:employment_start_date]} label={gettext("Start date")} type="date" />
-              <.input field={@form[:employment_end_date]} label={gettext("End date")} type="date" />
-            </div>
-
-            <%!-- Work location is a soft-FK to a `phoenix_kit_locations`
-                 row (UUID stored as a plain string in the column). The
-                 whole field is hidden when the locations module isn't
-                 installed or is toggled off — single-location
-                 deployments don't need it. --%>
-            <.select
-              :if={@location_options != []}
-              field={@form[:work_location]}
-              label={gettext("Work location")}
-              options={@location_options}
-              prompt={Gettext.gettext(PhoenixKitWeb.Gettext, "—")}
-            />
-
+            <%!-- Employment (type, title, dates, department, work location)
+                 and its full history live on the **Employment tab** of the
+                 person profile now; the current span drives the denormalized
+                 fields on Person. Status is a lifecycle flag, not employment
+                 history, so it stays here. --%>
             <.select
               field={@form[:status]}
               label={Gettext.gettext(PhoenixKitWeb.Gettext, "Status")}
               options={[{Gettext.gettext(PhoenixKitWeb.Gettext, "Active"), "active"}, {Gettext.gettext(PhoenixKitWeb.Gettext, "Inactive"), "inactive"}]}
             />
 
-            <div class="divider text-xs text-base-content/50 my-0">{Gettext.gettext(PhoenixKitWeb.Gettext, "Organization")}</div>
+            <div class="divider text-xs text-base-content/50 my-0">{gettext("Organization")}</div>
 
-            <.select
-              field={@form[:primary_department_uuid]}
-              label={gettext("Primary department")}
-              options={@dept_options}
-              prompt={Gettext.gettext(PhoenixKitWeb.Gettext, "None")}
-            />
             <%= if @team_options != [] do %>
               <.select
                 name="team_uuid"

@@ -35,8 +35,10 @@ plug in whatever it actually needs:
 - **No external HRIS integration** — no Workday, BambooHR, Rippling
   connectors. The placeholder-user flow + `Staff.find_or_create_user_by_email/1`
   is intentionally the only outside-onboarding surface.
-- **No payroll, compensation, or contract data** — `employment_type`
-  is a free-form string; no salary, no equity, no contract fields.
+- **No payroll, compensation, or contract data** — no salary, no
+  equity, no contract fields. (Employment **history** — a timeline of
+  type/title/dept/team/dates spans — *is* tracked; see the Employment
+  history section. That's org/role history, not compensation.)
 - **No audit history beyond `PhoenixKit.Activity`** — every mutation
   logs an action atom, but there is no per-field versioning or "who
   changed what when" timeline UI of its own. The activity feed is the
@@ -116,6 +118,7 @@ the env var instead.
 - `PhoenixKitStaff.Schemas.TeamMembership` — `phoenix_kit_staff_team_memberships`
 - `PhoenixKitStaff.Schemas.Skill` — `phoenix_kit_staff_skills`
 - `PhoenixKitStaff.Schemas.PersonSkill` — `phoenix_kit_staff_person_skills`
+- `PhoenixKitStaff.Schemas.Employment` — `phoenix_kit_staff_employments`
 
 All use `@primary_key {:uuid, UUIDv7}`, `timestamps(type: :utc_datetime)`, `@foreign_key_type UUIDv7`.
 
@@ -124,6 +127,7 @@ All use `@primary_key {:uuid, UUIDv7}`, `timestamps(type: :utc_datetime)`, `@for
 - `PhoenixKitStaff.Departments` — CRUD
 - `PhoenixKitStaff.Teams` — CRUD
 - `PhoenixKitStaff.Skills` — skill CRUD + person↔skill assignment (`assign_skill`, `unassign_skill`, `update_assignment_level`, `list_for_person`, `list_people_for_skill`, `people_without_skill`, `skills_not_assigned_to`); `Staff` exposes thin delegators
+- `PhoenixKitStaff.Employments` — employment-span CRUD + the one-open-span invariant + `sync_current/1` (denormalizes the current span onto `Person`); see the Employment history section
 - `PhoenixKitStaff.Staff` — people CRUD (`list_people`, `get_person`, `create_person`, `update_person`, `delete_person`, `change_person`), team memberships, org tree, upcoming birthdays, and placeholder-user helpers (`find_or_create_user_by_email`, `create_person_with_user`, `rename_placeholder_email`)
 
 ### LiveViews
@@ -146,6 +150,8 @@ All under `/admin/staff/*`: `departments`, `teams`, `people`, `skills`, plus `..
 - `V122` bundles `translations JSONB NOT NULL DEFAULT '{}'` on all three top-level staff tables (`phoenix_kit_staff_departments`, `phoenix_kit_staff_teams`, `phoenix_kit_staff_people`) plus a single `name VARCHAR` on `phoenix_kit_staff_people` for the person's full display name.
 - `V131` adds `metadata JSONB NOT NULL DEFAULT '{}'` on `phoenix_kit_staff_people` (general-purpose, mirrors `entity_data`). Soft-delete uses it to stash `trashed_from_status` so restore returns the person to active/inactive. Shipped in core **1.7.132** (renumbered from a drafted V130 — core took V130 for the annotations-marker migration). The module's soft-delete requires this column, so the `phoenix_kit` lock must resolve to `>= 1.7.132`; until the lock is bumped the soft-delete tests/CI run against a core without the column and go red by design (works locally via the `phoenix_kit_parent` path-override or `PHOENIX_KIT_PATH`).
 - `V135` creates `phoenix_kit_staff_skills` (translatable `name`/`description`, globally unique `lower(name)`, plus a `levels` JSONB array — originally a flat list of translatable proficiency levels plus an `allow_multiple_levels` boolean) + `phoenix_kit_staff_person_skills` (join with a `proficiency_levels` JSONB array of selected level ids), migrates the old free-text `phoenix_kit_staff_people.skills` into structured rows (case-insensitive dedup, guarded for retry-safety), and **drops** that column. **Note:** the app later reshaped `levels` into named **selectors** (see the Skills section) — this is JSONB-only with a read-time legacy wrapper, so V135 itself is unchanged and no new migration was needed. **Lossy by design:** per-locale `translations["skills"]` overrides don't map to structured skills and are stripped. Requires the `phoenix_kit` lock to resolve to the core release carrying V135 (works locally via the path-override / `PHOENIX_KIT_PATH` until then).
+
+- `V136` creates `phoenix_kit_staff_employments` — a per-person **employment history** (one row per span: `employment_type`, translatable `job_title`, `primary_department_uuid` + `primary_team_uuid` snapshot, `employment_start_date`/`employment_end_date` (NULL = open/current), `work_location`, `notes`). A partial unique index enforces one open span per person. The matching `phoenix_kit_staff_people` columns are **kept** as a denormalized mirror of the current span (written by `Employments.sync_current/1`), not dropped. Backfills one open span per existing person from those columns (guarded, retry-safe). Requires the `phoenix_kit` lock to resolve to the core release carrying V136 (works locally via `PHOENIX_KIT_PATH` until then). See the Employment history section.
 
 When changing the schema, add the next `VNN` migration in `/www/phoenix_kit/lib/phoenix_kit/migrations/postgres/`.
 
@@ -226,6 +232,45 @@ to people many-to-many. Replaces the old free-text `Person.skills` (V135 migrate
 - Deleting a skill cascades its assignments (FK `ON DELETE CASCADE`); the list +
   delete-confirm surface the "removed from N people" count.
 - Categories/grouping are **not** built (a deliberate v1 cut — easy follow-up).
+
+## Employment history
+
+A staff person's employment is a **history of spans** (core **V136**), surfaced
+as a dedicated **Employment tab** on the person show page — not a single set of
+fields. Each span (`PhoenixKitStaff.Schemas.Employment`,
+`phoenix_kit_staff_employments`) records `employment_type`, a translatable
+`job_title`, the org placement at the time (`primary_department_uuid` + a
+`primary_team_uuid` **snapshot**), the date range (`employment_end_date` `nil` =
+the **open/current** span), `work_location`, and `notes`.
+
+- **One open span per person.** A partial unique index
+  (`…_one_open_index WHERE employment_end_date IS NULL`) enforces it.
+  `PhoenixKitStaff.Employments` is the **sole write path**: `create/2` closes the
+  prior open span (at the new span's start) when a new open one begins.
+- **Tab is the single source of truth.** The open span drives a **denormalized
+  mirror** on `Person` — `employment_type`, `job_title` (+ its translations),
+  `employment_start_date`, `employment_end_date`, `primary_department_uuid`,
+  `work_location` — written by `Employments.sync_current/1` in the same
+  transaction as every span mutation (server-owned; **never cast from the person
+  form**). Existing readers (Overview hero badges, people list `job_title`,
+  org-tree `primary_department_uuid`) keep working with no join. The person edit
+  form **no longer** has the employment fields, the department picker, or
+  `job_title` — only `status` + the (single) team-membership picker remain there.
+- **Team.** The span's `primary_team_uuid` is a history **snapshot** only; it does
+  not change the person's `TeamMembership` (still managed on the form / team
+  pages). The person form's team picker now lists **all** teams (it lost the
+  department filter that moved to the tab).
+- **UI.** `PhoenixKitStaff.Web.PersonEmploymentComponent` (a LiveComponent on the
+  Employment tab) renders the timeline + an add/edit form, persists immediately,
+  logs `staff.person_employment_added/updated/ended/removed`, and the context's
+  `:person_employment_changed` broadcast refreshes the host so the Overview
+  header stays in sync.
+- **v1 cuts:** `job_title` is edited in the **primary language only** in the tab
+  (the span's `translations` column is reserved for a later per-language pass);
+  the per-span team is a snapshot, not membership management.
+- **Backfill:** V136 seeds one open span per existing person from their old
+  single-span columns (guarded, retry-safe; people with no employment data are
+  skipped).
 
 ## Person.name
 
@@ -342,6 +387,7 @@ Every mutation logs via the `PhoenixKitStaff.Activity` wrapper — **never call 
 - `staff.team_person_added/removed`
 - `staff.skill_created/updated/deleted`
 - `staff.person_skill_added/removed/updated` (skill assigned to / unassigned from / re-leveled on a person)
+- `staff.person_employment_added/updated/ended/removed` (employment span created / edited / end-dated / deleted)
 
 **Where to log:** activity logging happens at the **LiveView layer**, not inside context functions. The LiveView is where `actor_uuid` is accessible (via `socket.assigns[:phoenix_kit_current_user]`) and where user intent is unambiguous ("admin clicked Save" vs. "internal function called during a cascade"). Context functions like `Staff.create_person/2` stay pure — they perform the mutation and return `{:ok, record} | {:error, changeset}`, and the calling LiveView logs on success.
 
@@ -368,9 +414,11 @@ lib/phoenix_kit_staff/
 ├── staff.ex                                 # Context: people + memberships + org_tree
 ├── teams.ex                                 # Context: teams CRUD
 ├── skills.ex                                # Context: skill CRUD + person↔skill assignment
+├── employments.ex                           # Context: employment-span history + sync_current
 ├── schemas/
 │   ├── department.ex
-│   ├── person.ex                            # Employment metadata + emergency contacts
+│   ├── employment.ex                        # Employment span (history); translatable job_title
+│   ├── person.ex                            # Current-employment mirror + emergency contacts
 │   ├── person_skill.ex                      # Person↔Skill join + proficiency_levels (level ids)
 │   ├── skill.ex
 │   ├── team.ex
@@ -381,8 +429,9 @@ lib/phoenix_kit_staff/
     ├── departments_live.ex
     ├── overview_live.ex                     # Org tree + upcoming birthdays
     ├── people_live.ex
+    ├── person_employment_component.ex       # Employment tab (timeline + add/edit/end/remove)
     ├── person_form_live.ex                  # Placeholder-user flow lives here
-    ├── person_show_live.ex
+    ├── person_show_live.ex                  # Overview + Employment + Comments tabs
     ├── skill_form_live.ex
     ├── skill_show_live.ex                   # Skill → people assignment (+ level)
     ├── skills_live.ex

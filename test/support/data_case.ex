@@ -147,4 +147,15 @@ defmodule PhoenixKitStaff.DataCase do
 
     {skill, ids_by_name}
   end
+
+  @doc """
+  Creates an employment span for a person via `PhoenixKitStaff.Employments`
+  (so the one-open-span invariant + `Person` denormalization run). `attrs` are
+  string-keyed (e.g. `%{"employment_type" => "full_time", "job_title" => "Dev"}`);
+  an absent `employment_end_date` makes it the open/current span.
+  """
+  def fixture_employment(person_uuid, attrs \\ %{}) do
+    {:ok, employment} = PhoenixKitStaff.Employments.create(person_uuid, attrs)
+    employment
+  end
 end

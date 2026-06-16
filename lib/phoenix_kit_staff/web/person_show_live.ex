@@ -210,9 +210,6 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   defp present?(""), do: false
   defp present?(_), do: true
 
-  defp format_date(nil), do: "—"
-  defp format_date(d), do: L10n.format_date(d)
-
   defp format_birthday(nil), do: nil
 
   defp format_birthday(dob) do
@@ -341,34 +338,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <%!-- Employment details --%>
-        <%= if has_any?(@person, [:employment_start_date, :employment_end_date, :employment_type, :work_location]) do %>
-          <div class="card bg-base-100 shadow">
-            <div class="card-body">
-              <h2 class="card-title text-lg">
-                <.icon name="hero-briefcase" class="w-5 h-5" /> {gettext("Employment")}
-              </h2>
-              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-2">
-                <%= if @person.employment_type do %>
-                  <dt class="text-base-content/60">{Gettext.gettext(PhoenixKitWeb.Gettext, "Type")}</dt>
-                  <dd>{Person.employment_type_label(@person.employment_type)}</dd>
-                <% end %>
-                <%= if @person.employment_start_date do %>
-                  <dt class="text-base-content/60">{gettext("Started")}</dt>
-                  <dd>{format_date(@person.employment_start_date)}</dd>
-                <% end %>
-                <%= if @person.employment_end_date do %>
-                  <dt class="text-base-content/60">{gettext("Ended")}</dt>
-                  <dd>{format_date(@person.employment_end_date)}</dd>
-                <% end %>
-                <%= if @person.work_location do %>
-                  <dt class="text-base-content/60">{gettext("Location")}</dt>
-                  <dd>{@person.work_location}</dd>
-                <% end %>
-              </dl>
-            </div>
-          </div>
-        <% end %>
+        <%!-- Employment details (incl. history) live on the Employment tab now;
+             the hero badges above show the current type/department/location. --%>
 
         <%!-- Contact --%>
         <div class="card bg-base-100 shadow">
@@ -530,6 +501,18 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         <% end %>
       </div>
 
+      <%!-- Employment tab — the person's employment history (spans). The open
+           span is the current employment and drives the denormalized fields. --%>
+      <div :if={@active_tab == "employment"}>
+        <.live_component
+          module={PhoenixKitStaff.Web.PersonEmploymentComponent}
+          id={"staff-person-employment-#{@person.uuid}"}
+          person={@person}
+          locale={assigns[:current_locale]}
+          phoenix_kit_current_user={@phoenix_kit_current_user}
+        />
+      </div>
+
       <%!-- Comments tab — embedded thread. The tab only renders when the
            comments admin toggle is on (see `comments_enabled?`). --%>
       <div :if={@active_tab == "comments"}>
@@ -552,12 +535,13 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   end
 
   defp tab_list(comments_enabled?) do
-    overview = {"overview", gettext("Overview"), "hero-identification"}
+    base = [
+      {"overview", gettext("Overview"), "hero-identification"},
+      {"employment", gettext("Employment"), "hero-briefcase"}
+    ]
 
-    if comments_enabled? do
-      [overview, {"comments", gettext("Comments"), "hero-chat-bubble-left-right"}]
-    else
-      [overview]
-    end
+    if comments_enabled?,
+      do: base ++ [{"comments", gettext("Comments"), "hero-chat-bubble-left-right"}],
+      else: base
   end
 end

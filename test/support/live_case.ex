@@ -45,6 +45,8 @@ defmodule PhoenixKitStaff.LiveCase do
           fixture_skill: 1,
           fixture_skill_with_levels: 1,
           fixture_skill_with_levels: 2,
+          fixture_employment: 1,
+          fixture_employment: 2,
           errors_on: 1
         ]
 
