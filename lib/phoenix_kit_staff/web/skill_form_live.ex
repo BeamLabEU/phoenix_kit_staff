@@ -415,11 +415,21 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
               class="hidden"
               aria-hidden="true"
             >
-              <div class="border border-base-300 rounded-box p-3 flex flex-col gap-2">
-                <div class="bg-base-content/15 rounded h-8 w-full animate-pulse"></div>
-                <div class="pl-6 flex flex-col gap-2">
-                  <div class="bg-base-content/15 rounded h-7 w-2/3 animate-pulse"></div>
-                  <div class="bg-base-content/15 rounded h-7 w-2/3 animate-pulse"></div>
+              <%!-- Mirrors the live structure: one card per selector, one bar
+                   per option inside it, so the placeholder matches what's there. --%>
+              <div class="flex flex-col gap-3">
+                <div
+                  :for={group <- @staged_groups}
+                  class="border border-base-300 rounded-box p-3 flex flex-col gap-2"
+                >
+                  <div class="bg-base-content/15 rounded h-8 w-full animate-pulse"></div>
+                  <div :if={group["options"] != []} class="pl-6 flex flex-col gap-2">
+                    <div
+                      :for={_opt <- group["options"]}
+                      class="bg-base-content/15 rounded h-7 w-full animate-pulse"
+                    >
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
