@@ -70,6 +70,13 @@ defmodule PhoenixKitStaff.Web.PersonEventsComponent do
   defp actor_label(%{actor: %{email: email}}) when is_binary(email), do: email
   defp actor_label(_), do: gettext("System")
 
+  # Deep link to the core admin Activity viewer, scoped to this person
+  # (resource_type + resource_uuid honored by the admin page via URL params).
+  defp activity_log_path(person_uuid) do
+    query = URI.encode_query(%{"resource_type" => "staff_person", "resource_uuid" => person_uuid})
+    PhoenixKit.Utils.Routes.path("/admin/activity?#{query}")
+  end
+
   defp format_at(%DateTime{} = dt),
     do: "#{L10n.format_date(dt)} · #{Calendar.strftime(dt, "%H:%M")}"
 
@@ -103,9 +110,15 @@ defmodule PhoenixKitStaff.Web.PersonEventsComponent do
     ~H"""
     <div class="card bg-base-100 shadow">
       <div class="card-body">
-        <h2 class="card-title text-lg">
-          <.icon name="hero-clock" class="w-5 h-5" /> {gettext("Events")} ({@total})
-        </h2>
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="card-title text-lg">
+            <.icon name="hero-clock" class="w-5 h-5" /> {gettext("Events")} ({@total})
+          </h2>
+          <.link navigate={activity_log_path(@person.uuid)} class="btn btn-ghost btn-sm">
+            {gettext("Open in Activity log")}
+            <.icon name="hero-arrow-top-right-on-square" class="w-4 h-4" />
+          </.link>
+        </div>
 
         <p :if={@events == []} class="text-sm text-base-content/60 py-2">
           {gettext("No activity recorded for this person yet.")}
