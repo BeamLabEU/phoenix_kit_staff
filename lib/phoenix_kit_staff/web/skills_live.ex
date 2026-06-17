@@ -6,8 +6,9 @@ defmodule PhoenixKitStaff.Web.SkillsLive do
 
   require Logger
 
-  alias PhoenixKitStaff.{Activity, Paths, Skills}
+  alias PhoenixKitStaff.{Activity, L10n, Paths, Skills}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
+  alias PhoenixKitStaff.Schemas.Skill
   alias PhoenixKitStaff.Web.Helpers
 
   @impl true
@@ -63,6 +64,8 @@ defmodule PhoenixKitStaff.Web.SkillsLive do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :lang, L10n.current_content_lang())
+
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
       <.admin_page_header
@@ -99,7 +102,7 @@ defmodule PhoenixKitStaff.Web.SkillsLive do
                 <tr :for={skill <- @skills} class="hover">
                   <td>
                     <.link navigate={Paths.skill(skill.uuid)} class="link link-hover font-medium">
-                      {skill.name}
+                      {Skill.localized_name(skill, @lang)}
                     </.link>
                   </td>
                   <td>{Map.get(@person_counts, skill.uuid, 0)}</td>
@@ -123,7 +126,7 @@ defmodule PhoenixKitStaff.Web.SkillsLive do
                         phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
                         data-confirm={
                           gettext("Delete skill %{name}? It will be removed from %{count} people.",
-                            name: skill.name,
+                            name: Skill.localized_name(skill, @lang),
                             count: Map.get(@person_counts, skill.uuid, 0)
                           )
                         }

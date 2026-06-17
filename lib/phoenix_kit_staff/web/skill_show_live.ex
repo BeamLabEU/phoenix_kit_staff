@@ -15,7 +15,7 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
 
   require Logger
 
-  alias PhoenixKitStaff.{Activity, Paths, Skills}
+  alias PhoenixKitStaff.{Activity, L10n, Paths, Skills}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
   alias PhoenixKitStaff.Schemas.{Person, PersonSkill, Skill}
 
@@ -164,18 +164,21 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
     end
   end
 
-  defp locale(socket_or_assigns), do: Map.get(socket_or_assigns, :current_locale)
-
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :has_levels, Skill.all_option_ids(assigns.skill) != [])
+    assigns =
+      assigns
+      |> assign(:has_levels, Skill.all_option_ids(assigns.skill) != [])
+      |> assign(:lang, L10n.current_content_lang())
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
       <.admin_page_header>
-        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-base-content">{@skill.name}</h1>
+        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-base-content">
+          {Skill.localized_name(@skill, @lang)}
+        </h1>
         <p :if={@skill.description} class="text-sm sm:text-base text-base-content/60 mt-0.5">
-          {@skill.description}
+          {Skill.localized_description(@skill, @lang)}
         </p>
         <:actions>
           <.link navigate={Paths.edit_skill(@skill.uuid)} class="btn btn-ghost btn-sm">
@@ -213,7 +216,7 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
               <div :if={@has_levels} class="mt-1">
                 <.level_picker
                   skill={@skill}
-                  lang={locale(assigns)}
+                  lang={@lang}
                   selected={@add_selected_levels}
                   event="toggle_add_level"
                 />
@@ -251,7 +254,7 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
                   <td :if={@has_levels}>
                     <.level_picker
                       skill={@skill}
-                      lang={locale(assigns)}
+                      lang={@lang}
                       selected={a.proficiency_levels}
                       event="toggle_level"
                       ps_uuid={a.uuid}

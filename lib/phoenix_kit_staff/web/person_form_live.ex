@@ -9,7 +9,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   require Logger
 
   alias PhoenixKit.Users.Auth
-  alias PhoenixKitStaff.{Activity, Errors, Paths, Skills, Staff, Teams}
+  alias PhoenixKitStaff.{Activity, Errors, L10n, Paths, Skills, Staff, Teams}
   alias PhoenixKitStaff.Schemas.{Person, PersonSkill, Skill}
   alias PhoenixKitStaff.Web.Helpers
 
@@ -649,6 +649,8 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :content_lang, L10n.current_content_lang())
+
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
       <.admin_page_header
@@ -910,14 +912,14 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
                         class="flex flex-col gap-1"
                       >
                         <span
-                          :if={group_label(s.skill, group, assigns[:current_locale]) != ""}
+                          :if={group_label(s.skill, group, @content_lang) != ""}
                           class="text-xs font-medium text-base-content/50"
                         >
-                          {group_label(s.skill, group, assigns[:current_locale])}
+                          {group_label(s.skill, group, @content_lang)}
                         </span>
                         <div class="flex flex-wrap gap-1.5">
                           <button
-                            :for={{name, id} <- Skill.option_choices(s.skill, group, assigns[:current_locale])}
+                            :for={{name, id} <- Skill.option_choices(s.skill, group, @content_lang)}
                             type="button"
                             phx-click="toggle_staged_level"
                             phx-value-uuid={s.skill_uuid}

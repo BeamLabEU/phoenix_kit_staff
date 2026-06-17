@@ -20,6 +20,7 @@ defmodule PhoenixKitStaff.Web.MultilangDisplayTest do
   # (URL locale) while `put_locale("et")` drives the *content* locale the
   # render reads via `current_content_lang/0`. The two are independent here.
   @departments_url "/en/admin/staff/departments"
+  @skills_url "/en/admin/staff/skills"
 
   setup %{conn: conn} do
     # The hook puts the locale on the (test) process during the disconnected
@@ -60,5 +61,33 @@ defmodule PhoenixKitStaff.Web.MultilangDisplayTest do
     {:ok, _view, html} = live(conn, @departments_url)
 
     assert html =~ "NoOverrideDept"
+  end
+
+  test "skills list renders the locale name override, not the primary name", %{conn: conn} do
+    fixture_skill(%{
+      "name" => "ElixirPRIMARY",
+      "translations" => %{"et" => %{"name" => "ElixirET"}}
+    })
+
+    {:ok, _view, html} = live(conn, @skills_url)
+
+    assert html =~ "ElixirET"
+    refute html =~ "ElixirPRIMARY"
+  end
+
+  test "skill show renders the locale name + description override", %{conn: conn} do
+    skill =
+      fixture_skill(%{
+        "name" => "ElixirPRIMARY",
+        "description" => "DescPRIMARY",
+        "translations" => %{"et" => %{"name" => "ElixirET", "description" => "DescET"}}
+      })
+
+    {:ok, _view, html} = live(conn, "#{@skills_url}/#{skill.uuid}")
+
+    assert html =~ "ElixirET"
+    assert html =~ "DescET"
+    refute html =~ "ElixirPRIMARY"
+    refute html =~ "DescPRIMARY"
   end
 end
