@@ -40,6 +40,7 @@ defmodule PhoenixKitStaff.Web.PersonMediaComponent do
      socket
      |> assign_new(:show_picker, fn -> false end)
      |> assign(:folder_uuid, Attachments.folder_uuid(socket.assigns.person.uuid, kind))
+     |> assign(:avatar_uuid, Attachments.avatar_uuid(socket.assigns.person))
      |> reload()}
   end
 
@@ -58,18 +59,54 @@ defmodule PhoenixKitStaff.Web.PersonMediaComponent do
 
   def handle_event("close_picker", _params, socket), do: {:noreply, close_picker(socket)}
 
+  # Set one of the person's images as the avatar. The host (PersonShowLive)
+  # owns the header avatar, so notify it to reload after the metadata write.
+  def handle_event("set_as_avatar", %{"uuid" => uuid}, socket) do
+    case Attachments.set_avatar(socket.assigns.person, uuid) do
+      {:ok, _} ->
+        Activity.log("staff.person_avatar_set",
+          actor_uuid: Activity.actor_uuid(socket),
+          resource_type: "staff_person",
+          resource_uuid: socket.assigns.person.uuid,
+          metadata: %{}
+        )
+
+        send(self(), {:avatar_changed})
+
+        {:noreply,
+         socket
+         |> assign(:avatar_uuid, uuid)
+         |> put_flash_safe(:info, gettext("Profile photo updated."))}
+
+      {:error, _} ->
+        {:noreply, put_flash_safe(socket, :error, gettext("Could not set the photo."))}
+    end
+  end
+
   def handle_event("remove_file", %{"uuid" => uuid}, socket) do
     if storage_enabled?() do
       case Attachments.detach(uuid, socket.assigns.folder_uuid) do
         :ok ->
           log(socket, "removed", %{"file_uuid" => uuid})
-          {:noreply, reload(socket)}
+          {:noreply, socket |> maybe_clear_avatar(uuid) |> reload()}
 
         {:error, _} ->
           {:noreply, put_flash_safe(socket, :error, gettext("Could not remove the file."))}
       end
     else
       {:noreply, reload(socket)}
+    end
+  end
+
+  # If the removed image was the avatar, clear the pointer so the header
+  # doesn't reference a trashed file, and tell the host to refresh.
+  defp maybe_clear_avatar(socket, uuid) do
+    if uuid == socket.assigns[:avatar_uuid] do
+      Attachments.clear_avatar(socket.assigns.person)
+      send(self(), {:avatar_changed})
+      assign(socket, :avatar_uuid, nil)
+    else
+      socket
     end
   end
 
@@ -237,6 +274,34 @@ defmodule PhoenixKitStaff.Web.PersonMediaComponent do
               >
                 <.icon name="hero-x-mark" class="w-3.5 h-3.5" />
               </button>
+              <%!-- Set as / current avatar --%>
+              <button
+                type="button"
+                phx-target={@myself}
+                phx-click="set_as_avatar"
+                phx-value-uuid={f.uuid}
+                disabled={f.uuid == @avatar_uuid}
+                class={[
+                  "btn btn-xs btn-circle absolute top-1 left-1 border-0 bg-base-100/80 transition",
+                  if(f.uuid == @avatar_uuid,
+                    do: "opacity-100 text-warning",
+                    else: "opacity-0 group-hover:opacity-100")
+                ]}
+                title={
+                  if(f.uuid == @avatar_uuid,
+                    do: gettext("Current profile photo"),
+                    else: gettext("Set as profile photo"))
+                }
+                aria-label={gettext("Set as profile photo")}
+              >
+                <.icon name="hero-star" class="w-3.5 h-3.5" />
+              </button>
+              <span
+                :if={f.uuid == @avatar_uuid}
+                class="badge badge-xs badge-primary absolute bottom-1 left-1"
+              >
+                {gettext("Avatar")}
+              </span>
             </div>
           </div>
 

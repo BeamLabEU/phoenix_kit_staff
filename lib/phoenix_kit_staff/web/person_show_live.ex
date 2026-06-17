@@ -167,6 +167,10 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   def handle_info({:media_selector_closed}, socket),
     do: {:noreply, assign(socket, :show_avatar_picker, false)}
 
+  # The Images tab sets an avatar on its own component; reload so the header
+  # avatar (and the tab's "current" marker) reflect it.
+  def handle_info({:avatar_changed}, socket), do: {:noreply, reload_person(socket)}
+
   # Note: the composer's {:leaf_changed, …} message is handled by the
   # `use PhoenixKitComments.Embed` lifecycle hook (it halts before reaching
   # handle_info), so there's no explicit clause for it here.

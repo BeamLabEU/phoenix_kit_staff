@@ -11,7 +11,7 @@ msgstr ""
 "Language: et\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:346
+#: lib/phoenix_kit_staff/web/person_show_live.ex:351
 #, elixir-autogen, elixir-format
 msgid "%{date} · age %{age}"
 msgstr "%{date} · vanus %{age}"
@@ -62,7 +62,7 @@ msgstr "Lisa töötaja"
 msgid "Adding…"
 msgstr "Lisamine…"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:677
+#: lib/phoenix_kit_staff/web/person_show_live.ex:682
 #, elixir-autogen, elixir-format
 msgid "Admin notes"
 msgstr "Administraatori märkmed"
@@ -77,13 +77,13 @@ msgstr "Selle e-postiga konto on juba olemas."
 msgid "Bio"
 msgstr "Tutvustus"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:562
+#: lib/phoenix_kit_staff/web/person_show_live.ex:567
 #, elixir-autogen, elixir-format
 msgid "Birthday"
 msgstr "Sünnipäev"
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:819
-#: lib/phoenix_kit_staff/web/person_show_live.ex:529
+#: lib/phoenix_kit_staff/web/person_show_live.ex:534
 #, elixir-autogen, elixir-format
 msgid "Contact"
 msgstr "Kontakt"
@@ -178,7 +178,7 @@ msgstr "Kustutada meeskond %{name}? See eemaldab kõik liikmesused."
 
 #: lib/phoenix_kit_staff/web/overview_live.ex:58
 #: lib/phoenix_kit_staff/web/person_employment_component.ex:267
-#: lib/phoenix_kit_staff/web/person_show_live.ex:616
+#: lib/phoenix_kit_staff/web/person_show_live.ex:621
 #: lib/phoenix_kit_staff/web/team_form_live.ex:177
 #: lib/phoenix_kit_staff/web/teams_live.ex:95
 #, elixir-autogen, elixir-format
@@ -237,12 +237,12 @@ msgid "Email is required."
 msgstr "E-post on kohustuslik."
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:836
-#: lib/phoenix_kit_staff/web/person_show_live.ex:574
+#: lib/phoenix_kit_staff/web/person_show_live.ex:579
 #, elixir-autogen, elixir-format
 msgid "Emergency contact"
 msgstr "Hädaolukorra kontakt"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:753
+#: lib/phoenix_kit_staff/web/person_show_live.ex:758
 #, elixir-autogen, elixir-format
 msgid "Employment"
 msgstr "Töösuhe"
@@ -350,31 +350,31 @@ msgstr "Meeskondi veel pole."
 msgid "Not a valid email."
 msgstr "Vigane e-posti aadress."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:608
+#: lib/phoenix_kit_staff/web/person_show_live.ex:613
 #, elixir-autogen, elixir-format
 msgid "Not on any teams yet."
 msgstr "Veel mitte üheski meeskonnas."
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:826
-#: lib/phoenix_kit_staff/web/person_show_live.ex:559
+#: lib/phoenix_kit_staff/web/person_show_live.ex:564
 #, elixir-autogen, elixir-format
 msgid "Personal"
 msgstr "Isiklik"
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:831
-#: lib/phoenix_kit_staff/web/person_show_live.ex:535
+#: lib/phoenix_kit_staff/web/person_show_live.ex:540
 #, elixir-autogen, elixir-format
 msgid "Personal email"
 msgstr "Isiklik e-post"
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:823
-#: lib/phoenix_kit_staff/web/person_show_live.ex:547
+#: lib/phoenix_kit_staff/web/person_show_live.ex:552
 #, elixir-autogen, elixir-format
 msgid "Personal phone"
 msgstr "Isiklik telefon"
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:846
-#: lib/phoenix_kit_staff/web/person_show_live.ex:586
+#: lib/phoenix_kit_staff/web/person_show_live.ex:591
 #, elixir-autogen, elixir-format
 msgid "Phone"
 msgstr "Telefon"
@@ -396,7 +396,7 @@ msgid "Record not found."
 msgstr "Kirjet ei leitud."
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:842
-#: lib/phoenix_kit_staff/web/person_show_live.ex:582
+#: lib/phoenix_kit_staff/web/person_show_live.ex:587
 #, elixir-autogen, elixir-format
 msgid "Relationship"
 msgstr "Suhe"
@@ -425,7 +425,7 @@ msgstr "Vali töötaja"
 
 #: lib/phoenix_kit_staff.ex:33
 #: lib/phoenix_kit_staff/web/person_form_live.ex:848
-#: lib/phoenix_kit_staff/web/person_show_live.ex:639
+#: lib/phoenix_kit_staff/web/person_show_live.ex:644
 #: lib/phoenix_kit_staff/web/skills_live.ex:16
 #: lib/phoenix_kit_staff/web/skills_live.ex:69
 #, elixir-autogen, elixir-format
@@ -503,7 +503,7 @@ msgstr "Alguskuupäev"
 #: lib/phoenix_kit_staff/web/overview_live.ex:61
 #: lib/phoenix_kit_staff/web/person_employment_component.ex:273
 #: lib/phoenix_kit_staff/web/person_form_live.ex:812
-#: lib/phoenix_kit_staff/web/person_show_live.ex:615
+#: lib/phoenix_kit_staff/web/person_show_live.ex:620
 #, elixir-autogen, elixir-format
 msgid "Team"
 msgstr "Meeskond"
@@ -533,7 +533,7 @@ msgstr "Meeskond uuendatud."
 #: lib/phoenix_kit_staff/web/department_show_live.ex:74
 #: lib/phoenix_kit_staff/web/departments_live.ex:97
 #: lib/phoenix_kit_staff/web/overview_live.ex:82
-#: lib/phoenix_kit_staff/web/person_show_live.ex:603
+#: lib/phoenix_kit_staff/web/person_show_live.ex:608
 #: lib/phoenix_kit_staff/web/teams_live.ex:16
 #: lib/phoenix_kit_staff/web/teams_live.ex:70
 #, elixir-autogen, elixir-format
@@ -555,7 +555,7 @@ msgstr "Neil töötajatel pole peamist osakonda ega kuulu nad ühtegi meeskonda.
 msgid "This department was deleted."
 msgstr "See osakond kustutati."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:127
+#: lib/phoenix_kit_staff/web/person_show_live.ex:128
 #, elixir-autogen, elixir-format
 msgid "This staff member was deleted."
 msgstr "See töötaja kustutati."
@@ -620,7 +620,7 @@ msgstr "Loob kohatäitekonto — inimene hõivab selle registreerudes."
 msgid "Will link to existing account."
 msgstr "Seob olemasoleva kontoga."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:532
+#: lib/phoenix_kit_staff/web/person_show_live.ex:537
 #, elixir-autogen, elixir-format
 msgid "Work email"
 msgstr "Töö e-post"
@@ -631,7 +631,7 @@ msgid "Work location"
 msgstr "Töökoht"
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:822
-#: lib/phoenix_kit_staff/web/person_show_live.ex:543
+#: lib/phoenix_kit_staff/web/person_show_live.ex:548
 #, elixir-autogen, elixir-format
 msgid "Work phone"
 msgstr "Töötelefon"
@@ -693,7 +693,7 @@ msgstr "otsi nime või e-posti järgi"
 msgid "tomorrow"
 msgstr "homme"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:342
+#: lib/phoenix_kit_staff/web/person_show_live.ex:347
 #, elixir-autogen, elixir-format
 msgid "🎂 in 1 day"
 msgid_plural "🎂 in %{count} days"
@@ -701,7 +701,7 @@ msgstr[0] "🎂 1 päeva pärast"
 msgstr[1] "🎂 %{count} päeva pärast"
 
 #: lib/phoenix_kit_staff/web/overview_live.ex:114
-#: lib/phoenix_kit_staff/web/person_show_live.ex:341
+#: lib/phoenix_kit_staff/web/person_show_live.ex:346
 #, elixir-autogen, elixir-format
 msgid "🎂 today!"
 msgstr "🎂 täna!"
@@ -737,7 +737,7 @@ msgid "New Team"
 msgstr "Uus meeskond"
 
 #: lib/phoenix_kit_staff.ex:26
-#: lib/phoenix_kit_staff/web/person_show_live.ex:752
+#: lib/phoenix_kit_staff/web/person_show_live.ex:757
 #, elixir-autogen, elixir-format
 msgid "Overview"
 msgstr "Ülevaade"
@@ -754,7 +754,7 @@ msgstr ""
 "Selle e-posti jaoks on juba prügikastis töötajaprofiil — taasta see uue "
 "loomise asemel."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:761
+#: lib/phoenix_kit_staff/web/person_show_live.ex:766
 #, elixir-autogen, elixir-format
 msgid "Comments"
 msgstr "Kommentaarid"
@@ -765,19 +765,19 @@ msgid "Could not delete skill."
 msgstr "Oskust ei õnnestunud kustutada."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:246
-#: lib/phoenix_kit_staff/web/person_show_live.ex:299
+#: lib/phoenix_kit_staff/web/person_show_live.ex:304
 #, elixir-autogen, elixir-format
 msgid "Could not delete staff."
 msgstr "Töötajat ei õnnestunud kustutada."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:186
-#: lib/phoenix_kit_staff/web/person_show_live.ex:236
+#: lib/phoenix_kit_staff/web/person_show_live.ex:241
 #, elixir-autogen, elixir-format
 msgid "Could not move staff to trash."
 msgstr "Töötajat ei õnnestunud prügikasti liigutada."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:214
-#: lib/phoenix_kit_staff/web/person_show_live.ex:257
+#: lib/phoenix_kit_staff/web/person_show_live.ex:262
 #, elixir-autogen, elixir-format
 msgid "Could not restore staff."
 msgstr "Töötajat ei õnnestunud taastada."
@@ -796,7 +796,7 @@ msgstr "Loo uus oskus."
 #: lib/phoenix_kit_staff/web/people_live.ex:404
 #: lib/phoenix_kit_staff/web/people_live.ex:444
 #: lib/phoenix_kit_staff/web/people_live.ex:445
-#: lib/phoenix_kit_staff/web/person_show_live.ex:437
+#: lib/phoenix_kit_staff/web/person_show_live.ex:442
 #, elixir-autogen, elixir-format
 msgid "Delete permanently"
 msgstr "Kustuta jäädavalt"
@@ -807,7 +807,7 @@ msgid "Delete skill %{name}? It will be removed from %{count} people."
 msgstr "Kustuta oskus %{name}? See eemaldatakse %{count} inimeselt."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:401
-#: lib/phoenix_kit_staff/web/person_show_live.ex:433
+#: lib/phoenix_kit_staff/web/person_show_live.ex:438
 #, elixir-autogen, elixir-format
 msgid "Deleting…"
 msgstr "Kustutan…"
@@ -828,7 +828,7 @@ msgid "Level"
 msgstr "Tase"
 
 #: lib/phoenix_kit_staff/web/people_live.ex:424
-#: lib/phoenix_kit_staff/web/person_show_live.ex:447
+#: lib/phoenix_kit_staff/web/person_show_live.ex:452
 #, elixir-autogen, elixir-format
 msgid "Move this staff to the trash? The user account stays; restore anytime from the Trash filter."
 msgstr ""
@@ -837,7 +837,7 @@ msgstr ""
 
 #: lib/phoenix_kit_staff/web/people_live.ex:346
 #: lib/phoenix_kit_staff/web/people_live.ex:426
-#: lib/phoenix_kit_staff/web/person_show_live.ex:450
+#: lib/phoenix_kit_staff/web/person_show_live.ex:455
 #, elixir-autogen, elixir-format
 msgid "Move to trash"
 msgstr "Liiguta prügikasti"
@@ -850,7 +850,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: lib/phoenix_kit_staff/web/people_live.ex:423
-#: lib/phoenix_kit_staff/web/person_show_live.ex:446
+#: lib/phoenix_kit_staff/web/person_show_live.ex:451
 #, elixir-autogen, elixir-format
 msgid "Moving…"
 msgstr "Liigutan…"
@@ -871,7 +871,7 @@ msgstr "Uus oskus"
 msgid "No one has this skill yet."
 msgstr "Kellelgi pole veel seda oskust."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:647
+#: lib/phoenix_kit_staff/web/person_show_live.ex:652
 #, elixir-autogen, elixir-format
 msgid "No skills assigned yet."
 msgstr "Ühtegi oskust pole veel määratud."
@@ -894,7 +894,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: lib/phoenix_kit_staff/web/people_live.ex:402
-#: lib/phoenix_kit_staff/web/person_show_live.ex:434
+#: lib/phoenix_kit_staff/web/person_show_live.ex:439
 #, elixir-autogen, elixir-format
 msgid "Permanently delete this staff? This cannot be undone and will clear their project-assignment links."
 msgstr ""
@@ -915,7 +915,7 @@ msgstr "Eemalda see oskus sellelt inimeselt?"
 
 #: lib/phoenix_kit_staff/web/people_live.ex:335
 #: lib/phoenix_kit_staff/web/people_live.ex:394
-#: lib/phoenix_kit_staff/web/person_show_live.ex:428
+#: lib/phoenix_kit_staff/web/person_show_live.ex:433
 #, elixir-autogen, elixir-format
 msgid "Restore"
 msgstr "Taasta"
@@ -934,7 +934,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: lib/phoenix_kit_staff/web/people_live.ex:392
-#: lib/phoenix_kit_staff/web/person_show_live.ex:425
+#: lib/phoenix_kit_staff/web/person_show_live.ex:430
 #, elixir-autogen, elixir-format
 msgid "Restoring…"
 msgstr "Taastan…"
@@ -983,19 +983,19 @@ msgstr ""
 "Mõned töötajad on mujal endiselt viidatud ja neid ei saanud kustutada."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:173
-#: lib/phoenix_kit_staff/web/person_show_live.ex:233
+#: lib/phoenix_kit_staff/web/person_show_live.ex:238
 #, elixir-autogen, elixir-format
 msgid "Staff moved to trash."
 msgstr "Töötaja liigutatud prügikasti."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:229
-#: lib/phoenix_kit_staff/web/person_show_live.ex:280
+#: lib/phoenix_kit_staff/web/person_show_live.ex:285
 #, elixir-autogen, elixir-format
 msgid "Staff permanently deleted."
 msgstr "Töötaja kustutatud jäädavalt."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:201
-#: lib/phoenix_kit_staff/web/person_show_live.ex:254
+#: lib/phoenix_kit_staff/web/person_show_live.ex:259
 #, elixir-autogen, elixir-format
 msgid "Staff restored."
 msgstr "Töötaja taastatud."
@@ -1015,14 +1015,14 @@ msgstr "See oskus kustutati."
 msgid "This staff is already in the trash."
 msgstr "See töötaja on juba prügikastis."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:477
+#: lib/phoenix_kit_staff/web/person_show_live.ex:482
 #, elixir-autogen, elixir-format
 msgid "This staff is in the trash. Restore to bring them back to the active roster."
 msgstr ""
 "See töötaja on prügikastis. Taasta, et tuua ta aktiivsesse nimekirja tagasi."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:235
-#: lib/phoenix_kit_staff/web/person_show_live.ex:288
+#: lib/phoenix_kit_staff/web/person_show_live.ex:293
 #, elixir-autogen, elixir-format
 msgid "This staff is still referenced elsewhere and couldn't be deleted."
 msgstr "See töötaja on mujal endiselt viidatud ja teda ei saanud kustutada."
@@ -1057,12 +1057,12 @@ msgstr "Uuenda oskuse andmeid."
 msgid "selected"
 msgstr "valitud"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:650
+#: lib/phoenix_kit_staff/web/person_show_live.ex:655
 #, elixir-autogen, elixir-format
 msgid "Add skills"
 msgstr "Lisa oskusi"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:642
+#: lib/phoenix_kit_staff/web/person_show_live.ex:647
 #, elixir-autogen, elixir-format
 msgid "Manage"
 msgstr "Halda"
@@ -1244,12 +1244,12 @@ msgstr "Üle kantud rollist %{role}, algusega täna — kohanda kuupäevi ja muu
 msgid "Activity"
 msgstr "Tegevus"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:205
+#: lib/phoenix_kit_staff/web/person_media_component.ex:230
 #, elixir-autogen, elixir-format
 msgid "Add files"
 msgstr "Lisa failid"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:205
+#: lib/phoenix_kit_staff/web/person_media_component.ex:230
 #, elixir-autogen, elixir-format
 msgid "Add images"
 msgstr "Lisa pildid"
@@ -1259,12 +1259,12 @@ msgstr "Lisa pildid"
 msgid "Added to a team"
 msgstr "Lisatud meeskonda"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:55
+#: lib/phoenix_kit_staff/web/person_media_component.ex:56
 #, elixir-autogen, elixir-format
 msgid "Could not prepare the media folder."
 msgstr "Meediakausta ettevalmistamine ebaõnnestus."
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:69
+#: lib/phoenix_kit_staff/web/person_media_component.ex:94
 #, elixir-autogen, elixir-format
 msgid "Could not remove the file."
 msgstr "Faili eemaldamine ebaõnnestus."
@@ -1289,8 +1289,8 @@ msgstr "Töösuhe eemaldatud"
 msgid "Employment updated"
 msgstr "Töösuhe uuendatud"
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:115
-#: lib/phoenix_kit_staff/web/person_show_live.ex:759
+#: lib/phoenix_kit_staff/web/person_events_component.ex:116
+#: lib/phoenix_kit_staff/web/person_show_live.ex:764
 #, elixir-autogen, elixir-format
 msgid "Events"
 msgstr "Sündmused"
@@ -1300,8 +1300,8 @@ msgstr "Sündmused"
 msgid "File removed"
 msgstr "Fail eemaldatud"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:196
-#: lib/phoenix_kit_staff/web/person_show_live.ex:756
+#: lib/phoenix_kit_staff/web/person_media_component.ex:221
+#: lib/phoenix_kit_staff/web/person_show_live.ex:761
 #, elixir-autogen, elixir-format
 msgid "Files"
 msgstr "Failid"
@@ -1311,8 +1311,8 @@ msgstr "Failid"
 msgid "Image removed"
 msgstr "Pilt eemaldatud"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:196
-#: lib/phoenix_kit_staff/web/person_show_live.ex:757
+#: lib/phoenix_kit_staff/web/person_media_component.ex:221
+#: lib/phoenix_kit_staff/web/person_show_live.ex:762
 #, elixir-autogen, elixir-format
 msgid "Images"
 msgstr "Pildid"
@@ -1322,22 +1322,22 @@ msgstr "Pildid"
 msgid "Moved to trash"
 msgstr "Visatud prügikasti"
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:124
+#: lib/phoenix_kit_staff/web/person_events_component.ex:125
 #, elixir-autogen, elixir-format
 msgid "No activity recorded for this person yet."
 msgstr "Selle inimese kohta pole veel tegevusi."
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:212
+#: lib/phoenix_kit_staff/web/person_media_component.ex:237
 #, elixir-autogen, elixir-format
 msgid "No files yet."
 msgstr "Faile veel pole."
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:211
+#: lib/phoenix_kit_staff/web/person_media_component.ex:236
 #, elixir-autogen, elixir-format
 msgid "No images yet."
 msgstr "Pilte veel pole."
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:158
+#: lib/phoenix_kit_staff/web/person_events_component.ex:159
 #, elixir-autogen, elixir-format
 msgid "Page %{page} of %{total}"
 msgstr "Lehekülg %{page} / %{total}"
@@ -1357,12 +1357,12 @@ msgstr "Profiil jäädavalt kustutatud"
 msgid "Profile updated"
 msgstr "Profiil uuendatud"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:263
+#: lib/phoenix_kit_staff/web/person_media_component.ex:316
 #, elixir-autogen, elixir-format
 msgid "Remove this file?"
 msgstr "Eemaldada see fail?"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:234
+#: lib/phoenix_kit_staff/web/person_media_component.ex:259
 #, elixir-autogen, elixir-format
 msgid "Remove this image?"
 msgstr "Eemaldada see pilt?"
@@ -1392,7 +1392,7 @@ msgstr "Oskuse tase muudetud"
 msgid "Skill removed"
 msgstr "Oskus eemaldatud"
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:71
+#: lib/phoenix_kit_staff/web/person_events_component.ex:72
 #, elixir-autogen, elixir-format
 msgid "System"
 msgstr "Süsteem"
@@ -1411,21 +1411,21 @@ msgid_plural "Images added"
 msgstr[0] "Pilt lisatud"
 msgstr[1] "Pildid lisatud"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:143
+#: lib/phoenix_kit_staff/web/person_media_component.ex:168
 #, elixir-autogen, elixir-format
 msgid "Images belong in the Images tab — skipped %{count} image."
 msgid_plural "Images belong in the Images tab — skipped %{count} images."
 msgstr[0] "Pildid kuuluvad Piltide vahelehele — %{count} pilt jäeti vahele."
 msgstr[1] "Pildid kuuluvad Piltide vahelehele — %{count} pilti jäeti vahele."
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:135
+#: lib/phoenix_kit_staff/web/person_media_component.ex:160
 #, elixir-autogen, elixir-format
 msgid "Only images can be added here — skipped %{count} non-image file."
 msgid_plural "Only images can be added here — skipped %{count} non-image files."
 msgstr[0] "Siia saab lisada ainult pilte — %{count} muu fail jäeti vahele."
 msgstr[1] "Siia saab lisada ainult pilte — %{count} muud faili jäeti vahele."
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:99
+#: lib/phoenix_kit_staff/web/person_events_component.ex:100
 #, elixir-autogen, elixir-format
 msgid "%{count} day ago"
 msgid_plural "%{count} days ago"
@@ -1439,7 +1439,7 @@ msgid_plural "%{count} files"
 msgstr[0] "%{count} fail"
 msgstr[1] "%{count} faili"
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:96
+#: lib/phoenix_kit_staff/web/person_events_component.ex:97
 #, elixir-autogen, elixir-format
 msgid "%{count} hour ago"
 msgid_plural "%{count} hours ago"
@@ -1460,38 +1460,39 @@ msgid_plural "%{count} levels"
 msgstr[0] "%{count} tase"
 msgstr[1] "%{count} taset"
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:93
+#: lib/phoenix_kit_staff/web/person_events_component.ex:94
 #, elixir-autogen, elixir-format
 msgid "%{count} minute ago"
 msgid_plural "%{count} minutes ago"
 msgstr[0] "%{count} minut tagasi"
 msgstr[1] "%{count} minutit tagasi"
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:90
+#: lib/phoenix_kit_staff/web/person_events_component.ex:91
 #, elixir-autogen, elixir-format
 msgid "just now"
 msgstr "äsja"
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:118
+#: lib/phoenix_kit_staff/web/person_events_component.ex:119
 #, elixir-autogen, elixir-format
 msgid "Open in Activity log"
 msgstr "Ava tegevuste logis"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:379
+#: lib/phoenix_kit_staff/web/person_show_live.ex:384
 #, elixir-autogen, elixir-format
 msgid "Change photo"
 msgstr "Muuda fotot"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:199
+#: lib/phoenix_kit_staff/web/person_show_live.ex:204
 #, elixir-autogen, elixir-format
 msgid "Could not open the photo picker."
 msgstr "Fotovalija avamine ebaõnnestus."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:215
+#: lib/phoenix_kit_staff/web/person_show_live.ex:220
 #, elixir-autogen, elixir-format
 msgid "Could not remove the photo."
 msgstr "Foto eemaldamine ebaõnnestus."
 
+#: lib/phoenix_kit_staff/web/person_media_component.ex:82
 #: lib/phoenix_kit_staff/web/person_show_live.ex:76
 #, elixir-autogen, elixir-format
 msgid "Could not set the photo."
@@ -1502,7 +1503,7 @@ msgstr "Foto määramine ebaõnnestus."
 msgid "Profile photo removed"
 msgstr "Profiilifoto eemaldatud"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:212
+#: lib/phoenix_kit_staff/web/person_show_live.ex:217
 #, elixir-autogen, elixir-format
 msgid "Profile photo removed."
 msgstr "Profiilifoto eemaldatud."
@@ -1512,17 +1513,34 @@ msgstr "Profiilifoto eemaldatud."
 msgid "Profile photo updated"
 msgstr "Profiilifoto uuendatud"
 
+#: lib/phoenix_kit_staff/web/person_media_component.ex:79
 #: lib/phoenix_kit_staff/web/person_show_live.ex:73
 #, elixir-autogen, elixir-format
 msgid "Profile photo updated."
 msgstr "Profiilifoto uuendatud."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:406
+#: lib/phoenix_kit_staff/web/person_show_live.ex:411
 #, elixir-autogen, elixir-format
 msgid "Remove photo"
 msgstr "Eemalda foto"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:404
+#: lib/phoenix_kit_staff/web/person_show_live.ex:409
 #, elixir-autogen, elixir-format
 msgid "Remove this profile photo?"
 msgstr "Eemaldada see profiilifoto?"
+
+#: lib/phoenix_kit_staff/web/person_media_component.ex:291
+#, elixir-autogen, elixir-format
+msgid "Avatar"
+msgstr "Avatar"
+
+#: lib/phoenix_kit_staff/web/person_media_component.ex:280
+#, elixir-autogen, elixir-format
+msgid "Current profile photo"
+msgstr "Praegune profiilifoto"
+
+#: lib/phoenix_kit_staff/web/person_media_component.ex:281
+#: lib/phoenix_kit_staff/web/person_media_component.ex:283
+#, elixir-autogen, elixir-format
+msgid "Set as profile photo"
+msgstr "Määra profiilifotoks"
