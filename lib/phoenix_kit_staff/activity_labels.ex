@@ -5,54 +5,74 @@ defmodule PhoenixKitStaff.ActivityLabels do
   Domain labels go through `PhoenixKitStaff.Gettext`. Unknown actions fall back
   to a humanized form of the action string so a newly-added action still renders
   sensibly without a code change here.
+
+  The file/image "added" actions log a `"count"` in their metadata, so
+  `describe/2` accepts the entry's metadata and pluralizes those labels.
   """
 
   use Gettext, backend: PhoenixKitStaff.Gettext
 
-  @doc "Returns `{icon_name, label}` for an action string."
-  @spec describe(String.t()) :: {String.t(), String.t()}
-  def describe("staff.person_created"), do: {"hero-user-plus", gettext("Profile created")}
-  def describe("staff.person_updated"), do: {"hero-pencil-square", gettext("Profile updated")}
+  @doc "Returns `{icon_name, label}` for an action string + its metadata."
+  @spec describe(String.t(), map()) :: {String.t(), String.t()}
+  def describe(action, metadata \\ %{})
 
-  def describe("staff.person_deleted"),
+  def describe("staff.person_created", _meta), do: {"hero-user-plus", gettext("Profile created")}
+
+  def describe("staff.person_updated", _meta),
+    do: {"hero-pencil-square", gettext("Profile updated")}
+
+  def describe("staff.person_deleted", _meta),
     do: {"hero-x-circle", gettext("Profile permanently deleted")}
 
-  def describe("staff.person_trashed"), do: {"hero-trash", gettext("Moved to trash")}
+  def describe("staff.person_trashed", _meta), do: {"hero-trash", gettext("Moved to trash")}
 
-  def describe("staff.person_restored"),
+  def describe("staff.person_restored", _meta),
     do: {"hero-arrow-uturn-left", gettext("Restored from trash")}
 
-  def describe("staff.person_employment_added"),
+  def describe("staff.person_employment_added", _meta),
     do: {"hero-briefcase", gettext("Employment added")}
 
-  def describe("staff.person_employment_updated"),
+  def describe("staff.person_employment_updated", _meta),
     do: {"hero-briefcase", gettext("Employment updated")}
 
-  def describe("staff.person_employment_ended"),
+  def describe("staff.person_employment_ended", _meta),
     do: {"hero-briefcase", gettext("Employment ended")}
 
-  def describe("staff.person_employment_removed"),
+  def describe("staff.person_employment_removed", _meta),
     do: {"hero-briefcase", gettext("Employment removed")}
 
-  def describe("staff.person_skill_added"), do: {"hero-academic-cap", gettext("Skill added")}
+  def describe("staff.person_skill_added", _meta),
+    do: {"hero-academic-cap", gettext("Skill added")}
 
-  def describe("staff.person_skill_updated"),
+  def describe("staff.person_skill_updated", _meta),
     do: {"hero-academic-cap", gettext("Skill level changed")}
 
-  def describe("staff.person_skill_removed"), do: {"hero-academic-cap", gettext("Skill removed")}
+  def describe("staff.person_skill_removed", _meta),
+    do: {"hero-academic-cap", gettext("Skill removed")}
 
-  def describe("staff.person_file_added"), do: {"hero-document-plus", gettext("File(s) added")}
-  def describe("staff.person_file_removed"), do: {"hero-document-minus", gettext("File removed")}
-  def describe("staff.person_image_added"), do: {"hero-photo", gettext("Image(s) added")}
-  def describe("staff.person_image_removed"), do: {"hero-photo", gettext("Image removed")}
+  def describe("staff.person_file_added", meta),
+    do: {"hero-document-plus", ngettext("File added", "Files added", count_of(meta))}
 
-  def describe("staff.team_person_added"), do: {"hero-user-group", gettext("Added to a team")}
+  def describe("staff.person_file_removed", _meta),
+    do: {"hero-document-minus", gettext("File removed")}
 
-  def describe("staff.team_person_removed"),
+  def describe("staff.person_image_added", meta),
+    do: {"hero-photo", ngettext("Image added", "Images added", count_of(meta))}
+
+  def describe("staff.person_image_removed", _meta), do: {"hero-photo", gettext("Image removed")}
+
+  def describe("staff.team_person_added", _meta),
+    do: {"hero-user-group", gettext("Added to a team")}
+
+  def describe("staff.team_person_removed", _meta),
     do: {"hero-user-group", gettext("Removed from a team")}
 
-  def describe(action) when is_binary(action), do: {"hero-clock", humanize(action)}
-  def describe(_), do: {"hero-clock", gettext("Activity")}
+  def describe(action, _meta) when is_binary(action), do: {"hero-clock", humanize(action)}
+  def describe(_action, _meta), do: {"hero-clock", gettext("Activity")}
+
+  # Number of files in an "added" batch, from the logged metadata (≥1).
+  defp count_of(%{"count" => n}) when is_integer(n) and n > 0, do: n
+  defp count_of(_), do: 1
 
   # "staff.person_file_added" -> "Person file added"
   defp humanize(action) do

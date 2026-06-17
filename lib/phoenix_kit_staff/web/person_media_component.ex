@@ -85,35 +85,79 @@ defmodule PhoenixKitStaff.Web.PersonMediaComponent do
 
   # Attach each selected/uploaded file to the folder (uploads are already home
   # there; library-picks get linked). Gated on storage being enabled so a
-  # stale client can't act after the module is turned off.
+  # stale client can't act after the module is turned off. Each tab enforces
+  # its type here — Images keeps only images, Files keeps only non-images —
+  # rejecting (and sweeping out of the folder) anything of the wrong type, so a
+  # collection can never hold the other kind. (The picker also restricts image
+  # uploads upfront via core's file_type_filter; this is the server-side
+  # backstop and the only enforcement for the all-types Files picker.)
   defp attach_selected(socket, []), do: socket
 
   defp attach_selected(socket, uuids) do
     if storage_enabled?() do
       case ensure_folder(socket) do
-        {:ok, folder_uuid} ->
-          Enum.each(uuids, &Attachments.attach(&1, folder_uuid))
-          log(socket, "added", %{"count" => length(uuids)})
-          assign(socket, :folder_uuid, folder_uuid)
-
-        {:error, _} ->
-          socket
+        {:ok, folder_uuid} -> do_attach(socket, folder_uuid, uuids)
+        {:error, _} -> socket
       end
     else
       socket
     end
   end
 
+  defp do_attach(socket, folder_uuid, uuids) do
+    {accepted, rejected} = partition_for_kind(socket.assigns.kind, uuids)
+
+    Enum.each(accepted, &Attachments.attach(&1, folder_uuid))
+    # A non-image uploaded via the picker lands in the folder as home; drop it.
+    Enum.each(rejected, &Attachments.detach(&1, folder_uuid))
+
+    if accepted != [], do: log(socket, "added", %{"count" => length(accepted)})
+
+    socket
+    |> assign(:folder_uuid, folder_uuid)
+    |> flash_rejected(rejected)
+  end
+
+  defp partition_for_kind(:images, uuids), do: Enum.split_with(uuids, &Attachments.image?/1)
+
+  defp partition_for_kind(:files, uuids),
+    do: Enum.split_with(uuids, &(not Attachments.image?(&1)))
+
+  defp partition_for_kind(_kind, uuids), do: {uuids, []}
+
+  defp flash_rejected(socket, []), do: socket
+
+  defp flash_rejected(socket, rejected) do
+    put_flash_safe(socket, :error, reject_message(socket.assigns.kind, length(rejected)))
+  end
+
+  defp reject_message(:images, count) do
+    ngettext(
+      "Only images can be added here — skipped %{count} non-image file.",
+      "Only images can be added here — skipped %{count} non-image files.",
+      count
+    )
+  end
+
+  defp reject_message(_files, count) do
+    ngettext(
+      "Images belong in the Images tab — skipped %{count} image.",
+      "Images belong in the Images tab — skipped %{count} images.",
+      count
+    )
+  end
+
   defp close_picker(socket), do: assign(socket, :show_picker, false)
 
   defp reload(socket) do
     files =
-      Attachments.list_files(socket.assigns.folder_uuid,
-        images_only: socket.assigns.kind == :images
-      )
+      Attachments.list_files(socket.assigns.folder_uuid, only: only_for(socket.assigns.kind))
 
     assign(socket, :files, files)
   end
+
+  defp only_for(:images), do: :images
+  defp only_for(_files), do: :non_images
 
   defp log(socket, verb, metadata) do
     Activity.log("staff.person_#{noun(socket)}_#{verb}",

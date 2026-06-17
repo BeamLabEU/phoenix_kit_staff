@@ -125,9 +125,10 @@ defmodule PhoenixKitStaff.Attachments do
 
   @doc """
   Files attached to `folder_uuid` (home-folder files plus those linked in via
-  `FolderLink`), newest first, excluding trashed. `images_only: true` keeps
-  only `file_type == "image"` (defensive — the Images folder should only hold
-  images, but a stray non-image is hidden rather than shown).
+  `FolderLink`), newest first, excluding trashed. `:only` narrows by type:
+  `:images` (file_type == "image"), `:non_images` (everything else), or `:all`
+  (default). Defensive — keeps a tab showing only its own kind even if a stray
+  file of the other kind landed in the folder.
   """
   @spec list_files(binary() | nil, keyword()) :: [File.t()]
   def list_files(nil, _opts), do: []
@@ -144,15 +145,25 @@ defmodule PhoenixKitStaff.Attachments do
       )
 
     query =
-      if Keyword.get(opts, :images_only, false),
-        do: where(base, [f], f.file_type == "image"),
-        else: base
+      case Keyword.get(opts, :only, :all) do
+        :images -> where(base, [f], f.file_type == "image")
+        :non_images -> where(base, [f], f.file_type != "image")
+        _ -> base
+      end
 
     repo().all(query)
   rescue
     error ->
       Logger.warning("[Staff] list_files #{folder_uuid} failed: #{inspect(error)}")
       []
+  end
+
+  @doc "Whether the file with this uuid is an image (by Storage `file_type`)."
+  @spec image?(binary()) :: boolean()
+  def image?(file_uuid) do
+    match?(%File{file_type: "image"}, Storage.get_file(file_uuid))
+  rescue
+    _ -> false
   end
 
   # ── Attach / detach ────────────────────────────────────────────────

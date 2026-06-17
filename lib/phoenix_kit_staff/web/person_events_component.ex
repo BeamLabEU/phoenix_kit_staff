@@ -90,7 +90,7 @@ defmodule PhoenixKitStaff.Web.PersonEventsComponent do
 
         <ul :if={@events != []} class="flex flex-col divide-y divide-base-200">
           <li :for={e <- @events} class="flex items-start gap-3 py-2.5">
-            <% {icon, label} = ActivityLabels.describe(e.action) %>
+            <% {icon, label} = ActivityLabels.describe(e.action, e.metadata || %{}) %>
             <span class={"badge badge-sm shrink-0 mt-0.5 #{Activity.action_badge_color(e.action)}"}>
               <.icon name={icon} class="w-3.5 h-3.5" />
             </span>
