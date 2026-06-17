@@ -39,6 +39,22 @@ defmodule PhoenixKitStaff.L10n do
     do: gettext("%{month} %{day}", month: short_month(d.month), day: d.day)
 
   @doc """
+  The active content language for multilang reads — the current Gettext
+  locale, or `nil` when it can't be resolved. Pass it to the schema
+  `localized_<field>/2` helpers; a `nil` lang returns the primary column,
+  so a missing/unset locale degrades to the denormalized value.
+
+  Mirrors `PhoenixKitProjects.L10n.current_content_lang/0`
+  (`Gettext.get_locale/1`, rescued to `nil`).
+  """
+  @spec current_content_lang() :: String.t() | nil
+  def current_content_lang do
+    Gettext.get_locale(PhoenixKitWeb.Gettext)
+  rescue
+    _ -> nil
+  end
+
+  @doc """
   True when `translations` matches the documented JSONB shape:
 
       %{optional(String.t()) => %{optional(String.t()) => String.t()}}

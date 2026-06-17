@@ -49,19 +49,25 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
       # Structured skills (replaced the old free-text field): assign two so
       # the at-a-glance badges + the Skills card render. Elixir carries an
       # "Expert" level so the localized level label shows on the assignment.
-      {:ok, elixir} = Skills.create(%{"name" => "Elixir", "levels" => [%{"name" => "Expert"}]})
+      {:ok, elixir} =
+        Skills.create(%{
+          "name" => "Elixir",
+          "levels" => [%{"options" => [%{"name" => "Expert"}]}]
+        })
+
       {:ok, phoenix} = Skills.create(%{"name" => "Phoenix"})
-      {:ok, _} = Skills.assign_skill(person.uuid, elixir.uuid, [hd(elixir.levels)["id"]])
+      expert_id = elixir.levels |> hd() |> Map.get("options") |> hd() |> Map.get("id")
+      {:ok, _} = Skills.assign_skill(person.uuid, elixir.uuid, [expert_id])
       {:ok, _} = Skills.assign_skill(person.uuid, phoenix.uuid, [])
 
       {:ok, _view, html} = live(conn, "/en/admin/staff/people/#{person.uuid}")
 
-      # Hero card
+      # Hero card — job title (subtitle) + current type/location badges. The
+      # detailed employment history moved to the Employment tab (not rendered
+      # on the Overview tab), so only the hero summary shows here.
       assert html =~ "Senior Engineer"
-      # Employment card
+      # "Employment" tab label is present in the tab strip.
       assert html =~ "Employment"
-      assert html =~ "Started"
-      assert html =~ "Ended"
       assert html =~ "Remote"
       # Contact card
       assert html =~ "+372 555 1111"
@@ -163,7 +169,7 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
       html =
         view
         |> form("#person-form",
-          person: %{status: "active", job_title: "Eng"},
+          person: %{status: "active"},
           email: ""
         )
         |> render_change()
@@ -216,19 +222,13 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
       assert html =~ "already has a staff profile"
     end
 
-    test "validate event with primary_department populates team_options", %{conn: conn} do
+    test "team picker lists all teams (no longer department-filtered)", %{conn: conn} do
       dept = fixture_department()
       _team = fixture_team(%{"name" => "TeamA", "department_uuid" => dept.uuid})
 
-      {:ok, view, _html} = live(conn, "/en/admin/staff/people/new")
-
-      html =
-        view
-        |> form("#person-form",
-          person: %{status: "active", primary_department_uuid: dept.uuid},
-          email: ""
-        )
-        |> render_change()
+      # The department picker moved to the Employment tab, so the form's team
+      # picker now lists every team on mount (no dept selection round-trip).
+      {:ok, _view, html} = live(conn, "/en/admin/staff/people/new")
 
       assert html =~ "TeamA"
     end
@@ -265,13 +265,12 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
     test "save :new with invalid changeset stays on form with errors", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/en/admin/staff/people/new")
 
-      # Drive the save event directly with a 256-char job_title to
-      # trigger validate_length on the changeset. Phoenix.LiveViewTest's
-      # strict select-options validator rejects bad enum values at the
-      # helper layer, so we go via render_submit/3.
+      # Drive the save event directly with a 256-char name to trigger
+      # validate_length(:name, max: 255). (job_title moved to the Employment
+      # tab; `name` is a 255-capped field still rendered on this form.)
       html =
         render_submit(view, "save", %{
-          "person" => %{"status" => "active", "job_title" => String.duplicate("x", 256)},
+          "person" => %{"status" => "active", "name" => String.duplicate("x", 256)},
           "email" => "valid-#{System.unique_integer([:positive])}@example.com"
         })
 
@@ -310,14 +309,12 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
 
       {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
 
-      # Drive the save event directly with a 256-char job_title to
-      # trigger validate_length(:job_title, max: 255). This bypasses
-      # the form helper's strict input-existence check (the email
-      # input only renders when the user is a placeholder, which the
-      # fixture flow may not produce reliably).
+      # Drive the save event directly with a 256-char name to trigger
+      # validate_length(:name, max: 255). (job_title moved to the Employment
+      # tab; `name` is a 255-capped field still rendered on this form.)
       html =
         render_submit(view, "save", %{
-          "person" => %{"status" => "active", "job_title" => String.duplicate("x", 256)},
+          "person" => %{"status" => "active", "name" => String.duplicate("x", 256)},
           "email" => person.user.email || ""
         })
 

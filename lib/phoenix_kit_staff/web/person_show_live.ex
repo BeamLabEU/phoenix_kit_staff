@@ -12,9 +12,10 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
   require Logger
 
-  alias PhoenixKitStaff.{Activity, L10n, Paths, Skills, Staff}
+  alias PhoenixKit.Modules.Storage
+  alias PhoenixKitStaff.{Activity, Attachments, L10n, Paths, Skills, Staff}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
-  alias PhoenixKitStaff.Schemas.{Person, Skill}
+  alias PhoenixKitStaff.Schemas.{Department, Person, Skill, Team}
   alias PhoenixKitStaff.Web.Helpers
 
   import PhoenixKitStaff.Web.Components.TabsStrip
@@ -43,9 +44,13 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
            person: person,
            memberships: Staff.list_memberships_for_person(person.uuid),
            active_tab: "overview",
-           comments_enabled: comments_enabled?()
+           comments_enabled: comments_enabled?(),
+           storage_enabled: storage_enabled?(),
+           show_avatar_picker: false,
+           avatar_folder_uuid: nil
          )
-         |> load_skills()}
+         |> load_skills()
+         |> load_avatar()}
     end
   end
 
@@ -55,12 +60,61 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     assign(socket, person_skills: Skills.list_for_person(socket.assigns.person.uuid))
   end
 
-  # Localized, comma-joined names of an assignment's selected levels (stray ids
-  # — e.g. a level deleted from the skill — resolve to nil and are dropped).
+  # The avatar File (from the person's metadata pointer), or nil. Recomputed
+  # whenever the person changes so the header circle stays in sync.
+  defp load_avatar(socket) do
+    assign(socket, :avatar_file, Attachments.avatar_file(socket.assigns.person))
+  end
+
+  defp set_avatar(socket, file_uuid) do
+    case Attachments.set_avatar(socket.assigns.person, file_uuid) do
+      {:ok, _} ->
+        log_avatar(socket, "set")
+        socket |> reload_person() |> put_flash(:info, gettext("Profile photo updated."))
+
+      {:error, _} ->
+        put_flash(socket, :error, gettext("Could not set the photo."))
+    end
+  end
+
+  # Reload the full (preloaded) person + refresh the avatar after a mutation.
+  defp reload_person(socket) do
+    case Staff.get_person(socket.assigns.person.uuid) do
+      nil -> socket
+      person -> socket |> assign(:person, person) |> load_avatar()
+    end
+  end
+
+  defp log_avatar(socket, verb) do
+    Activity.log("staff.person_avatar_#{verb}",
+      actor_uuid: Activity.actor_uuid(socket),
+      resource_type: "staff_person",
+      resource_uuid: socket.assigns.person.uuid,
+      metadata: %{}
+    )
+  end
+
+  # Up to two initials from the display name, for the avatar fallback.
+  defp avatar_initials(person) do
+    person
+    |> Person.display_name()
+    |> String.split(~r/\s+/, trim: true)
+    |> Enum.take(2)
+    |> Enum.map_join(&String.first/1)
+    |> String.upcase()
+    |> case do
+      "" -> "?"
+      initials -> initials
+    end
+  end
+
+  # Localized, comma-joined names of an assignment's selected level options
+  # across all selectors (stray ids — e.g. an option deleted from the skill —
+  # resolve to nil and are dropped). Stored ids are already in skill order.
   defp level_names(%{skill: %Skill{} = skill, proficiency_levels: ids}, locale)
        when is_list(ids) do
     ids
-    |> Enum.map(&Skill.localized_level_name(skill, &1, locale))
+    |> Enum.map(&Skill.localized_option_name(skill, &1, locale))
     |> Enum.reject(&is_nil/1)
     |> Enum.join(", ")
   end
@@ -87,7 +141,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
            person: person,
            memberships: Staff.list_memberships_for_person(person.uuid)
          )
-         |> load_skills()}
+         |> load_skills()
+         |> load_avatar()}
     end
   end
 
@@ -95,6 +150,26 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   # don't surface a comment count on the profile, so this is a no-op —
   # declared explicitly to keep it out of the unexpected-message log.
   def handle_info({:comments_updated, _info}, socket), do: {:noreply, socket}
+
+  # Flash relay for embedded LiveComponents (e.g. the media tabs), which can't
+  # put_flash on their own socket.
+  def handle_info({:put_flash, kind, msg}, socket), do: {:noreply, put_flash(socket, kind, msg)}
+
+  # The avatar picker (MediaSelectorModal, single+image, scoped to the person's
+  # Images folder) reports its selection to this host process.
+  def handle_info({:media_selected, [uuid | _]}, socket) when is_binary(uuid) do
+    {:noreply, socket |> set_avatar(uuid) |> assign(:show_avatar_picker, false)}
+  end
+
+  def handle_info({:media_selected, _}, socket),
+    do: {:noreply, assign(socket, :show_avatar_picker, false)}
+
+  def handle_info({:media_selector_closed}, socket),
+    do: {:noreply, assign(socket, :show_avatar_picker, false)}
+
+  # The Images tab sets an avatar on its own component; reload so the header
+  # avatar (and the tab's "current" marker) reflect it.
+  def handle_info({:avatar_changed}, socket), do: {:noreply, reload_person(socket)}
 
   # Note: the composer's {:leaf_changed, …} message is handled by the
   # `use PhoenixKitComments.Embed` lifecycle hook (it halts before reaching
@@ -108,8 +183,48 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
     # Clamp to a currently-available tab so a stale/crafted value (e.g.
     # "comments" when the module is gone) can't land on a blank panel.
-    tab = if tab in valid_tabs(socket.assigns.comments_enabled), do: tab, else: "overview"
+    valid = valid_tabs(socket.assigns.comments_enabled, socket.assigns.storage_enabled)
+    tab = if tab in valid, do: tab, else: "overview"
     {:noreply, assign(socket, :active_tab, tab)}
+  end
+
+  # Open the avatar picker scoped to the person's Images folder (so picks show
+  # the person's images as suggestions and uploads land in the Images tab).
+  def handle_event("edit_avatar", _params, socket) do
+    if storage_enabled?() do
+      case Attachments.ensure_folder(
+             socket.assigns.person.uuid,
+             :images,
+             Activity.actor_uuid(socket)
+           ) do
+        {:ok, folder_uuid} ->
+          {:noreply, assign(socket, avatar_folder_uuid: folder_uuid, show_avatar_picker: true)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, gettext("Could not open the photo picker."))}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("remove_avatar", _params, socket) do
+    case Attachments.clear_avatar(socket.assigns.person) do
+      {:ok, _} ->
+        log_avatar(socket, "removed")
+
+        {:noreply,
+         socket |> reload_person() |> put_flash(:info, gettext("Profile photo removed."))}
+
+      {:error, reason} ->
+        Helpers.log_operation_error("staff.person_avatar_removed", socket,
+          reason: reason,
+          resource_type: "staff_person",
+          resource_uuid: socket.assigns.person.uuid
+        )
+
+        {:noreply, put_flash(socket, :error, gettext("Could not remove the photo."))}
+    end
   end
 
   def handle_event("trash", _params, socket) do
@@ -159,6 +274,10 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
     case Staff.delete_person(person) do
       {:ok, _} ->
+        # Best-effort: purge the person's media folder subtree (files + the
+        # nested images) now that they're permanently gone. Never blocks.
+        Attachments.purge_person_media(person.uuid)
+
         Activity.log("staff.person_deleted",
           actor_uuid: Activity.actor_uuid(socket),
           resource_type: "staff_person",
@@ -201,6 +320,14 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     _ -> false
   end
 
+  # The Files/Images tabs need the core Storage (Media) module. Gated like
+  # Comments — hidden + deep-link-clamped when the module is off.
+  defp storage_enabled? do
+    Storage.enabled?()
+  rescue
+    _ -> false
+  end
+
   defp has_any?(m, fields) do
     Enum.any?(fields, fn f -> present?(Map.get(m, f)) end)
   end
@@ -208,9 +335,6 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   defp present?(nil), do: false
   defp present?(""), do: false
   defp present?(_), do: true
-
-  defp format_date(nil), do: "—"
-  defp format_date(d), do: L10n.format_date(d)
 
   defp format_birthday(nil), do: nil
 
@@ -251,12 +375,62 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :lang, L10n.current_content_lang())
+
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.admin_page_header
-        title={Person.display_name(@person)}
-        subtitle={@person.job_title}
-      >
+      <.admin_page_header>
+        <div class="flex items-center gap-4">
+          <%!-- Avatar: click to set/change (scoped to the person's Images
+               folder); hover to remove when set. Falls back to initials. --%>
+          <div class="relative shrink-0 group">
+            <button
+              type="button"
+              phx-click="edit_avatar"
+              disabled={!@storage_enabled}
+              class="block w-16 h-16 rounded-full overflow-hidden ring-2 ring-base-200 bg-base-200 disabled:cursor-default"
+              aria-label={gettext("Change photo")}
+            >
+              <img
+                :if={@avatar_file}
+                src={Attachments.thumb_url(@avatar_file)}
+                alt={Person.display_name(@person)}
+                class="w-full h-full object-cover"
+              />
+              <span
+                :if={!@avatar_file}
+                class="flex items-center justify-center w-full h-full text-xl font-semibold text-base-content/40"
+              >
+                {avatar_initials(@person)}
+              </span>
+              <span
+                :if={@storage_enabled}
+                class="absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/40 text-white rounded-full"
+              >
+                <.icon name="hero-camera" class="w-5 h-5" />
+              </span>
+            </button>
+            <button
+              :if={@storage_enabled and @avatar_file}
+              type="button"
+              phx-click="remove_avatar"
+              phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
+              data-confirm={gettext("Remove this profile photo?")}
+              class="absolute -top-1 -right-1 btn btn-xs btn-circle btn-error opacity-0 group-hover:opacity-100 transition"
+              aria-label={gettext("Remove photo")}
+            >
+              <.icon name="hero-x-mark" class="w-3 h-3" />
+            </button>
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-base-content">
+              {Person.display_name(@person)}
+            </h1>
+            <p :if={@person.job_title} class="text-sm sm:text-base text-base-content/60 mt-0.5">
+              {Person.localized_job_title(@person, @lang)}
+            </p>
+          </div>
+        </div>
         <:actions>
           <%= if Person.trashed?(@person) do %>
             <button
@@ -293,6 +467,21 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         </:actions>
       </.admin_page_header>
 
+      <%!-- Avatar picker — single image, scoped to the person's Images folder,
+           so it suggests existing images and uploads land in the Images tab. --%>
+      <.live_component
+        :if={@show_avatar_picker}
+        module={PhoenixKitWeb.Live.Components.MediaSelectorModal}
+        id={"staff-person-avatar-#{@person.uuid}"}
+        show={true}
+        mode={:single}
+        file_type_filter={:image}
+        browse={true}
+        selected_uuids={Enum.reject([Attachments.avatar_uuid(@person)], &is_nil/1)}
+        scope_folder_id={@avatar_folder_uuid}
+        phoenix_kit_current_user={@phoenix_kit_current_user}
+      />
+
       <div
         :if={Person.trashed?(@person)}
         class="alert alert-warning"
@@ -302,7 +491,11 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         <span>{gettext("This staff is in the trash. Restore to bring them back to the active roster.")}</span>
       </div>
 
-      <.tabs_strip event="switch_tab" active={@active_tab} tabs={tab_list(@comments_enabled)} />
+      <.tabs_strip
+        event="switch_tab"
+        active={@active_tab}
+        tabs={tab_list(@comments_enabled, @storage_enabled)}
+      />
 
       <%!-- Overview tab — the full profile --%>
       <div :if={@active_tab == "overview"} class="flex flex-col gap-4">
@@ -321,7 +514,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
             <%= if @person.primary_department do %>
               <.link navigate={Paths.department(@person.primary_department.uuid)} class="link link-hover">
                 <.icon name="hero-building-office-2" class="w-3 h-3 inline" />
-                {@person.primary_department.name}
+                {Department.localized_name(@person.primary_department, @lang)}
               </.link>
             <% end %>
             <%= if @person.work_location do %>
@@ -334,40 +527,14 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
           <%!-- Bio --%>
           <%= if @person.bio do %>
-            <div class="mt-4 text-sm leading-relaxed whitespace-pre-line">{@person.bio}</div>
+            <div class="mt-4 text-sm leading-relaxed whitespace-pre-line">{Person.localized_bio(@person, @lang)}</div>
           <% end %>
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <%!-- Employment details --%>
-        <%= if has_any?(@person, [:employment_start_date, :employment_end_date, :employment_type, :work_location]) do %>
-          <div class="card bg-base-100 shadow">
-            <div class="card-body">
-              <h2 class="card-title text-lg">
-                <.icon name="hero-briefcase" class="w-5 h-5" /> {gettext("Employment")}
-              </h2>
-              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-2">
-                <%= if @person.employment_type do %>
-                  <dt class="text-base-content/60">{Gettext.gettext(PhoenixKitWeb.Gettext, "Type")}</dt>
-                  <dd>{Person.employment_type_label(@person.employment_type)}</dd>
-                <% end %>
-                <%= if @person.employment_start_date do %>
-                  <dt class="text-base-content/60">{gettext("Started")}</dt>
-                  <dd>{format_date(@person.employment_start_date)}</dd>
-                <% end %>
-                <%= if @person.employment_end_date do %>
-                  <dt class="text-base-content/60">{gettext("Ended")}</dt>
-                  <dd>{format_date(@person.employment_end_date)}</dd>
-                <% end %>
-                <%= if @person.work_location do %>
-                  <dt class="text-base-content/60">{gettext("Location")}</dt>
-                  <dd>{@person.work_location}</dd>
-                <% end %>
-              </dl>
-            </div>
-          </div>
-        <% end %>
+        <%!-- Employment details (incl. history) live on the Employment tab now;
+             the hero badges above show the current type/department/location. --%>
 
         <%!-- Contact --%>
         <div class="card bg-base-100 shadow">
@@ -467,10 +634,10 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
                 <tr :for={tm <- @memberships}>
                   <td>
                     <.link navigate={Paths.team(tm.team.uuid)} class="link link-hover font-medium">
-                      {tm.team.name}
+                      {Team.localized_name(tm.team, @lang)}
                     </.link>
                   </td>
-                  <td>{tm.team.department.name}</td>
+                  <td>{Department.localized_name(tm.team.department, @lang)}</td>
                 </tr>
               </tbody>
             </table>
@@ -505,9 +672,9 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
                 navigate={Paths.skill(ps.skill.uuid)}
                 class="badge badge-lg badge-outline gap-1 hover:badge-primary"
               >
-                {ps.skill.name}
-                <span :if={level_names(ps, assigns[:current_locale]) != ""} class="opacity-60">
-                  · {level_names(ps, assigns[:current_locale])}
+                {Skill.localized_name(ps.skill, @lang)}
+                <span :if={level_names(ps, @lang) != ""} class="opacity-60">
+                  · {level_names(ps, @lang)}
                 </span>
               </.link>
             </div>
@@ -523,10 +690,53 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
               <h2 class="card-title text-base text-warning-content">
                 <.icon name="hero-lock-closed" class="w-4 h-4" /> {gettext("Admin notes")}
               </h2>
-              <div class="text-sm whitespace-pre-line">{@person.notes}</div>
+              <div class="text-sm whitespace-pre-line">{Person.localized_notes(@person, @lang)}</div>
             </div>
           </div>
         <% end %>
+      </div>
+
+      <%!-- Employment tab — the person's employment history (spans). The open
+           span is the current employment and drives the denormalized fields. --%>
+      <div :if={@active_tab == "employment"}>
+        <.live_component
+          module={PhoenixKitStaff.Web.PersonEmploymentComponent}
+          id={"staff-person-employment-#{@person.uuid}"}
+          person={@person}
+          locale={@lang}
+          phoenix_kit_current_user={@phoenix_kit_current_user}
+        />
+      </div>
+
+      <%!-- Files tab — generic file attachments in the person's media folder. --%>
+      <div :if={@active_tab == "files"}>
+        <.live_component
+          module={PhoenixKitStaff.Web.PersonMediaComponent}
+          id={"staff-person-files-#{@person.uuid}"}
+          kind={:files}
+          person={@person}
+          phoenix_kit_current_user={@phoenix_kit_current_user}
+        />
+      </div>
+
+      <%!-- Images tab — images in the nested `Images` subfolder. --%>
+      <div :if={@active_tab == "images"}>
+        <.live_component
+          module={PhoenixKitStaff.Web.PersonMediaComponent}
+          id={"staff-person-images-#{@person.uuid}"}
+          kind={:images}
+          person={@person}
+          phoenix_kit_current_user={@phoenix_kit_current_user}
+        />
+      </div>
+
+      <%!-- Events tab — read-only activity timeline for this person. --%>
+      <div :if={@active_tab == "events"}>
+        <.live_component
+          module={PhoenixKitStaff.Web.PersonEventsComponent}
+          id={"staff-person-events-#{@person.uuid}"}
+          person={@person}
+        />
       </div>
 
       <%!-- Comments tab — embedded thread. The tab only renders when the
@@ -544,19 +754,28 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     """
   end
 
-  # Tab set for the profile: Overview always; Comments only when the
-  # comments module's admin toggle is enabled.
-  defp valid_tabs(comments_enabled?) do
-    comments_enabled? |> tab_list() |> Enum.map(fn {value, _label, _icon} -> value end)
+  # Tab set for the profile: Overview/Employment/Events always; Files + Images
+  # only when the Storage module is on; Comments only when its toggle is on.
+  defp valid_tabs(comments_enabled?, storage_enabled?) do
+    tab_list(comments_enabled?, storage_enabled?)
+    |> Enum.map(fn {value, _label, _icon} -> value end)
   end
 
-  defp tab_list(comments_enabled?) do
-    overview = {"overview", gettext("Overview"), "hero-identification"}
-
-    if comments_enabled? do
-      [overview, {"comments", gettext("Comments"), "hero-chat-bubble-left-right"}]
-    else
-      [overview]
-    end
+  defp tab_list(comments_enabled?, storage_enabled?) do
+    [
+      {"overview", gettext("Overview"), "hero-identification"},
+      {"employment", gettext("Employment"), "hero-briefcase"}
+    ]
+    |> maybe_tabs(storage_enabled?, [
+      {"files", gettext("Files"), "hero-document"},
+      {"images", gettext("Images"), "hero-photo"}
+    ])
+    |> Kernel.++([{"events", gettext("Events"), "hero-clock"}])
+    |> maybe_tabs(comments_enabled?, [
+      {"comments", gettext("Comments"), "hero-chat-bubble-left-right"}
+    ])
   end
+
+  defp maybe_tabs(tabs, true, extra), do: tabs ++ extra
+  defp maybe_tabs(tabs, false, _extra), do: tabs
 end

@@ -1,16 +1,22 @@
 defmodule PhoenixKitStaff.Web.SkillFormLive do
   @moduledoc """
-  Create or edit a skill, including its per-skill proficiency levels.
+  Create or edit a skill, including its level **selectors**.
 
-  The levels editor is **staged in `@staged_levels`** (the source of truth) and
-  rendered inside `#skill-form` but **outside** `<.multilang_fields_wrapper>`,
-  so it survives language switches (the wrapper re-mounts its subtree on switch).
-  Each level-name input's DOM `id` is keyed on `@current_lang` so morphdom
-  replaces the node on a switch and the value refreshes to the active language;
-  `validate` merges only the active language's typed names back into the staged
-  list. Structural edits (add / seed / reorder / remove) are event-driven so a
-  reconnect can't strand them. On save the staged list is injected as
-  `attrs["levels"]` and normalised by `Skill.changeset/2`.
+  A skill owns zero or more named selectors (level groups); each selector has a
+  translatable name, its own `allow_multiple` toggle, and an ordered list of
+  translatable options. The whole selector tree is **staged in `@staged_groups`**
+  (the source of truth) and rendered inside `#skill-form` but **outside**
+  `<.multilang_fields_wrapper>`, so it survives language switches (the wrapper
+  re-mounts its subtree on switch).
+
+  Each selector/option **name input** is keyed on `@current_lang` in its DOM id,
+  so morphdom replaces it on a language switch and the value refreshes to the
+  active language; `validate` merges only the active language's typed names back
+  into the staged tree. Structural edits (add / remove / reorder selectors and
+  options) are event-driven so a reconnect can't strand them, and reordering
+  uses the core `<.draggable_list>` drag-and-drop (handle = `.pk-drag-handle`).
+  On save the staged tree is injected as `attrs["levels"]` and normalised by
+  `Skill.changeset/2`.
   """
 
   use PhoenixKitWeb, :live_view
@@ -22,10 +28,8 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
   alias PhoenixKitStaff.Schemas.Skill
   alias PhoenixKitStaff.Web.Helpers
 
-  # Convenience seed for the common beginner→expert ladder (et/ru pre-filled;
-  # editable + translatable after). Primary name is English — rename if the
-  # app's primary language differs.
-  @standard_levels [
+  # Options seeded by "Add standard levels" (et/ru pre-filled, editable after).
+  @standard_options [
     {"Beginner", %{"et" => "Algaja", "ru" => "Начинающий"}},
     {"Intermediate", %{"et" => "Kesktase", "ru" => "Средний"}},
     {"Advanced", %{"et" => "Edasijõudnu", "ru" => "Продвинутый"}},
@@ -50,8 +54,7 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
       page_title: gettext("New skill"),
       skill: skill,
       live_action: :new,
-      staged_levels: [],
-      allow_multiple: false
+      staged_groups: []
     )
     |> assign_form(Skills.change(skill))
   end
@@ -69,8 +72,7 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
           page_title: gettext("Edit %{name}", name: skill.name),
           skill: skill,
           live_action: :edit,
-          staged_levels: Skill.levels(skill),
-          allow_multiple: skill.allow_multiple_levels
+          staged_groups: Skill.level_groups(skill)
         )
         |> assign_form(Skills.change(skill))
     end
@@ -78,64 +80,135 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
 
   defp assign_form(socket, cs), do: assign(socket, form: to_form(cs))
 
+  # ── Events ─────────────────────────────────────────────────────────
+
   @impl true
   def handle_event("switch_language", %{"lang" => lang}, socket) do
     {:noreply, handle_switch_language(socket, lang)}
   end
 
   def handle_event("validate", %{"skill" => attrs} = params, socket) do
-    staged = merge_level_names(socket.assigns.staged_levels, params["level"], socket)
-    allow_multiple = parse_bool(attrs["allow_multiple_levels"])
+    groups = merge_names(socket.assigns.staged_groups, params, socket)
 
     cs =
       socket.assigns.skill
-      |> Skills.change(build_attrs(attrs, socket, staged))
+      |> Skills.change(build_attrs(attrs, socket, groups))
       |> Map.put(:action, :validate)
 
-    {:noreply,
-     socket
-     |> assign(staged_levels: staged, allow_multiple: allow_multiple)
-     |> assign_form(cs)}
+    {:noreply, socket |> assign(:staged_groups, groups) |> assign_form(cs)}
   end
 
   def handle_event("save", %{"skill" => attrs} = params, socket) do
-    staged = merge_level_names(socket.assigns.staged_levels, params["level"], socket)
-    socket = assign(socket, :staged_levels, staged)
-    save(socket, socket.assigns.live_action, build_attrs(attrs, socket, staged))
+    groups = merge_names(socket.assigns.staged_groups, params, socket)
+    socket = assign(socket, :staged_groups, groups)
+    save(socket, socket.assigns.live_action, build_attrs(attrs, socket, groups))
   end
 
-  def handle_event("add_level", _params, socket) do
-    {:noreply, assign(socket, :staged_levels, socket.assigns.staged_levels ++ [new_level()])}
+  def handle_event("add_selector", _params, socket) do
+    {:noreply, put_groups(socket, &(&1 ++ [new_selector()]))}
   end
 
   def handle_event("seed_standard_levels", _params, socket) do
-    seeded =
-      Enum.map(@standard_levels, fn {name, translations} ->
-        %{"id" => Skill.gen_level_id(), "name" => name, "translations" => translations}
-      end)
-
-    {:noreply, assign(socket, :staged_levels, socket.assigns.staged_levels ++ seeded)}
+    {:noreply, put_groups(socket, &(&1 ++ [seed_proficiency_selector()]))}
   end
 
-  def handle_event("remove_level", %{"id" => id}, socket) do
-    staged = Enum.reject(socket.assigns.staged_levels, &(&1["id"] == id))
-    {:noreply, assign(socket, :staged_levels, staged)}
+  def handle_event("remove_selector", %{"group-id" => gid}, socket) do
+    {:noreply, put_groups(socket, fn gs -> Enum.reject(gs, &(&1["id"] == gid)) end)}
   end
 
-  def handle_event("move_level_up", %{"id" => id}, socket) do
-    {:noreply, assign(socket, :staged_levels, move_level(socket.assigns.staged_levels, id, -1))}
+  def handle_event("toggle_selector_multiple", %{"group-id" => gid}, socket) do
+    {:noreply,
+     put_groups(socket, fn gs ->
+       map_group(gs, gid, fn g -> Map.put(g, "allow_multiple", !Map.get(g, "allow_multiple")) end)
+     end)}
   end
 
-  def handle_event("move_level_down", %{"id" => id}, socket) do
-    {:noreply, assign(socket, :staged_levels, move_level(socket.assigns.staged_levels, id, 1))}
+  def handle_event("add_option", %{"group-id" => gid}, socket) do
+    {:noreply,
+     put_groups(socket, fn gs ->
+       map_group(gs, gid, fn g ->
+         Map.update(g, "options", [new_option()], &(&1 ++ [new_option()]))
+       end)
+     end)}
   end
 
-  # Inject the staged levels into the skill attrs (the editor is the source of
-  # truth, not a `skill[...]` form field) and fold in-flight translations.
-  defp build_attrs(attrs, socket, staged) do
+  def handle_event("remove_option", %{"group-id" => gid, "option-id" => oid}, socket) do
+    {:noreply,
+     put_groups(socket, fn gs ->
+       map_group(gs, gid, fn g ->
+         Map.update(g, "options", [], fn opts -> Enum.reject(opts, &(&1["id"] == oid)) end)
+       end)
+     end)}
+  end
+
+  def handle_event("reorder_selectors", %{"ordered_ids" => ids}, socket) when is_list(ids) do
+    {:noreply, put_groups(socket, &reorder_by_id(&1, ids))}
+  end
+
+  # The reorder payload carries only this selector's option ids; locate the
+  # owning selector by its option-id set (option ids are unique within a skill).
+  def handle_event("reorder_options", %{"ordered_ids" => ids}, socket) when is_list(ids) do
+    {:noreply,
+     put_groups(socket, fn gs ->
+       Enum.map(gs, fn g ->
+         opt_ids = Enum.map(g["options"] || [], & &1["id"])
+
+         if opt_ids != [] and MapSet.new(opt_ids) == MapSet.new(ids) do
+           Map.put(g, "options", reorder_by_id(g["options"], ids))
+         else
+           g
+         end
+       end)
+     end)}
+  end
+
+  # ── Staging helpers ────────────────────────────────────────────────
+
+  defp put_groups(socket, fun),
+    do: assign(socket, :staged_groups, fun.(socket.assigns.staged_groups))
+
+  defp map_group(groups, gid, fun),
+    do: Enum.map(groups, fn g -> if g["id"] == gid, do: fun.(g), else: g end)
+
+  # Reorder a list of `%{"id" => ...}` maps to match `ordered_ids`; anything not
+  # named is appended (defensive — keeps unknown rows rather than dropping them).
+  defp reorder_by_id(list, ordered_ids) do
+    by_id = Map.new(list, &{&1["id"], &1})
+    ordered = ordered_ids |> Enum.map(&Map.get(by_id, &1)) |> Enum.reject(&is_nil/1)
+    remaining = Enum.reject(list, &(&1["id"] in ordered_ids))
+    ordered ++ remaining
+  end
+
+  defp new_selector,
+    do: %{
+      "id" => Skill.gen_level_id(),
+      "name" => "",
+      "translations" => %{},
+      "allow_multiple" => false,
+      "options" => []
+    }
+
+  defp new_option, do: %{"id" => Skill.gen_level_id(), "name" => "", "translations" => %{}}
+
+  defp seed_proficiency_selector do
+    %{
+      "id" => Skill.gen_level_id(),
+      "name" => "Proficiency",
+      "translations" => %{"et" => "Oskustase", "ru" => "Уровень владения"},
+      "allow_multiple" => false,
+      "options" =>
+        Enum.map(@standard_options, fn {name, translations} ->
+          %{"id" => Skill.gen_level_id(), "name" => name, "translations" => translations}
+        end)
+    }
+  end
+
+  # Inject the staged selectors into the skill attrs (the editor is the source
+  # of truth, not a `skill[...]` form field) and fold in-flight translations.
+  defp build_attrs(attrs, socket, groups) do
     attrs
     |> merge_attrs(socket)
-    |> Map.put("levels", staged)
+    |> Map.put("levels", groups)
   end
 
   defp merge_attrs(attrs, socket) do
@@ -143,71 +216,51 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
     Helpers.merge_translations_attrs(attrs, in_flight, Skill.translatable_fields())
   end
 
-  # Merge the active language's typed level names back into the staged list.
-  # Only keys present in params are touched (a non-active language's names are
-  # held in the staged list, untouched).
-  defp merge_level_names(staged, nil, _socket), do: staged
-
-  defp merge_level_names(staged, params, socket) when is_map(params) do
+  # Merge the active language's typed selector/option names back into the staged
+  # tree. Only keys present in params are touched (other languages' names stay
+  # held in the staged tree, untouched).
+  defp merge_names(groups, params, socket) do
     lang = socket.assigns.current_lang
     primary? = lang == socket.assigns.primary_language
+    group_params = Map.get(params, "group", %{})
+    option_params = Map.get(params, "option", %{})
 
-    Enum.map(staged, fn level ->
-      case params[level["id"]] do
-        %{"name" => typed} -> put_level_name(level, typed, lang, primary?)
-        _ -> level
-      end
+    Enum.map(groups, fn g ->
+      g
+      |> merge_one_name(Map.get(group_params, g["id"]), lang, primary?)
+      |> Map.update("options", [], fn opts ->
+        Enum.map(opts, &merge_one_name(&1, Map.get(option_params, &1["id"]), lang, primary?))
+      end)
     end)
   end
 
-  defp merge_level_names(staged, _params, _socket), do: staged
+  defp merge_one_name(map, %{"name" => typed}, lang, primary?) when is_binary(typed),
+    do: put_name(map, typed, lang, primary?)
 
-  defp put_level_name(level, typed, _lang, true), do: Map.put(level, "name", typed)
+  defp merge_one_name(map, _other, _lang, _primary?), do: map
 
-  defp put_level_name(level, typed, lang, false) do
+  defp put_name(map, typed, _lang, true), do: Map.put(map, "name", typed)
+
+  defp put_name(map, typed, lang, false) do
     translations =
-      level
+      map
       |> Map.get("translations", %{})
       |> then(fn t ->
         if String.trim(typed) == "", do: Map.delete(t, lang), else: Map.put(t, lang, typed)
       end)
 
-    Map.put(level, "translations", translations)
+    Map.put(map, "translations", translations)
   end
 
-  defp new_level, do: %{"id" => Skill.gen_level_id(), "name" => "", "translations" => %{}}
+  # The name input value for the active language: the primary `name` on the
+  # primary tab, else the `translations[lang]` override. (`map` is a selector or
+  # an option map — both carry `name` + `translations`.)
+  defp name_value(map, lang, lang), do: Map.get(map, "name", "")
 
-  defp move_level(levels, id, delta) do
-    case Enum.find_index(levels, &(&1["id"] == id)) do
-      nil ->
-        levels
+  defp name_value(map, lang, _primary),
+    do: map |> Map.get("translations", %{}) |> Map.get(lang, "")
 
-      idx ->
-        target = idx + delta
-
-        if target >= 0 and target < length(levels) do
-          a = Enum.at(levels, idx)
-          b = Enum.at(levels, target)
-
-          levels
-          |> List.replace_at(idx, b)
-          |> List.replace_at(target, a)
-        else
-          levels
-        end
-    end
-  end
-
-  defp parse_bool("true"), do: true
-  defp parse_bool(true), do: true
-  defp parse_bool(_), do: false
-
-  # The level-name input value for the active language: the primary `name` on
-  # the primary tab, else the `translations[lang]` override.
-  defp level_field_value(level, lang, lang), do: Map.get(level, "name", "")
-
-  defp level_field_value(level, lang, _primary),
-    do: level |> Map.get("translations", %{}) |> Map.get(lang, "")
+  # ── Save ───────────────────────────────────────────────────────────
 
   defp save(socket, :new, attrs) do
     case Skills.create(attrs) do
@@ -268,6 +321,8 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
     end
   end
 
+  # ── Render ─────────────────────────────────────────────────────────
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -326,105 +381,176 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
             </div>
           </.multilang_fields_wrapper>
 
-          <%!-- Levels editor — inside the form, OUTSIDE the multilang wrapper
-               (structure is shared across languages; only the per-level name is
-               translatable, edited for the active language). --%>
-          <div class="card-body border-t border-base-200 pt-4 flex flex-col gap-4">
-            <div>
-              <label class="label cursor-pointer justify-start gap-3 p-0">
-                <input type="hidden" name="skill[allow_multiple_levels]" value="false" />
-                <input
-                  type="checkbox"
-                  name="skill[allow_multiple_levels]"
-                  value="true"
-                  checked={@allow_multiple}
-                  class="toggle toggle-primary"
-                />
-                <span class="label-text font-semibold">{gettext("Allow selecting multiple levels")}</span>
-              </label>
-              <p class="text-xs text-base-content/50 mt-1">
-                {gettext("On: a person can hold several of these levels at once (e.g. licence categories). Off: a single level.")}
-              </p>
+          <%!-- Selectors editor — inside the form, OUTSIDE the multilang wrapper
+               (structure is shared across languages; only selector/option names
+               are translatable, edited for the active language). --%>
+          <div class="card-body pt-4 flex flex-col gap-4">
+            <label class="label p-0">
+              <span class="label-text font-semibold">
+                {gettext("Level selectors")}
+                <span class="label-text-alt text-base-content/50 font-normal">{gettext("optional")}</span>
+              </span>
+            </label>
+
+            <%!-- Skeleton shown instantly on language switch (the switcher's JS
+                 toggles all `[data-translatable=skeletons]`/`[=fields]`); the
+                 lang-keyed ids make morphdom reset both after the debounced swap.
+                 Distinct id prefix avoids colliding with the name/desc wrapper. --%>
+            <div
+              :if={@multilang_enabled}
+              id={"selector-skeletons-#{@current_lang}"}
+              data-translatable="skeletons"
+              class="hidden"
+              aria-hidden="true"
+            >
+              <%!-- Mirrors the live structure: one card per selector, one bar
+                   per option inside it, so the placeholder matches what's there. --%>
+              <div class="flex flex-col gap-3">
+                <div
+                  :for={group <- @staged_groups}
+                  class="border border-base-300 rounded-box p-3 flex flex-col gap-2"
+                >
+                  <div class="bg-base-content/15 rounded h-8 w-full animate-pulse"></div>
+                  <div :if={group["options"] != []} class="pl-6 flex flex-col gap-2">
+                    <div
+                      :for={_opt <- group["options"]}
+                      class="bg-base-content/15 rounded h-7 w-full animate-pulse"
+                    >
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label class="label mb-2">
-                <span class="label-text font-semibold">
-                  {gettext("Proficiency levels")}
-                  <span class="label-text-alt text-base-content/50 font-normal">{gettext("optional")}</span>
-                </span>
-              </label>
-
-              <p :if={@staged_levels == []} class="text-sm text-base-content/60 mb-2">
-                {gettext("No levels — this skill is assigned without a proficiency level. Add some below, or leave empty.")}
+            <div
+              id={if @multilang_enabled, do: "selector-fields-#{@current_lang}", else: "selector-fields"}
+              data-translatable="fields"
+              class="flex flex-col gap-4"
+            >
+              <p :if={@staged_groups == []} class="text-sm text-base-content/60">
+                {gettext("No selectors — this skill is assigned with no level. Add a selector (e.g. Proficiency, Difficulty), or leave empty.")}
               </p>
 
-              <div :if={@staged_levels != []} class="flex flex-col gap-2">
-                <div
-                  :for={{level, idx} <- Enum.with_index(@staged_levels)}
-                  class="flex items-center gap-2"
-                >
-                  <span class="text-xs text-base-content/40 w-5 text-right tabular-nums">{idx + 1}.</span>
-                  <input
-                    type="text"
-                    id={"level-#{level["id"]}-name-#{@current_lang}"}
-                    name={"level[#{level["id"]}][name]"}
-                    value={level_field_value(level, @current_lang, @primary_language)}
-                    placeholder={
-                      if @current_lang == @primary_language,
-                        do: gettext("Level name"),
-                        else: Map.get(level, "name", gettext("Level name"))
-                    }
-                    autocomplete="off"
-                    class="input input-sm w-full"
-                  />
-                  <div class="flex items-center shrink-0">
+              <.draggable_list
+                :if={@staged_groups != []}
+                id="skill-selectors"
+              items={@staged_groups}
+              item_id={&Map.get(&1, "id")}
+              on_reorder="reorder_selectors"
+              layout={:list}
+              gap="gap-3"
+              draggable={length(@staged_groups) > 1}
+              sortable_handle=".pk-drag-handle"
+              item_class="border border-base-300 rounded-box p-3 bg-base-100"
+            >
+              <:item :let={group}>
+                <div class="flex flex-col gap-3">
+                  <div class="flex items-center gap-2">
+                    <span class="pk-drag-handle cursor-grab active:cursor-grabbing text-base-content/30 shrink-0" aria-label={gettext("Drag to reorder")}>
+                      <.icon name="hero-bars-3" class="w-4 h-4" />
+                    </span>
+                    <input
+                      type="text"
+                      id={"selector-#{group["id"]}-name-#{@current_lang}"}
+                      name={"group[#{group["id"]}][name]"}
+                      value={name_value(group, @current_lang, @primary_language)}
+                      placeholder={
+                        if @current_lang == @primary_language,
+                          do: gettext("Selector name (e.g. Proficiency)"),
+                          else: blank_to(Map.get(group, "name"), gettext("Selector name"))
+                      }
+                      autocomplete="off"
+                      class="input input-sm font-medium w-full"
+                    />
                     <button
                       type="button"
-                      phx-click="move_level_up"
-                      phx-value-id={level["id"]}
-                      disabled={idx == 0}
-                      class="btn btn-ghost btn-xs btn-square"
-                      aria-label={gettext("Move up")}
+                      phx-click="toggle_selector_multiple"
+                      phx-value-group-id={group["id"]}
+                      class={["btn btn-xs shrink-0", if(group["allow_multiple"], do: "btn-primary", else: "btn-ghost")]}
+                      title={gettext("On: multiple options can be selected at once. Off: a single option.")}
                     >
-                      <.icon name="hero-chevron-up" class="w-4 h-4" />
+                      {if group["allow_multiple"], do: gettext("Multiple"), else: gettext("Single")}
                     </button>
                     <button
                       type="button"
-                      phx-click="move_level_down"
-                      phx-value-id={level["id"]}
-                      disabled={idx == length(@staged_levels) - 1}
-                      class="btn btn-ghost btn-xs btn-square"
-                      aria-label={gettext("Move down")}
-                    >
-                      <.icon name="hero-chevron-down" class="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      phx-click="remove_level"
-                      phx-value-id={level["id"]}
-                      class="btn btn-ghost btn-xs btn-square text-error"
+                      phx-click="remove_selector"
+                      phx-value-group-id={group["id"]}
+                      class="btn btn-ghost btn-xs btn-square text-error shrink-0"
                       aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
                     >
                       <.icon name="hero-x-mark" class="w-4 h-4" />
                     </button>
                   </div>
-                </div>
-              </div>
 
-              <div class="flex flex-wrap gap-2 mt-2">
-                <button type="button" phx-click="add_level" class="btn btn-ghost btn-sm">
-                  <.icon name="hero-plus" class="w-4 h-4" /> {gettext("Add level")}
-                </button>
-                <button
-                  :if={@staged_levels == []}
-                  type="button"
-                  phx-click="seed_standard_levels"
-                  class="btn btn-ghost btn-sm"
-                >
-                  <.icon name="hero-sparkles" class="w-4 h-4" /> {gettext("Add standard levels")}
-                </button>
-              </div>
+                  <div class="pl-6 flex flex-col gap-2">
+                    <.draggable_list
+                      :if={group["options"] != []}
+                      id={"selector-#{group["id"]}-options"}
+                      items={group["options"]}
+                      item_id={&Map.get(&1, "id")}
+                      on_reorder="reorder_options"
+                      layout={:list}
+                      gap="gap-2"
+                      draggable={length(group["options"]) > 1}
+                      sortable_handle=".pk-drag-handle"
+                      item_class="flex items-center gap-2"
+                    >
+                      <:item :let={option}>
+                        <span class="pk-drag-handle cursor-grab active:cursor-grabbing text-base-content/30 shrink-0" aria-label={gettext("Drag to reorder")}>
+                          <.icon name="hero-bars-2" class="w-4 h-4" />
+                        </span>
+                        <input
+                          type="text"
+                          id={"option-#{option["id"]}-name-#{@current_lang}"}
+                          name={"option[#{option["id"]}][name]"}
+                          value={name_value(option, @current_lang, @primary_language)}
+                          placeholder={
+                            if @current_lang == @primary_language,
+                              do: gettext("Level name"),
+                              else: blank_to(Map.get(option, "name"), gettext("Level name"))
+                          }
+                          autocomplete="off"
+                          class="input input-sm w-full"
+                        />
+                        <button
+                          type="button"
+                          phx-click="remove_option"
+                          phx-value-group-id={group["id"]}
+                          phx-value-option-id={option["id"]}
+                          class="btn btn-ghost btn-xs btn-square text-error shrink-0"
+                          aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
+                        >
+                          <.icon name="hero-x-mark" class="w-4 h-4" />
+                        </button>
+                      </:item>
+                    </.draggable_list>
+
+                    <button
+                      type="button"
+                      phx-click="add_option"
+                      phx-value-group-id={group["id"]}
+                      class="btn btn-ghost btn-xs self-start"
+                    >
+                      <.icon name="hero-plus" class="w-3.5 h-3.5" /> {gettext("Add level")}
+                    </button>
+                  </div>
+                </div>
+              </:item>
+            </.draggable_list>
+
+            <div class="flex flex-wrap gap-2">
+              <button type="button" phx-click="add_selector" class="btn btn-ghost btn-sm">
+                <.icon name="hero-plus" class="w-4 h-4" /> {gettext("Add selector")}
+              </button>
+              <button
+                :if={@staged_groups == []}
+                type="button"
+                phx-click="seed_standard_levels"
+                class="btn btn-ghost btn-sm"
+              >
+                <.icon name="hero-sparkles" class="w-4 h-4" /> {gettext("Add standard levels")}
+              </button>
+            </div>
             </div>
           </div>
 
@@ -447,4 +573,8 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
     </div>
     """
   end
+
+  defp blank_to(nil, fallback), do: fallback
+  defp blank_to("", fallback), do: fallback
+  defp blank_to(value, _fallback), do: value
 end

@@ -108,14 +108,54 @@ defmodule PhoenixKitStaff.DataCase do
   end
 
   @doc """
-  Creates a Skill with the given level names (ids auto-generated). Returns
-  `{skill, ids_by_name}` where `ids_by_name` maps each level name to its id.
-  Pass `attrs` to set e.g. `%{"allow_multiple_levels" => true}`.
+  Creates a Skill with one "Proficiency" selector holding the given option
+  names (ids auto-generated). Returns `{skill, ids_by_name}` where
+  `ids_by_name` maps each option name to its id. Pass
+  `%{"allow_multiple" => true}` (or the legacy `%{"allow_multiple_levels" => true}`)
+  in `attrs` to make the selector multi-select.
   """
-  def fixture_skill_with_levels(level_names, attrs \\ %{}) do
-    levels = Enum.map(level_names, &%{"name" => &1})
+  def fixture_skill_with_levels(option_names, attrs \\ %{}) do
+    multiple = Map.get(attrs, "allow_multiple", Map.get(attrs, "allow_multiple_levels", false))
+    rest = attrs |> Map.delete("allow_multiple") |> Map.delete("allow_multiple_levels")
+    # Blank selector name → renders chips with no group label, matching the
+    # legacy single-list UX (keeps web assertions on option text stable).
+    fixture_skill_with_selectors([{"", multiple, option_names}], rest)
+  end
+
+  @doc """
+  Creates a Skill with the given selectors. `selectors` is a list of
+  `{name, allow_multiple, option_names}` tuples. Returns `{skill, ids_by_name}`
+  where `ids_by_name` maps each option name to its id (option names must be
+  unique across selectors).
+  """
+  def fixture_skill_with_selectors(selectors, attrs \\ %{}) do
+    levels =
+      Enum.map(selectors, fn {name, multiple, option_names} ->
+        %{
+          "name" => name,
+          "allow_multiple" => multiple,
+          "options" => Enum.map(option_names, &%{"name" => &1})
+        }
+      end)
+
     skill = fixture_skill(Map.merge(%{"levels" => levels}, attrs))
-    ids_by_name = Map.new(skill.levels, fn lvl -> {lvl["name"], lvl["id"]} end)
+
+    ids_by_name =
+      skill.levels
+      |> Enum.flat_map(&Map.get(&1, "options", []))
+      |> Map.new(fn o -> {o["name"], o["id"]} end)
+
     {skill, ids_by_name}
+  end
+
+  @doc """
+  Creates an employment span for a person via `PhoenixKitStaff.Employments`
+  (so the one-open-span invariant + `Person` denormalization run). `attrs` are
+  string-keyed (e.g. `%{"employment_type" => "full_time", "job_title" => "Dev"}`);
+  an absent `employment_end_date` makes it the open/current span.
+  """
+  def fixture_employment(person_uuid, attrs \\ %{}) do
+    {:ok, employment} = PhoenixKitStaff.Employments.create(person_uuid, attrs)
+    employment
   end
 end

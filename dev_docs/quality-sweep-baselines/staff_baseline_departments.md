@@ -1,0 +1,162 @@
+- main [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e7]:
+      - link "DON TESTER pk project" [ref=e8] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e9]: Admin Panel
+      - generic [ref=e10]:
+        - generic [ref=e11]: /
+        - generic [ref=e12]: Departments
+    - generic [ref=e13]:
+      - group [ref=e16]
+      - generic "Notifications" [ref=e21] [cursor=pointer]
+      - button "M Avatar" [ref=e25] [cursor=pointer]:
+        - generic [ref=e27]:
+          - generic [ref=e28]: M
+          - img "Avatar" [ref=e29]
+  - generic [ref=e30]:
+    - generic [ref=e33]:
+      - generic [ref=e35]:
+        - generic [ref=e37]:
+          - heading "Departments" [level=1] [ref=e38]
+          - paragraph [ref=e39]: Top-level organizational units.
+        - link "New department" [ref=e41] [cursor=pointer]:
+          - /url: /phoenix_kit/admin/staff/departments/new
+          - text: New department
+      - table [ref=e45]:
+        - rowgroup [ref=e46]:
+          - row "Name Teams Actions" [ref=e47]:
+            - columnheader "Name" [ref=e48]
+            - columnheader "Teams" [ref=e49]
+            - columnheader "Actions" [ref=e50]
+        - rowgroup [ref=e51]:
+          - row "Engineering Builds and runs the product. 3 Actions" [ref=e52]:
+            - cell "Engineering Builds and runs the product." [ref=e53]:
+              - link "Engineering" [ref=e54] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/departments/019e994c-069a-78e2-a7c4-d2ba46702b56
+              - generic [ref=e55]: Builds and runs the product.
+            - cell "3" [ref=e56]
+            - cell "Actions" [ref=e57]:
+              - button "Actions" [ref=e59] [cursor=pointer]
+          - row "Marketing Brand, growth, and demand generation. 1 Actions" [ref=e61]:
+            - cell "Marketing Brand, growth, and demand generation." [ref=e62]:
+              - link "Marketing" [ref=e63] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/departments/019e994c-06a8-7a3d-a68d-577f20e2cca7
+              - generic [ref=e64]: Brand, growth, and demand generation.
+            - cell "1" [ref=e65]
+            - cell "Actions" [ref=e66]:
+              - button "Actions" [ref=e68] [cursor=pointer]
+          - row "Operations 1 Actions" [ref=e70]:
+            - cell "Operations" [ref=e71]:
+              - link "Operations" [ref=e72] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/departments/019e8451-8aa3-7d13-9b15-7ad2da92335c
+            - cell "1" [ref=e73]
+            - cell "Actions" [ref=e74]:
+              - button "Actions" [ref=e76] [cursor=pointer]
+          - row "Sales Revenue and customer acquisition. 2 Actions" [ref=e78]:
+            - cell "Sales Revenue and customer acquisition." [ref=e79]:
+              - link "Sales" [ref=e80] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/departments/019e994c-06a6-7c7e-b8de-02b3ec9a7222
+              - generic [ref=e81]: Revenue and customer acquisition.
+            - cell "2" [ref=e82]
+            - cell "Actions" [ref=e83]:
+              - button "Actions" [ref=e85] [cursor=pointer]
+    - complementary [ref=e88]:
+      - navigation "Admin navigation" [ref=e90]:
+        - generic [ref=e91]:
+          - link "Dashboard" [ref=e93] [cursor=pointer]:
+            - /url: /phoenix_kit/admin
+            - generic [ref=e96]: Dashboard
+          - link "Users" [ref=e98] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/users
+            - generic [ref=e101]: Users
+          - link "Activity" [ref=e103] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/activity
+            - generic [ref=e106]: Activity
+          - link "Media" [ref=e108] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/media
+            - generic [ref=e111]: Media
+        - generic [ref=e112]:
+          - link "Emails" [ref=e114] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/emails/dashboard
+            - generic [ref=e117]: Emails
+          - link "Billing" [ref=e119] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/billing
+            - generic [ref=e122]: Billing
+          - link "Newsletters" [ref=e124] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/newsletters/broadcasts
+            - generic [ref=e127]: Newsletters
+          - link "E-Commerce" [ref=e129] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/shop
+            - generic [ref=e132]: E-Commerce
+          - link "DB" [ref=e134] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/db
+            - generic [ref=e137]: DB
+          - link "Posts" [ref=e139] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/posts
+            - generic [ref=e142]: Posts
+          - link "Comments" [ref=e144] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/comments
+            - generic [ref=e147]: Comments
+          - link "Connections" [ref=e149] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/connections
+            - generic [ref=e152]: Connections
+          - link "Jobs" [ref=e154] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/jobs
+            - generic [ref=e157]: Jobs
+          - link "Modules" [ref=e159] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/modules
+            - generic [ref=e162]: Modules
+          - link "Notifications" [ref=e164] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/notifications
+            - generic [ref=e167]: Notifications
+          - link "Hello World" [ref=e169] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/hello-world
+            - generic [ref=e172]: Hello World
+          - link "AI" [ref=e174] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/ai/endpoints
+            - generic [ref=e177]: AI
+          - link "Sync" [ref=e179] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/sync
+            - generic [ref=e182]: Sync
+          - generic [ref=e183]:
+            - link "Staff" [ref=e184] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff
+              - generic [ref=e187]: Staff
+            - generic [ref=e188]:
+              - link "Overview" [ref=e189] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff
+                - generic [ref=e192]: Overview
+              - link "Departments" [ref=e193] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/departments
+                - generic [ref=e196]: Departments
+              - link "Teams" [ref=e197] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/teams
+                - generic [ref=e200]: Teams
+              - link "Staff" [ref=e201] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/people
+                - generic [ref=e204]: Staff
+              - link "Skills" [ref=e205] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/skills
+                - generic [ref=e208]: Skills
+          - link "Document Creator" [ref=e210] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/document-creator/documents
+            - generic [ref=e213]: Document Creator
+          - link "Projects" [ref=e215] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/projects
+            - generic [ref=e218]: Projects
+          - link "Catalogue" [ref=e220] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/catalogue
+            - generic [ref=e223]: Catalogue
+          - link "Locations" [ref=e225] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/locations
+            - generic [ref=e228]: Locations
+          - link "Entities" [ref=e230] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/entities
+            - generic [ref=e233]: Entities
+          - link "Publishing" [ref=e235] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/publishing
+            - generic [ref=e238]: Publishing
+        - link "Settings" [ref=e241] [cursor=pointer]:
+          - /url: /phoenix_kit/admin/settings
+          - generic [ref=e244]: Settings

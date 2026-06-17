@@ -24,6 +24,12 @@ defmodule PhoenixKitStaff.Test.Hooks do
   with the same nil-scope state production sees for logged-out users).
   """
   def on_mount(:assign_scope, _params, session, socket) do
+    # Production's admin live_session puts the request locale on the process
+    # (so `current_content_lang/0` resolves it during render). The test
+    # endpoint doesn't, so mirror it from an optional session key — no-op
+    # when absent, keeping every existing test's default-locale behaviour.
+    maybe_put_locale(session)
+
     case Map.get(session, "phoenix_kit_test_scope") do
       nil ->
         {:cont, socket}
@@ -37,4 +43,9 @@ defmodule PhoenixKitStaff.Test.Hooks do
         {:cont, socket}
     end
   end
+
+  defp maybe_put_locale(%{"phoenix_kit_test_locale" => locale}) when is_binary(locale),
+    do: Gettext.put_locale(PhoenixKitWeb.Gettext, locale)
+
+  defp maybe_put_locale(_session), do: :ok
 end

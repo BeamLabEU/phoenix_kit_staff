@@ -21,16 +21,18 @@ defmodule PhoenixKitStaff.Integration.SkillsTest do
       assert Skills.get(Ecto.UUID.generate()) == nil
     end
 
-    test "levels + proficiency_levels round-trip through the JSONB columns on a fresh read" do
-      {skill, ids} = fixture_skill_with_levels(["B", "C"], %{"allow_multiple_levels" => true})
+    test "selectors + proficiency_levels round-trip through the JSONB columns on a fresh read" do
+      {skill, ids} = fixture_skill_with_levels(["B", "C"], %{"allow_multiple" => true})
       person = fixture_person()
       {:ok, _} = Skills.assign_skill(person.uuid, skill.uuid, [ids["B"], ids["C"]])
 
       # Re-read from the DB (not the insert return) to prove the Ecto
-      # {:array,:map}/{:array,:string} fields decode the JSONB correctly.
+      # {:array,:map}/{:array,:string} fields decode the JSONB selector tree
+      # correctly.
       reloaded = Skills.get!(skill.uuid)
-      assert reloaded.allow_multiple_levels == true
-      assert [%{"id" => _, "name" => "B"}, %{"id" => _, "name" => "C"}] = reloaded.levels
+      assert [selector] = reloaded.levels
+      assert selector["allow_multiple"] == true
+      assert [%{"id" => _, "name" => "B"}, %{"id" => _, "name" => "C"}] = selector["options"]
 
       [ps] = Skills.list_for_person(person.uuid)
       assert ps.proficiency_levels == [ids["B"], ids["C"]]

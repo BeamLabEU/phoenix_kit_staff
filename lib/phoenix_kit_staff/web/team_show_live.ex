@@ -6,9 +6,9 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
 
   require Logger
 
-  alias PhoenixKitStaff.{Activity, Paths, Staff, Teams}
+  alias PhoenixKitStaff.{Activity, L10n, Paths, Staff, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
-  alias PhoenixKitStaff.Schemas.Person
+  alias PhoenixKitStaff.Schemas.{Department, Person, Team}
   alias PhoenixKitStaff.Web.Helpers
 
   @impl true
@@ -132,15 +132,17 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :lang, L10n.current_content_lang())
+
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
       <.admin_page_header>
-        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-base-content">{@team.name}</h1>
+        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-base-content">{Team.localized_name(@team, @lang)}</h1>
         <p class="text-sm sm:text-base text-base-content/60 mt-0.5">
           <.link navigate={Paths.department(@team.department.uuid)} class="link link-hover">
-            {@team.department.name}
+            {Department.localized_name(@team.department, @lang)}
           </.link>
-          <span :if={@team.description} class="ml-2">— {@team.description}</span>
+          <span :if={@team.description} class="ml-2">— {Team.localized_description(@team, @lang)}</span>
         </p>
         <:actions>
           <.link navigate={Paths.edit_team(@team.uuid)} class="btn btn-ghost btn-sm">
