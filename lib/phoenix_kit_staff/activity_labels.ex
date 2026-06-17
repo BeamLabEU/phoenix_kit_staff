@@ -31,6 +31,12 @@ defmodule PhoenixKitStaff.ActivityLabels do
   def describe("staff.person_restored", _meta),
     do: {"hero-arrow-uturn-left", gettext("Restored from trash")}
 
+  def describe("staff.person_avatar_set", _meta),
+    do: {"hero-user-circle", gettext("Profile photo updated")}
+
+  def describe("staff.person_avatar_removed", _meta),
+    do: {"hero-user-circle", gettext("Profile photo removed")}
+
   def describe("staff.person_employment_added", _meta),
     do: {"hero-briefcase", gettext("Employment added")}
 

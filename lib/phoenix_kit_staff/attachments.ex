@@ -28,8 +28,10 @@ defmodule PhoenixKitStaff.Attachments do
 
   alias PhoenixKit.Modules.Storage
   alias PhoenixKit.Modules.Storage.{File, Folder, FolderLink}
+  alias PhoenixKitStaff.Schemas.Person
 
   @images_folder_name "Images"
+  @avatar_key "avatar_uuid"
   # Inline grid is unpaginated; cap the query so a pathological folder can't
   # freeze the tab. The picker uploads ≤20/submit, so this is generous.
   @list_limit 200
@@ -327,5 +329,64 @@ defmodule PhoenixKitStaff.Attachments do
     fun.()
   rescue
     _ -> nil
+  end
+
+  # ── Avatar ─────────────────────────────────────────────────────────
+  #
+  # A person's avatar is a single image-file pointer kept in `Person.metadata`
+  # (`"avatar_uuid"`) — no new column, mirroring catalogue's featured-image
+  # pointer. The image is one of the person's Images-folder files (the avatar
+  # picker is scoped to that folder), so uploads/picks stay in sync with the
+  # Images tab. Server-owned: written only via `set_avatar/2` / `clear_avatar/1`.
+
+  @doc "The person's avatar file uuid (from metadata), or nil."
+  @spec avatar_uuid(Person.t()) :: binary() | nil
+  def avatar_uuid(%Person{metadata: m}) when is_map(m) do
+    case Map.get(m, @avatar_key) do
+      uuid when is_binary(uuid) and uuid != "" -> uuid
+      _ -> nil
+    end
+  end
+
+  def avatar_uuid(_), do: nil
+
+  @doc "The person's avatar `File` struct, or nil if unset / missing / trashed."
+  @spec avatar_file(Person.t()) :: File.t() | nil
+  def avatar_file(person) do
+    case avatar_uuid(person) do
+      nil ->
+        nil
+
+      uuid ->
+        case Storage.get_file(uuid) do
+          %File{status: "trashed"} -> nil
+          %File{} = file -> file
+          _ -> nil
+        end
+    end
+  rescue
+    _ -> nil
+  end
+
+  @doc "Thumbnail URL for the person's avatar (or nil)."
+  @spec avatar_url(Person.t()) :: String.t() | nil
+  def avatar_url(person), do: person |> avatar_file() |> thumb_url()
+
+  @doc "Points the person's avatar at `file_uuid` (server-owned metadata write)."
+  @spec set_avatar(Person.t(), binary()) :: {:ok, Person.t()} | {:error, term()}
+  def set_avatar(%Person{} = person, file_uuid) when is_binary(file_uuid) and file_uuid != "",
+    do: put_metadata(person, @avatar_key, file_uuid)
+
+  @doc "Clears the person's avatar pointer."
+  @spec clear_avatar(Person.t()) :: {:ok, Person.t()} | {:error, term()}
+  def clear_avatar(%Person{} = person), do: put_metadata(person, @avatar_key, nil)
+
+  defp put_metadata(person, key, value) do
+    metadata = person.metadata || %{}
+
+    metadata =
+      if is_nil(value), do: Map.delete(metadata, key), else: Map.put(metadata, key, value)
+
+    person |> Ecto.Changeset.change(metadata: metadata) |> repo().update()
   end
 end

@@ -299,6 +299,16 @@ no migration**). `PhoenixKitStaff.Attachments` is the helper.
   the media trash), unlink a shared one — never a hard delete. On a person's
   **permanent** delete, `Attachments.purge_person_media/1` cascades the folder
   subtree (core `delete_folder_completely/1`); soft-trash keeps the files.
+- **Avatar.** The person show header shows a circular avatar (initials
+  fallback). It's a single image-file pointer in `Person.metadata["avatar_uuid"]`
+  (no column — like catalogue's featured image), managed by
+  `Attachments.{avatar_uuid,avatar_file,avatar_url,set_avatar,clear_avatar}`
+  (server-owned metadata write, merges — never clobbers other metadata keys).
+  Clicking the avatar opens `MediaSelectorModal` scoped to the **Images** folder
+  with `browse: true` + `mode: :single`, so it suggests the person's existing
+  images and any upload lands in the Images tab. `PersonShowLive` hosts the
+  picker (handles `{:media_selected, …}` / `{:media_selector_closed}`) and logs
+  `staff.person_avatar_set/removed`.
 
 ## Events tab
 
@@ -432,6 +442,7 @@ Every mutation logs via the `PhoenixKitStaff.Activity` wrapper — **never call 
 - `staff.person_skill_added/removed/updated` (skill assigned to / unassigned from / re-leveled on a person)
 - `staff.person_employment_added/updated/ended/removed` (employment span created / edited / end-dated / deleted)
 - `staff.person_file_added/removed` · `staff.person_image_added/removed` (media attached to / removed from the person's media folder)
+- `staff.person_avatar_set/removed` (profile photo pointer set to / cleared from an image)
 
 **Where to log:** activity logging happens at the **LiveView layer**, not inside context functions. The LiveView is where `actor_uuid` is accessible (via `socket.assigns[:phoenix_kit_current_user]`) and where user intent is unambiguous ("admin clicked Save" vs. "internal function called during a cascade"). Context functions like `Staff.create_person/2` stay pure — they perform the mutation and return `{:ok, record} | {:error, changeset}`, and the calling LiveView logs on success.
 

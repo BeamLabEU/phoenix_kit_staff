@@ -16,6 +16,7 @@ defmodule PhoenixKitStaff.Web.PersonEventsComponent do
   use Gettext, backend: PhoenixKitStaff.Gettext
 
   alias PhoenixKit.Activity
+  alias PhoenixKit.Utils.Routes
   alias PhoenixKitStaff.{ActivityLabels, L10n}
 
   @per_page 20
@@ -74,7 +75,7 @@ defmodule PhoenixKitStaff.Web.PersonEventsComponent do
   # (resource_type + resource_uuid honored by the admin page via URL params).
   defp activity_log_path(person_uuid) do
     query = URI.encode_query(%{"resource_type" => "staff_person", "resource_uuid" => person_uuid})
-    PhoenixKit.Utils.Routes.path("/admin/activity?#{query}")
+    Routes.path("/admin/activity?#{query}")
   end
 
   defp format_at(%DateTime{} = dt),
