@@ -15,11 +15,7 @@ defmodule PhoenixKitStaff.Web.PersonEventsComponent do
   use PhoenixKitWeb, :live_component
   use Gettext, backend: PhoenixKitStaff.Gettext
 
-  require Logger
-  import Ecto.Query, warn: false
-
   alias PhoenixKit.Activity
-  alias PhoenixKit.Activity.Entry
   alias PhoenixKitStaff.{ActivityLabels, L10n}
 
   @per_page 20
@@ -45,44 +41,30 @@ defmodule PhoenixKitStaff.Web.PersonEventsComponent do
     {:noreply, socket |> assign(:page, page) |> load_events()}
   end
 
-  # Scope the feed to THIS person. NOTE: we query `Activity.Entry` directly
-  # rather than `Activity.list/1` because core's `apply_filters/2` honours
-  # `resource_type` but not `resource_uuid` — `list/1` would leak every staff
-  # person's events into each profile. Direct query keeps pagination correct.
+  # Scope the feed to THIS person via core's filters. `Activity.list/1` honours
+  # both `resource_type` and `resource_uuid` (the latter added to core's
+  # `apply_filters/2` alongside this feature) and paginates by offset.
   defp load_events(socket) do
-    person_uuid = socket.assigns.person.uuid
-
-    base =
-      from(e in Entry,
-        where: e.resource_type == "staff_person" and e.resource_uuid == ^person_uuid,
-        order_by: [desc: e.inserted_at]
+    result =
+      safe_list(
+        resource_type: "staff_person",
+        resource_uuid: socket.assigns.person.uuid,
+        page: socket.assigns.page,
+        per_page: @per_page,
+        preload: [:actor]
       )
 
-    {entries, total} = fetch_page(base, socket.assigns.page)
-
     assign(socket,
-      events: entries,
-      total: total,
-      total_pages: max(ceil(total / @per_page), 1)
+      events: result.entries,
+      total: result.total,
+      total_pages: result.total_pages
     )
   end
 
-  defp fetch_page(base, page) do
-    repo = PhoenixKit.RepoHelper.repo()
-    total = repo.aggregate(base, :count)
-
-    entries =
-      base
-      |> limit(^@per_page)
-      |> offset(^((page - 1) * @per_page))
-      |> repo.all()
-      |> repo.preload(:actor)
-
-    {entries, total}
+  defp safe_list(opts) do
+    Activity.list(opts)
   rescue
-    error ->
-      Logger.warning("[Staff] events load failed: #{inspect(error)}")
-      {[], 0}
+    _ -> %{entries: [], total: 0, total_pages: 1}
   end
 
   defp actor_label(%{actor: %{email: email}}) when is_binary(email), do: email

@@ -303,15 +303,17 @@ no migration**). `PhoenixKitStaff.Attachments` is the helper.
 ## Events tab
 
 `Web.PersonEventsComponent` is a **read-only, paginated** feed of the
-`PhoenixKit.Activity` entries for this person (`resource_type: "staff_person"` +
-the person's uuid). **Gotcha:** core `Activity.list/1`'s `apply_filters/2`
-honours `resource_type` but **not `resource_uuid`**, so the component queries
-`PhoenixKit.Activity.Entry` directly (filtering both) — using `list/1` would leak
-every staff person's events into each profile. Labels/icons come from
+`PhoenixKit.Activity` entries for this person, via
+`Activity.list(resource_type: "staff_person", resource_uuid: person.uuid, …)`
+(offset-paginated). **History:** core's `apply_filters/2` originally honoured
+`resource_type` but **not `resource_uuid`** — `list/1` would have leaked every
+staff person's events into each profile. That gap was fixed in core (a
+`maybe_filter_resource_uuid` clause + a regression test), so the component uses
+`list/1` directly; this requires the core release carrying that fix (works
+locally via `PHOENIX_KIT_PATH`). Labels/icons come from
 `PhoenixKitStaff.ActivityLabels` (domain gettext; humanized fallback for unknown
 actions); badge colour reuses core `Activity.action_badge_color/1`. No live
-PubSub prepend (a fresh load on tab open / page change suffices for an audit
-log). *(Consider upstreaming a `resource_uuid` filter into core's `apply_filters`.)*
+PubSub prepend (a fresh load on tab open / page change suffices for an audit log).
 
 ## Person.name
 
