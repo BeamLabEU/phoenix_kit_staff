@@ -15,7 +15,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   alias PhoenixKit.Modules.Storage
   alias PhoenixKitStaff.{Activity, Attachments, L10n, Paths, Skills, Staff}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
-  alias PhoenixKitStaff.Schemas.{Person, Skill}
+  alias PhoenixKitStaff.Schemas.{Department, Person, Skill, Team}
   alias PhoenixKitStaff.Web.Helpers
 
   import PhoenixKitStaff.Web.Components.TabsStrip
@@ -216,7 +216,13 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         {:noreply,
          socket |> reload_person() |> put_flash(:info, gettext("Profile photo removed."))}
 
-      {:error, _} ->
+      {:error, reason} ->
+        Helpers.log_operation_error("staff.person_avatar_removed", socket,
+          reason: reason,
+          resource_type: "staff_person",
+          resource_uuid: socket.assigns.person.uuid
+        )
+
         {:noreply, put_flash(socket, :error, gettext("Could not remove the photo."))}
     end
   end
@@ -369,6 +375,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :lang, L10n.current_content_lang())
+
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
       <.admin_page_header>
@@ -406,6 +414,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
               :if={@storage_enabled and @avatar_file}
               type="button"
               phx-click="remove_avatar"
+              phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
               data-confirm={gettext("Remove this profile photo?")}
               class="absolute -top-1 -right-1 btn btn-xs btn-circle btn-error opacity-0 group-hover:opacity-100 transition"
               aria-label={gettext("Remove photo")}
@@ -418,7 +427,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
               {Person.display_name(@person)}
             </h1>
             <p :if={@person.job_title} class="text-sm sm:text-base text-base-content/60 mt-0.5">
-              {@person.job_title}
+              {Person.localized_job_title(@person, @lang)}
             </p>
           </div>
         </div>
@@ -505,7 +514,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
             <%= if @person.primary_department do %>
               <.link navigate={Paths.department(@person.primary_department.uuid)} class="link link-hover">
                 <.icon name="hero-building-office-2" class="w-3 h-3 inline" />
-                {@person.primary_department.name}
+                {Department.localized_name(@person.primary_department, @lang)}
               </.link>
             <% end %>
             <%= if @person.work_location do %>
@@ -518,7 +527,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
           <%!-- Bio --%>
           <%= if @person.bio do %>
-            <div class="mt-4 text-sm leading-relaxed whitespace-pre-line">{@person.bio}</div>
+            <div class="mt-4 text-sm leading-relaxed whitespace-pre-line">{Person.localized_bio(@person, @lang)}</div>
           <% end %>
         </div>
       </div>
@@ -625,10 +634,10 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
                 <tr :for={tm <- @memberships}>
                   <td>
                     <.link navigate={Paths.team(tm.team.uuid)} class="link link-hover font-medium">
-                      {tm.team.name}
+                      {Team.localized_name(tm.team, @lang)}
                     </.link>
                   </td>
-                  <td>{tm.team.department.name}</td>
+                  <td>{Department.localized_name(tm.team.department, @lang)}</td>
                 </tr>
               </tbody>
             </table>
@@ -663,9 +672,9 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
                 navigate={Paths.skill(ps.skill.uuid)}
                 class="badge badge-lg badge-outline gap-1 hover:badge-primary"
               >
-                {ps.skill.name}
-                <span :if={level_names(ps, assigns[:current_locale]) != ""} class="opacity-60">
-                  · {level_names(ps, assigns[:current_locale])}
+                {Skill.localized_name(ps.skill, @lang)}
+                <span :if={level_names(ps, @lang) != ""} class="opacity-60">
+                  · {level_names(ps, @lang)}
                 </span>
               </.link>
             </div>
@@ -681,7 +690,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
               <h2 class="card-title text-base text-warning-content">
                 <.icon name="hero-lock-closed" class="w-4 h-4" /> {gettext("Admin notes")}
               </h2>
-              <div class="text-sm whitespace-pre-line">{@person.notes}</div>
+              <div class="text-sm whitespace-pre-line">{Person.localized_notes(@person, @lang)}</div>
             </div>
           </div>
         <% end %>
@@ -694,7 +703,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
           module={PhoenixKitStaff.Web.PersonEmploymentComponent}
           id={"staff-person-employment-#{@person.uuid}"}
           person={@person}
-          locale={assigns[:current_locale]}
+          locale={@lang}
           phoenix_kit_current_user={@phoenix_kit_current_user}
         />
       </div>

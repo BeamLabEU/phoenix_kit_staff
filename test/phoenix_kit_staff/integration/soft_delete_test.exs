@@ -228,5 +228,27 @@ defmodule PhoenixKitStaff.Integration.SoftDeleteTest do
       # filter), so an empty result proves no membership row was inserted.
       assert Staff.list_memberships_for_person(trashed.uuid) == []
     end
+
+    test "Employments.create/2 refuses a trashed person and inserts nothing" do
+      {:ok, trashed} = Staff.trash_person(fixture_person())
+
+      assert {:error, :person_trashed} =
+               PhoenixKitStaff.Employments.create(trashed.uuid, %{
+                 "employment_type" => "full_time",
+                 "job_title" => "Engineer",
+                 "employment_start_date" => "2024-01-01"
+               })
+
+      # Keyed on the person (no trashed filter) — empty proves the
+      # transaction rolled back before the insert.
+      assert PhoenixKitStaff.Employments.list_for_person(trashed.uuid) == []
+    end
+
+    test "Attachments.set_avatar/2 refuses a trashed person (clear stays allowed)" do
+      {:ok, trashed} = Staff.trash_person(fixture_person())
+
+      assert {:error, :person_trashed} =
+               PhoenixKitStaff.Attachments.set_avatar(trashed, Ecto.UUID.generate())
+    end
   end
 end

@@ -372,10 +372,17 @@ defmodule PhoenixKitStaff.Attachments do
   @spec avatar_url(Person.t()) :: String.t() | nil
   def avatar_url(person), do: person |> avatar_file() |> thumb_url()
 
-  @doc "Points the person's avatar at `file_uuid` (server-owned metadata write)."
+  @doc """
+  Points the person's avatar at `file_uuid` (server-owned metadata write).
+  Refuses a trashed person (`{:error, :person_trashed}`) — a removed person
+  shouldn't gain a new profile photo; clearing the avatar stays unguarded.
+  """
   @spec set_avatar(Person.t(), binary()) :: {:ok, Person.t()} | {:error, term()}
-  def set_avatar(%Person{} = person, file_uuid) when is_binary(file_uuid) and file_uuid != "",
-    do: put_metadata(person, @avatar_key, file_uuid)
+  def set_avatar(%Person{} = person, file_uuid) when is_binary(file_uuid) and file_uuid != "" do
+    if Person.trashed?(person),
+      do: {:error, :person_trashed},
+      else: put_metadata(person, @avatar_key, file_uuid)
+  end
 
   @doc "Clears the person's avatar pointer."
   @spec clear_avatar(Person.t()) :: {:ok, Person.t()} | {:error, term()}

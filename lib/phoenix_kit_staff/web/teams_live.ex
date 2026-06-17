@@ -6,8 +6,9 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
 
   require Logger
 
-  alias PhoenixKitStaff.{Activity, Paths, Teams}
+  alias PhoenixKitStaff.{Activity, L10n, Paths, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
+  alias PhoenixKitStaff.Schemas.{Department, Team}
   alias PhoenixKitStaff.Web.Helpers
 
   @impl true
@@ -64,6 +65,8 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :lang, L10n.current_content_lang())
+
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
       <.admin_page_header
@@ -100,12 +103,12 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
                 <tr :for={team <- @teams} class="hover">
                   <td>
                     <.link navigate={Paths.team(team.uuid)} class="link link-hover font-medium">
-                      {team.name}
+                      {Team.localized_name(team, @lang)}
                     </.link>
                   </td>
                   <td>
                     <.link navigate={Paths.department(team.department.uuid)} class="text-sm">
-                      {team.department.name}
+                      {Department.localized_name(team.department, @lang)}
                     </.link>
                   </td>
                   <td class="text-right w-px whitespace-nowrap">
@@ -126,7 +129,7 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
                         phx-click="delete"
                         phx-value-uuid={team.uuid}
                         phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
-                        data-confirm={gettext("Delete team %{name}? This removes all memberships.", name: team.name)}
+                        data-confirm={gettext("Delete team %{name}? This removes all memberships.", name: Team.localized_name(team, @lang))}
                         icon="hero-trash"
                         label={Gettext.gettext(PhoenixKitWeb.Gettext, "Delete")}
                         variant="error"

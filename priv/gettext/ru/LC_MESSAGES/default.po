@@ -11,7 +11,7 @@ msgstr ""
 "Language: ru\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100 != 11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10||n%100>=20) ? 1 : 2);\n"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:351
+#: lib/phoenix_kit_staff/web/person_show_live.ex:357
 #, elixir-autogen, elixir-format
 msgid "%{date} · age %{age}"
 msgstr "%{date} · возраст %{age}"
@@ -28,7 +28,7 @@ msgstr "(можно изменить — аккаунт ещё не занят)"
 msgid "+372 ..."
 msgstr "+372 ..."
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:150
+#: lib/phoenix_kit_staff/web/overview_live.ex:158
 #, elixir-autogen, elixir-format
 msgid "1 team"
 msgid_plural "%{count} teams"
@@ -46,24 +46,24 @@ msgstr "Краткая информация об этом человеке"
 msgid "Add a new person on staff."
 msgstr "Добавить нового сотрудника."
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:175
+#: lib/phoenix_kit_staff/web/overview_live.ex:183
 #, elixir-autogen, elixir-format
 msgid "Add a team"
 msgstr "Добавить команду"
 
 #: lib/phoenix_kit_staff/web/skill_show_live.ex:189
-#: lib/phoenix_kit_staff/web/team_show_live.ex:154
+#: lib/phoenix_kit_staff/web/team_show_live.ex:156
 #, elixir-autogen, elixir-format
 msgid "Add staff"
 msgstr "Добавить сотрудника"
 
 #: lib/phoenix_kit_staff/web/skill_show_live.ex:208
-#: lib/phoenix_kit_staff/web/team_show_live.ex:167
+#: lib/phoenix_kit_staff/web/team_show_live.ex:169
 #, elixir-autogen, elixir-format
 msgid "Adding…"
 msgstr "Добавление…"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:682
+#: lib/phoenix_kit_staff/web/person_show_live.ex:691
 #, elixir-autogen, elixir-format
 msgid "Admin notes"
 msgstr "Заметки администратора"
@@ -78,13 +78,13 @@ msgstr "Аккаунт с такой почтой уже существует."
 msgid "Bio"
 msgstr "Биография"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:567
+#: lib/phoenix_kit_staff/web/person_show_live.ex:576
 #, elixir-autogen, elixir-format
 msgid "Birthday"
 msgstr "День рождения"
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:819
-#: lib/phoenix_kit_staff/web/person_show_live.ex:534
+#: lib/phoenix_kit_staff/web/person_show_live.ex:543
 #, elixir-autogen, elixir-format
 msgid "Contact"
 msgstr "Контакт"
@@ -101,12 +101,12 @@ msgstr "Полное имя контакта"
 msgid "Could not add staff."
 msgstr "Не удалось добавить сотрудника."
 
-#: lib/phoenix_kit_staff/web/departments_live.ex:62
+#: lib/phoenix_kit_staff/web/departments_live.ex:63
 #, elixir-autogen, elixir-format
 msgid "Could not delete department."
 msgstr "Не удалось удалить отдел."
 
-#: lib/phoenix_kit_staff/web/teams_live.ex:60
+#: lib/phoenix_kit_staff/web/teams_live.ex:61
 #, elixir-autogen, elixir-format
 msgid "Could not delete team."
 msgstr "Не удалось удалить команду."
@@ -149,14 +149,14 @@ msgstr "Создать новую команду в отделе."
 msgid "Create one"
 msgstr "Создать"
 
-#: lib/phoenix_kit_staff/web/departments_live.ex:86
+#: lib/phoenix_kit_staff/web/departments_live.ex:89
 #: lib/phoenix_kit_staff/web/skills_live.ex:83
-#: lib/phoenix_kit_staff/web/teams_live.ex:84
+#: lib/phoenix_kit_staff/web/teams_live.ex:87
 #, elixir-autogen, elixir-format
 msgid "Create your first"
 msgstr "Создайте первый"
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:136
+#: lib/phoenix_kit_staff/web/overview_live.ex:144
 #, elixir-autogen, elixir-format
 msgid "Create your first department"
 msgstr "Создайте свой первый отдел"
@@ -166,21 +166,21 @@ msgstr "Создайте свой первый отдел"
 msgid "Date of birth"
 msgstr "Дата рождения"
 
-#: lib/phoenix_kit_staff/web/departments_live.ex:130
+#: lib/phoenix_kit_staff/web/departments_live.ex:133
 #, elixir-autogen, elixir-format
 msgid "Delete department %{name}? This will also delete its teams and memberships."
 msgstr "Удалить отдел %{name}? Это также удалит его команды и участников."
 
-#: lib/phoenix_kit_staff/web/teams_live.ex:129
+#: lib/phoenix_kit_staff/web/teams_live.ex:132
 #, elixir-autogen, elixir-format
 msgid "Delete team %{name}? This removes all memberships."
 msgstr "Удалить команду %{name}? Это удалит всех участников."
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:58
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:267
-#: lib/phoenix_kit_staff/web/person_show_live.ex:621
+#: lib/phoenix_kit_staff/web/overview_live.ex:66
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:299
+#: lib/phoenix_kit_staff/web/person_show_live.ex:630
 #: lib/phoenix_kit_staff/web/team_form_live.ex:177
-#: lib/phoenix_kit_staff/web/teams_live.ex:95
+#: lib/phoenix_kit_staff/web/teams_live.ex:98
 #, elixir-autogen, elixir-format
 msgid "Department"
 msgstr "Отдел"
@@ -190,14 +190,14 @@ msgstr "Отдел"
 msgid "Department created."
 msgstr "Отдел создан."
 
-#: lib/phoenix_kit_staff/web/departments_live.ex:51
+#: lib/phoenix_kit_staff/web/departments_live.ex:52
 #, elixir-autogen, elixir-format
 msgid "Department deleted."
 msgstr "Отдел удалён."
 
 #: lib/phoenix_kit_staff/web/department_form_live.ex:33
-#: lib/phoenix_kit_staff/web/department_show_live.ex:23
-#: lib/phoenix_kit_staff/web/departments_live.ex:37
+#: lib/phoenix_kit_staff/web/department_show_live.ex:24
+#: lib/phoenix_kit_staff/web/departments_live.ex:38
 #, elixir-autogen, elixir-format
 msgid "Department not found."
 msgstr "Отдел не найден."
@@ -207,14 +207,14 @@ msgstr "Отдел не найден."
 msgid "Department updated."
 msgstr "Отдел обновлён."
 
-#: lib/phoenix_kit_staff/web/departments_live.ex:16
-#: lib/phoenix_kit_staff/web/departments_live.ex:72
-#: lib/phoenix_kit_staff/web/overview_live.ex:74
+#: lib/phoenix_kit_staff/web/departments_live.ex:17
+#: lib/phoenix_kit_staff/web/departments_live.ex:75
+#: lib/phoenix_kit_staff/web/overview_live.ex:82
 #, elixir-autogen, elixir-format
 msgid "Departments"
 msgstr "Отделы"
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:54
+#: lib/phoenix_kit_staff/web/overview_live.ex:62
 #, elixir-autogen, elixir-format
 msgid "Departments, teams, and the people in them."
 msgstr "Отделы, команды и их сотрудники."
@@ -237,32 +237,32 @@ msgid "Email is required."
 msgstr "Почта обязательна."
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:836
-#: lib/phoenix_kit_staff/web/person_show_live.ex:579
+#: lib/phoenix_kit_staff/web/person_show_live.ex:588
 #, elixir-autogen, elixir-format
 msgid "Emergency contact"
 msgstr "Экстренный контакт"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:758
+#: lib/phoenix_kit_staff/web/person_show_live.ex:767
 #, elixir-autogen, elixir-format
 msgid "Employment"
 msgstr "Занятость"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:253
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:285
 #, elixir-autogen, elixir-format
 msgid "Employment type"
 msgstr "Тип занятости"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:283
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:315
 #, elixir-autogen, elixir-format
 msgid "End date"
 msgstr "Дата окончания"
 
-#: lib/phoenix_kit_staff/web/team_show_live.ex:157
+#: lib/phoenix_kit_staff/web/team_show_live.ex:159
 #, elixir-autogen, elixir-format
 msgid "Everyone is already on this team (or there are no staff yet —"
 msgstr "Все уже в этой команде (или сотрудников ещё нет —"
 
-#: lib/phoenix_kit_staff/web/people_live.ex:278
+#: lib/phoenix_kit_staff/web/people_live.ex:281
 #, elixir-autogen, elixir-format
 msgid "Everyone on staff, linked to their PhoenixKit user."
 msgstr "Все сотрудники, связанные со своим пользователем PhoenixKit."
@@ -280,67 +280,67 @@ msgstr ""
 msgid "Full name"
 msgstr "Полное имя"
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:225
+#: lib/phoenix_kit_staff/web/overview_live.ex:233
 #, elixir-autogen, elixir-format
 msgid "In department, not on any team"
 msgstr "В отделе, но не в команде"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:259
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:291
 #, elixir-autogen, elixir-format
 msgid "Job title"
 msgstr "Должность"
 
 #: lib/phoenix_kit_staff/web/department_form_live.ex:25
-#: lib/phoenix_kit_staff/web/departments_live.ex:77
+#: lib/phoenix_kit_staff/web/departments_live.ex:80
 #, elixir-autogen, elixir-format
 msgid "New department"
 msgstr "Новый отдел"
 
-#: lib/phoenix_kit_staff/web/people_live.ex:282
+#: lib/phoenix_kit_staff/web/people_live.ex:285
 #: lib/phoenix_kit_staff/web/person_form_live.ex:37
 #, elixir-autogen, elixir-format
 msgid "New staff"
 msgstr "Новый сотрудник"
 
-#: lib/phoenix_kit_staff/web/department_show_live.ex:76
+#: lib/phoenix_kit_staff/web/department_show_live.ex:82
 #: lib/phoenix_kit_staff/web/team_form_live.ex:30
-#: lib/phoenix_kit_staff/web/teams_live.ex:75
+#: lib/phoenix_kit_staff/web/teams_live.ex:78
 #, elixir-autogen, elixir-format
 msgid "New team"
 msgstr "Новая команда"
 
-#: lib/phoenix_kit_staff/web/departments_live.ex:83
-#: lib/phoenix_kit_staff/web/overview_live.ex:132
+#: lib/phoenix_kit_staff/web/departments_live.ex:86
+#: lib/phoenix_kit_staff/web/overview_live.ex:140
 #, elixir-autogen, elixir-format
 msgid "No departments yet."
 msgstr "Отделов пока нет."
 
-#: lib/phoenix_kit_staff/web/people_live.ex:317
+#: lib/phoenix_kit_staff/web/people_live.ex:320
 #, elixir-autogen, elixir-format
 msgid "No staff match."
 msgstr "Нет подходящих сотрудников."
 
-#: lib/phoenix_kit_staff/web/team_show_live.ex:181
+#: lib/phoenix_kit_staff/web/team_show_live.ex:183
 #, elixir-autogen, elixir-format
 msgid "No staff on this team yet."
 msgstr "В этой команде пока нет сотрудников."
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:204
+#: lib/phoenix_kit_staff/web/overview_live.ex:212
 #, elixir-autogen, elixir-format
 msgid "No staff on this team."
 msgstr "В этой команде нет сотрудников."
 
-#: lib/phoenix_kit_staff/web/department_show_live.ex:83
+#: lib/phoenix_kit_staff/web/department_show_live.ex:89
 #, elixir-autogen, elixir-format
 msgid "No teams in this department yet."
 msgstr "В этом отделе пока нет команд."
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:174
+#: lib/phoenix_kit_staff/web/overview_live.ex:182
 #, elixir-autogen, elixir-format
 msgid "No teams or staff yet."
 msgstr "Команд и сотрудников пока нет."
 
-#: lib/phoenix_kit_staff/web/teams_live.ex:81
+#: lib/phoenix_kit_staff/web/teams_live.ex:84
 #, elixir-autogen, elixir-format
 msgid "No teams yet."
 msgstr "Команд пока нет."
@@ -350,31 +350,31 @@ msgstr "Команд пока нет."
 msgid "Not a valid email."
 msgstr "Недействительная почта."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:613
+#: lib/phoenix_kit_staff/web/person_show_live.ex:622
 #, elixir-autogen, elixir-format
 msgid "Not on any teams yet."
 msgstr "Пока ни в одной команде."
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:826
-#: lib/phoenix_kit_staff/web/person_show_live.ex:564
+#: lib/phoenix_kit_staff/web/person_show_live.ex:573
 #, elixir-autogen, elixir-format
 msgid "Personal"
 msgstr "Личное"
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:831
-#: lib/phoenix_kit_staff/web/person_show_live.ex:540
+#: lib/phoenix_kit_staff/web/person_show_live.ex:549
 #, elixir-autogen, elixir-format
 msgid "Personal email"
 msgstr "Личная почта"
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:823
-#: lib/phoenix_kit_staff/web/person_show_live.ex:552
+#: lib/phoenix_kit_staff/web/person_show_live.ex:561
 #, elixir-autogen, elixir-format
 msgid "Personal phone"
 msgstr "Личный телефон"
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:846
-#: lib/phoenix_kit_staff/web/person_show_live.ex:591
+#: lib/phoenix_kit_staff/web/person_show_live.ex:600
 #, elixir-autogen, elixir-format
 msgid "Phone"
 msgstr "Телефон"
@@ -385,7 +385,7 @@ msgstr "Телефон"
 msgid "Pick someone first."
 msgstr "Сначала выберите кого-нибудь."
 
-#: lib/phoenix_kit_staff/web/people_live.ex:363
+#: lib/phoenix_kit_staff/web/people_live.ex:366
 #, elixir-autogen, elixir-format
 msgid "Primary dept"
 msgstr "Осн. отдел"
@@ -396,18 +396,18 @@ msgid "Record not found."
 msgstr "Запись не найдена."
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:842
-#: lib/phoenix_kit_staff/web/person_show_live.ex:587
+#: lib/phoenix_kit_staff/web/person_show_live.ex:596
 #, elixir-autogen, elixir-format
 msgid "Relationship"
 msgstr "Кем приходится"
 
-#: lib/phoenix_kit_staff/web/team_show_live.ex:211
+#: lib/phoenix_kit_staff/web/team_show_live.ex:213
 #, elixir-autogen, elixir-format
 msgid "Remove this staff from the team?"
 msgstr "Удалить этого сотрудника из команды?"
 
 #: lib/phoenix_kit_staff/web/skill_show_live.ex:271
-#: lib/phoenix_kit_staff/web/team_show_live.ex:210
+#: lib/phoenix_kit_staff/web/team_show_live.ex:212
 #, elixir-autogen, elixir-format
 msgid "Removing…"
 msgstr "Удаление…"
@@ -418,14 +418,14 @@ msgid "Select department"
 msgstr "Выберите отдел"
 
 #: lib/phoenix_kit_staff/web/skill_show_live.ex:206
-#: lib/phoenix_kit_staff/web/team_show_live.ex:165
+#: lib/phoenix_kit_staff/web/team_show_live.ex:167
 #, elixir-autogen, elixir-format
 msgid "Select staff"
 msgstr "Выберите сотрудника"
 
 #: lib/phoenix_kit_staff.ex:33
 #: lib/phoenix_kit_staff/web/person_form_live.ex:848
-#: lib/phoenix_kit_staff/web/person_show_live.ex:644
+#: lib/phoenix_kit_staff/web/person_show_live.ex:653
 #: lib/phoenix_kit_staff/web/skills_live.ex:16
 #: lib/phoenix_kit_staff/web/skills_live.ex:69
 #, elixir-autogen, elixir-format
@@ -495,15 +495,15 @@ msgstr ""
 msgid "Staff updated."
 msgstr "Данные сотрудника обновлены."
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:280
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:312
 #, elixir-autogen, elixir-format
 msgid "Start date"
 msgstr "Дата начала"
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:61
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:273
+#: lib/phoenix_kit_staff/web/overview_live.ex:69
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:305
 #: lib/phoenix_kit_staff/web/person_form_live.ex:812
-#: lib/phoenix_kit_staff/web/person_show_live.ex:620
+#: lib/phoenix_kit_staff/web/person_show_live.ex:629
 #, elixir-autogen, elixir-format
 msgid "Team"
 msgstr "Команда"
@@ -513,14 +513,14 @@ msgstr "Команда"
 msgid "Team created."
 msgstr "Команда создана."
 
-#: lib/phoenix_kit_staff/web/teams_live.ex:49
+#: lib/phoenix_kit_staff/web/teams_live.ex:50
 #, elixir-autogen, elixir-format
 msgid "Team deleted."
 msgstr "Команда удалена."
 
 #: lib/phoenix_kit_staff/web/team_form_live.ex:38
 #: lib/phoenix_kit_staff/web/team_show_live.ex:24
-#: lib/phoenix_kit_staff/web/teams_live.ex:35
+#: lib/phoenix_kit_staff/web/teams_live.ex:36
 #, elixir-autogen, elixir-format
 msgid "Team not found."
 msgstr "Команда не найдена."
@@ -530,28 +530,28 @@ msgstr "Команда не найдена."
 msgid "Team updated."
 msgstr "Команда обновлена."
 
-#: lib/phoenix_kit_staff/web/department_show_live.ex:74
-#: lib/phoenix_kit_staff/web/departments_live.ex:97
-#: lib/phoenix_kit_staff/web/overview_live.ex:82
-#: lib/phoenix_kit_staff/web/person_show_live.ex:608
-#: lib/phoenix_kit_staff/web/teams_live.ex:16
-#: lib/phoenix_kit_staff/web/teams_live.ex:70
+#: lib/phoenix_kit_staff/web/department_show_live.ex:80
+#: lib/phoenix_kit_staff/web/departments_live.ex:100
+#: lib/phoenix_kit_staff/web/overview_live.ex:90
+#: lib/phoenix_kit_staff/web/person_show_live.ex:617
+#: lib/phoenix_kit_staff/web/teams_live.ex:17
+#: lib/phoenix_kit_staff/web/teams_live.ex:73
 #, elixir-autogen, elixir-format
 msgid "Teams"
 msgstr "Команды"
 
-#: lib/phoenix_kit_staff/web/teams_live.ex:71
+#: lib/phoenix_kit_staff/web/teams_live.ex:74
 #, elixir-autogen, elixir-format
 msgid "Teams across all departments."
 msgstr "Команды из всех отделов."
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:251
+#: lib/phoenix_kit_staff/web/overview_live.ex:259
 #, elixir-autogen, elixir-format
 msgid "These staff have no primary department and aren't on any team."
 msgstr ""
 "У этих сотрудников нет основного отдела и они не состоят ни в одной команде."
 
-#: lib/phoenix_kit_staff/web/department_show_live.ex:40
+#: lib/phoenix_kit_staff/web/department_show_live.ex:41
 #, elixir-autogen, elixir-format
 msgid "This department was deleted."
 msgstr "Этот отдел был удалён."
@@ -577,7 +577,7 @@ msgid "This user has already claimed their account — email cannot be changed h
 msgstr ""
 "Этот пользователь уже занял свой аккаунт — почту здесь изменить нельзя."
 
-#: lib/phoenix_kit_staff/web/departments_live.ex:73
+#: lib/phoenix_kit_staff/web/departments_live.ex:76
 #, elixir-autogen, elixir-format
 msgid "Top-level organizational units."
 msgstr "Организационные единицы верхнего уровня."
@@ -587,12 +587,12 @@ msgstr "Организационные единицы верхнего уров�
 msgid "Type or pick an email"
 msgstr "Введите или выберите почту"
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:248
+#: lib/phoenix_kit_staff/web/overview_live.ex:256
 #, elixir-autogen, elixir-format
 msgid "Unassigned staff"
 msgstr "Сотрудники без назначения"
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:102
+#: lib/phoenix_kit_staff/web/overview_live.ex:110
 #, elixir-autogen, elixir-format
 msgid "Upcoming birthdays"
 msgstr "Ближайшие дни рождения"
@@ -622,18 +622,18 @@ msgstr "Будет создан аккаунт-заглушка — челове
 msgid "Will link to existing account."
 msgstr "Будет связан с существующим аккаунтом."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:537
+#: lib/phoenix_kit_staff/web/person_show_live.ex:546
 #, elixir-autogen, elixir-format
 msgid "Work email"
 msgstr "Рабочая почта"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:291
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:323
 #, elixir-autogen, elixir-format
 msgid "Work location"
 msgstr "Место работы"
 
 #: lib/phoenix_kit_staff/web/person_form_live.ex:822
-#: lib/phoenix_kit_staff/web/person_show_live.ex:548
+#: lib/phoenix_kit_staff/web/person_show_live.ex:557
 #, elixir-autogen, elixir-format
 msgid "Work phone"
 msgstr "Рабочий телефон"
@@ -649,7 +649,7 @@ msgid "You need at least one department first."
 msgstr "Сначала нужен хотя бы один отдел."
 
 #: lib/phoenix_kit_staff/web/skill_show_live.ex:192
-#: lib/phoenix_kit_staff/web/team_show_live.ex:157
+#: lib/phoenix_kit_staff/web/team_show_live.ex:159
 #, elixir-autogen, elixir-format
 msgid "create one"
 msgstr "создать"
@@ -659,7 +659,7 @@ msgstr "создать"
 msgid "e.g. Jane Smith"
 msgstr "напр. Иван Иванов"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:260
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:292
 #, elixir-autogen, elixir-format
 msgid "e.g. Senior Engineer"
 msgstr "напр. ведущий инженер"
@@ -669,7 +669,7 @@ msgstr "напр. ведущий инженер"
 msgid "e.g. spouse, parent"
 msgstr "напр. супруг(а), родитель"
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:118
+#: lib/phoenix_kit_staff/web/overview_live.ex:126
 #, elixir-autogen, elixir-format
 msgid "in %{days}d (%{date})"
 msgstr "через %{days} дн. (%{date})"
@@ -684,17 +684,17 @@ msgstr "заблокировано"
 msgid "non-work email"
 msgstr "нерабочая почта"
 
-#: lib/phoenix_kit_staff/web/people_live.ex:295
+#: lib/phoenix_kit_staff/web/people_live.ex:298
 #, elixir-autogen, elixir-format
 msgid "search by name or email"
 msgstr "поиск по имени или почте"
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:116
+#: lib/phoenix_kit_staff/web/overview_live.ex:124
 #, elixir-autogen, elixir-format
 msgid "tomorrow"
 msgstr "завтра"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:347
+#: lib/phoenix_kit_staff/web/person_show_live.ex:353
 #, elixir-autogen, elixir-format
 msgid "🎂 in 1 day"
 msgid_plural "🎂 in %{count} days"
@@ -702,8 +702,8 @@ msgstr[0] "🎂 через %{count} день"
 msgstr[1] "🎂 через %{count} дня"
 msgstr[2] "🎂 через %{count} дней"
 
-#: lib/phoenix_kit_staff/web/overview_live.ex:114
-#: lib/phoenix_kit_staff/web/person_show_live.ex:346
+#: lib/phoenix_kit_staff/web/overview_live.ex:122
+#: lib/phoenix_kit_staff/web/person_show_live.ex:352
 #, elixir-autogen, elixir-format
 msgid "🎂 today!"
 msgstr "🎂 сегодня!"
@@ -739,7 +739,7 @@ msgid "New Team"
 msgstr "Новая команда"
 
 #: lib/phoenix_kit_staff.ex:26
-#: lib/phoenix_kit_staff/web/person_show_live.ex:757
+#: lib/phoenix_kit_staff/web/person_show_live.ex:766
 #, elixir-autogen, elixir-format
 msgid "Overview"
 msgstr "Обзор"
@@ -756,7 +756,7 @@ msgstr ""
 "Для этого адреса уже есть удалённый профиль сотрудника — восстановите его "
 "вместо создания нового."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:766
+#: lib/phoenix_kit_staff/web/person_show_live.ex:775
 #, elixir-autogen, elixir-format
 msgid "Comments"
 msgstr "Комментарии"
@@ -767,19 +767,19 @@ msgid "Could not delete skill."
 msgstr "Не удалось удалить навык."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:246
-#: lib/phoenix_kit_staff/web/person_show_live.ex:304
+#: lib/phoenix_kit_staff/web/person_show_live.ex:310
 #, elixir-autogen, elixir-format
 msgid "Could not delete staff."
 msgstr "Не удалось удалить сотрудника."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:186
-#: lib/phoenix_kit_staff/web/person_show_live.ex:241
+#: lib/phoenix_kit_staff/web/person_show_live.ex:247
 #, elixir-autogen, elixir-format
 msgid "Could not move staff to trash."
 msgstr "Не удалось переместить сотрудника в корзину."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:214
-#: lib/phoenix_kit_staff/web/person_show_live.ex:262
+#: lib/phoenix_kit_staff/web/person_show_live.ex:268
 #, elixir-autogen, elixir-format
 msgid "Could not restore staff."
 msgstr "Не удалось восстановить сотрудника."
@@ -794,11 +794,11 @@ msgstr "Не удалось обновить уровень."
 msgid "Create a new skill."
 msgstr "Создать новый навык."
 
-#: lib/phoenix_kit_staff/web/people_live.ex:342
-#: lib/phoenix_kit_staff/web/people_live.ex:404
-#: lib/phoenix_kit_staff/web/people_live.ex:444
-#: lib/phoenix_kit_staff/web/people_live.ex:445
-#: lib/phoenix_kit_staff/web/person_show_live.ex:442
+#: lib/phoenix_kit_staff/web/people_live.ex:345
+#: lib/phoenix_kit_staff/web/people_live.ex:407
+#: lib/phoenix_kit_staff/web/people_live.ex:447
+#: lib/phoenix_kit_staff/web/people_live.ex:448
+#: lib/phoenix_kit_staff/web/person_show_live.ex:451
 #, elixir-autogen, elixir-format
 msgid "Delete permanently"
 msgstr "Удалить навсегда"
@@ -808,8 +808,8 @@ msgstr "Удалить навсегда"
 msgid "Delete skill %{name}? It will be removed from %{count} people."
 msgstr "Удалить навык %{name}? Он будет удалён у %{count} человек."
 
-#: lib/phoenix_kit_staff/web/people_live.ex:401
-#: lib/phoenix_kit_staff/web/person_show_live.ex:438
+#: lib/phoenix_kit_staff/web/people_live.ex:404
+#: lib/phoenix_kit_staff/web/person_show_live.ex:447
 #, elixir-autogen, elixir-format
 msgid "Deleting…"
 msgstr "Удаление…"
@@ -829,17 +829,17 @@ msgstr "У всех уже есть этот навык (или сотрудни
 msgid "Level"
 msgstr "Уровень"
 
-#: lib/phoenix_kit_staff/web/people_live.ex:424
-#: lib/phoenix_kit_staff/web/person_show_live.ex:452
+#: lib/phoenix_kit_staff/web/people_live.ex:427
+#: lib/phoenix_kit_staff/web/person_show_live.ex:461
 #, elixir-autogen, elixir-format
 msgid "Move this staff to the trash? The user account stays; restore anytime from the Trash filter."
 msgstr ""
 "Переместить этого сотрудника в корзину? Учётная запись останется; "
 "восстановить можно в любой момент через фильтр «Корзина»."
 
-#: lib/phoenix_kit_staff/web/people_live.ex:346
-#: lib/phoenix_kit_staff/web/people_live.ex:426
-#: lib/phoenix_kit_staff/web/person_show_live.ex:455
+#: lib/phoenix_kit_staff/web/people_live.ex:349
+#: lib/phoenix_kit_staff/web/people_live.ex:429
+#: lib/phoenix_kit_staff/web/person_show_live.ex:464
 #, elixir-autogen, elixir-format
 msgid "Move to trash"
 msgstr "Переместить в корзину"
@@ -852,8 +852,8 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:423
-#: lib/phoenix_kit_staff/web/person_show_live.ex:451
+#: lib/phoenix_kit_staff/web/people_live.ex:426
+#: lib/phoenix_kit_staff/web/person_show_live.ex:460
 #, elixir-autogen, elixir-format
 msgid "Moving…"
 msgstr "Перемещение…"
@@ -874,7 +874,7 @@ msgstr "Новый навык"
 msgid "No one has this skill yet."
 msgstr "Пока ни у кого нет этого навыка."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:652
+#: lib/phoenix_kit_staff/web/person_show_live.ex:661
 #, elixir-autogen, elixir-format
 msgid "No skills assigned yet."
 msgstr "Навыки ещё не назначены."
@@ -889,7 +889,7 @@ msgstr "Навыков пока нет."
 msgid "People"
 msgstr "Люди"
 
-#: lib/phoenix_kit_staff/web/people_live.ex:447
+#: lib/phoenix_kit_staff/web/people_live.ex:450
 #, elixir-autogen, elixir-format
 msgid "Permanently delete 1 staff? This cannot be undone and will clear their project-assignment links."
 msgid_plural "Permanently delete %{count} staff? This cannot be undone and will clear their project-assignment links."
@@ -897,8 +897,8 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:402
-#: lib/phoenix_kit_staff/web/person_show_live.ex:439
+#: lib/phoenix_kit_staff/web/people_live.ex:405
+#: lib/phoenix_kit_staff/web/person_show_live.ex:448
 #, elixir-autogen, elixir-format
 msgid "Permanently delete this staff? This cannot be undone and will clear their project-assignment links."
 msgstr ""
@@ -918,9 +918,9 @@ msgstr[2] ""
 msgid "Remove this skill from the person?"
 msgstr "Удалить этот навык у этого человека?"
 
-#: lib/phoenix_kit_staff/web/people_live.ex:335
-#: lib/phoenix_kit_staff/web/people_live.ex:394
-#: lib/phoenix_kit_staff/web/person_show_live.ex:433
+#: lib/phoenix_kit_staff/web/people_live.ex:338
+#: lib/phoenix_kit_staff/web/people_live.ex:397
+#: lib/phoenix_kit_staff/web/person_show_live.ex:442
 #, elixir-autogen, elixir-format
 msgid "Restore"
 msgstr "Восстановить"
@@ -939,13 +939,13 @@ msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#: lib/phoenix_kit_staff/web/people_live.ex:392
-#: lib/phoenix_kit_staff/web/person_show_live.ex:430
+#: lib/phoenix_kit_staff/web/people_live.ex:395
+#: lib/phoenix_kit_staff/web/person_show_live.ex:439
 #, elixir-autogen, elixir-format
 msgid "Restoring…"
 msgstr "Восстановление…"
 
-#: lib/phoenix_kit_staff/web/people_live.ex:359
+#: lib/phoenix_kit_staff/web/people_live.ex:362
 #, elixir-autogen, elixir-format
 msgid "Select all staff"
 msgstr "Выбрать всех сотрудников"
@@ -990,19 +990,19 @@ msgstr ""
 "удалены."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:173
-#: lib/phoenix_kit_staff/web/person_show_live.ex:238
+#: lib/phoenix_kit_staff/web/person_show_live.ex:244
 #, elixir-autogen, elixir-format
 msgid "Staff moved to trash."
 msgstr "Сотрудник перемещён в корзину."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:229
-#: lib/phoenix_kit_staff/web/person_show_live.ex:285
+#: lib/phoenix_kit_staff/web/person_show_live.ex:291
 #, elixir-autogen, elixir-format
 msgid "Staff permanently deleted."
 msgstr "Сотрудник удалён навсегда."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:201
-#: lib/phoenix_kit_staff/web/person_show_live.ex:259
+#: lib/phoenix_kit_staff/web/person_show_live.ex:265
 #, elixir-autogen, elixir-format
 msgid "Staff restored."
 msgstr "Сотрудник восстановлен."
@@ -1022,14 +1022,14 @@ msgstr "Этот навык был удалён."
 msgid "This staff is already in the trash."
 msgstr "Этот сотрудник уже в корзине."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:482
+#: lib/phoenix_kit_staff/web/person_show_live.ex:491
 #, elixir-autogen, elixir-format
 msgid "This staff is in the trash. Restore to bring them back to the active roster."
 msgstr ""
 "Этот сотрудник в корзине. Восстановите, чтобы вернуть его в активный список."
 
 #: lib/phoenix_kit_staff/web/people_live.ex:235
-#: lib/phoenix_kit_staff/web/person_show_live.ex:293
+#: lib/phoenix_kit_staff/web/person_show_live.ex:299
 #, elixir-autogen, elixir-format
 msgid "This staff is still referenced elsewhere and couldn't be deleted."
 msgstr ""
@@ -1040,17 +1040,17 @@ msgstr ""
 msgid "This staff isn't in the trash."
 msgstr "Этот сотрудник не в корзине."
 
-#: lib/phoenix_kit_staff/web/people_live.ex:317
+#: lib/phoenix_kit_staff/web/people_live.ex:320
 #, elixir-autogen, elixir-format
 msgid "Trash is empty."
 msgstr "Корзина пуста."
 
-#: lib/phoenix_kit_staff/web/people_live.ex:458
+#: lib/phoenix_kit_staff/web/people_live.ex:461
 #, elixir-autogen, elixir-format
 msgid "Trashed"
 msgstr "В корзине"
 
-#: lib/phoenix_kit_staff/web/people_live.ex:459
+#: lib/phoenix_kit_staff/web/people_live.ex:462
 #, elixir-autogen, elixir-format
 msgid "Trashed (%{count})"
 msgstr "В корзине (%{count})"
@@ -1060,17 +1060,17 @@ msgstr "В корзине (%{count})"
 msgid "Update skill details."
 msgstr "Обновить данные навыка."
 
-#: lib/phoenix_kit_staff/web/people_live.ex:331
+#: lib/phoenix_kit_staff/web/people_live.ex:334
 #, elixir-autogen, elixir-format
 msgid "selected"
 msgstr "выбрано"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:655
+#: lib/phoenix_kit_staff/web/person_show_live.ex:664
 #, elixir-autogen, elixir-format
 msgid "Add skills"
 msgstr "Добавить навыки"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:647
+#: lib/phoenix_kit_staff/web/person_show_live.ex:656
 #, elixir-autogen, elixir-format
 msgid "Manage"
 msgstr "Управление"
@@ -1176,43 +1176,43 @@ msgstr "Название группы (напр. Уровень владения
 msgid "Single"
 msgstr "Один"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:216
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:248
 #, elixir-autogen, elixir-format
 msgid "(untitled role)"
 msgstr "(без названия)"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:232
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:335
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:264
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:367
 #, elixir-autogen, elixir-format
 msgid "Add employment"
 msgstr "Добавить трудовой период"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:352
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:385
 #, elixir-autogen, elixir-format
 msgid "Current"
 msgstr "Текущий"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:232
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:264
 #, elixir-autogen, elixir-format
 msgid "Edit employment"
 msgstr "Изменить трудовой период"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:326
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:358
 #, elixir-autogen, elixir-format
 msgid "Employment history"
 msgstr "История трудоустройства"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:384
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:418
 #, elixir-autogen, elixir-format
 msgid "End now"
 msgstr "Завершить сейчас"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:385
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:419
 #, elixir-autogen, elixir-format
 msgid "End this role today"
 msgstr "Завершить эту роль сегодня"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:296
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:328
 #, elixir-autogen, elixir-format
 msgid "Notes"
 msgstr "Заметки"
@@ -1222,27 +1222,27 @@ msgstr "Заметки"
 msgid "Organization"
 msgstr "Организация"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:394
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:429
 #, elixir-autogen, elixir-format
 msgid "Remove this employment record?"
 msgstr "Удалить эту запись о трудоустройстве?"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:211
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:243
 #, elixir-autogen, elixir-format
 msgid "no dates"
 msgstr "без дат"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:209
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:241
 #, elixir-autogen, elixir-format
 msgid "present"
 msgstr "по настоящее время"
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:340
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:372
 #, elixir-autogen, elixir-format
 msgid "No employment recorded yet."
 msgstr "Трудовые периоды ещё не добавлены."
 
-#: lib/phoenix_kit_staff/web/person_employment_component.ex:236
+#: lib/phoenix_kit_staff/web/person_employment_component.ex:268
 #, elixir-autogen, elixir-format
 msgid "Carried over from %{role}, starting today — adjust the dates and change whatever differs."
 msgstr "Перенесено из роли %{role}, с началом сегодня — измените даты и всё, что отличается."
@@ -1252,12 +1252,12 @@ msgstr "Перенесено из роли %{role}, с началом сегод
 msgid "Activity"
 msgstr "Активность"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:230
+#: lib/phoenix_kit_staff/web/person_media_component.ex:262
 #, elixir-autogen, elixir-format
 msgid "Add files"
 msgstr "Добавить файлы"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:230
+#: lib/phoenix_kit_staff/web/person_media_component.ex:262
 #, elixir-autogen, elixir-format
 msgid "Add images"
 msgstr "Добавить изображения"
@@ -1267,12 +1267,12 @@ msgstr "Добавить изображения"
 msgid "Added to a team"
 msgstr "Добавлен в команду"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:56
+#: lib/phoenix_kit_staff/web/person_media_component.ex:58
 #, elixir-autogen, elixir-format
 msgid "Could not prepare the media folder."
 msgstr "Не удалось подготовить папку медиа."
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:94
+#: lib/phoenix_kit_staff/web/person_media_component.ex:103
 #, elixir-autogen, elixir-format
 msgid "Could not remove the file."
 msgstr "Не удалось удалить файл."
@@ -1298,7 +1298,7 @@ msgid "Employment updated"
 msgstr "Трудоустройство обновлено"
 
 #: lib/phoenix_kit_staff/web/person_events_component.ex:116
-#: lib/phoenix_kit_staff/web/person_show_live.ex:764
+#: lib/phoenix_kit_staff/web/person_show_live.ex:773
 #, elixir-autogen, elixir-format
 msgid "Events"
 msgstr "События"
@@ -1308,8 +1308,8 @@ msgstr "События"
 msgid "File removed"
 msgstr "Файл удалён"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:221
-#: lib/phoenix_kit_staff/web/person_show_live.ex:761
+#: lib/phoenix_kit_staff/web/person_media_component.ex:253
+#: lib/phoenix_kit_staff/web/person_show_live.ex:770
 #, elixir-autogen, elixir-format
 msgid "Files"
 msgstr "Файлы"
@@ -1319,8 +1319,8 @@ msgstr "Файлы"
 msgid "Image removed"
 msgstr "Изображение удалено"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:221
-#: lib/phoenix_kit_staff/web/person_show_live.ex:762
+#: lib/phoenix_kit_staff/web/person_media_component.ex:253
+#: lib/phoenix_kit_staff/web/person_show_live.ex:771
 #, elixir-autogen, elixir-format
 msgid "Images"
 msgstr "Изображения"
@@ -1335,12 +1335,12 @@ msgstr "Перемещён в корзину"
 msgid "No activity recorded for this person yet."
 msgstr "Для этого сотрудника ещё нет записей активности."
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:237
+#: lib/phoenix_kit_staff/web/person_media_component.ex:269
 #, elixir-autogen, elixir-format
 msgid "No files yet."
 msgstr "Файлов пока нет."
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:236
+#: lib/phoenix_kit_staff/web/person_media_component.ex:268
 #, elixir-autogen, elixir-format
 msgid "No images yet."
 msgstr "Изображений пока нет."
@@ -1365,12 +1365,12 @@ msgstr "Профиль удалён навсегда"
 msgid "Profile updated"
 msgstr "Профиль обновлён"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:316
+#: lib/phoenix_kit_staff/web/person_media_component.ex:350
 #, elixir-autogen, elixir-format
 msgid "Remove this file?"
 msgstr "Удалить этот файл?"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:259
+#: lib/phoenix_kit_staff/web/person_media_component.ex:292
 #, elixir-autogen, elixir-format
 msgid "Remove this image?"
 msgstr "Удалить это изображение?"
@@ -1421,7 +1421,7 @@ msgstr[0] "Изображение добавлено"
 msgstr[1] "Изображения добавлены"
 msgstr[2] "Изображения добавлены"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:168
+#: lib/phoenix_kit_staff/web/person_media_component.ex:200
 #, elixir-autogen, elixir-format
 msgid "Images belong in the Images tab — skipped %{count} image."
 msgid_plural "Images belong in the Images tab — skipped %{count} images."
@@ -1429,7 +1429,7 @@ msgstr[0] "Изображения добавляются на вкладке «�
 msgstr[1] "Изображения добавляются на вкладке «Изображения» — пропущено: %{count}."
 msgstr[2] "Изображения добавляются на вкладке «Изображения» — пропущено: %{count}."
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:160
+#: lib/phoenix_kit_staff/web/person_media_component.ex:192
 #, elixir-autogen, elixir-format
 msgid "Only images can be added here — skipped %{count} non-image file."
 msgid_plural "Only images can be added here — skipped %{count} non-image files."
@@ -1495,7 +1495,7 @@ msgstr "только что"
 msgid "Open in Activity log"
 msgstr "Открыть в журнале активности"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:384
+#: lib/phoenix_kit_staff/web/person_show_live.ex:392
 #, elixir-autogen, elixir-format
 msgid "Change photo"
 msgstr "Изменить фото"
@@ -1505,12 +1505,12 @@ msgstr "Изменить фото"
 msgid "Could not open the photo picker."
 msgstr "Не удалось открыть выбор фото."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:220
+#: lib/phoenix_kit_staff/web/person_show_live.ex:226
 #, elixir-autogen, elixir-format
 msgid "Could not remove the photo."
 msgstr "Не удалось удалить фото."
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:82
+#: lib/phoenix_kit_staff/web/person_media_component.ex:84
 #: lib/phoenix_kit_staff/web/person_show_live.ex:76
 #, elixir-autogen, elixir-format
 msgid "Could not set the photo."
@@ -1531,34 +1531,39 @@ msgstr "Фото профиля удалено."
 msgid "Profile photo updated"
 msgstr "Фото профиля обновлено"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:79
+#: lib/phoenix_kit_staff/web/person_media_component.ex:81
 #: lib/phoenix_kit_staff/web/person_show_live.ex:73
 #, elixir-autogen, elixir-format
 msgid "Profile photo updated."
 msgstr "Фото профиля обновлено."
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:411
+#: lib/phoenix_kit_staff/web/person_show_live.ex:420
 #, elixir-autogen, elixir-format
 msgid "Remove photo"
 msgstr "Удалить фото"
 
-#: lib/phoenix_kit_staff/web/person_show_live.ex:409
+#: lib/phoenix_kit_staff/web/person_show_live.ex:418
 #, elixir-autogen, elixir-format
 msgid "Remove this profile photo?"
 msgstr "Удалить это фото профиля?"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:291
+#: lib/phoenix_kit_staff/web/person_media_component.ex:324
 #, elixir-autogen, elixir-format
 msgid "Avatar"
 msgstr "Аватар"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:280
+#: lib/phoenix_kit_staff/web/person_media_component.ex:313
 #, elixir-autogen, elixir-format
 msgid "Current profile photo"
 msgstr "Текущее фото профиля"
 
-#: lib/phoenix_kit_staff/web/person_media_component.ex:281
-#: lib/phoenix_kit_staff/web/person_media_component.ex:283
+#: lib/phoenix_kit_staff/web/person_media_component.ex:314
+#: lib/phoenix_kit_staff/web/person_media_component.ex:316
 #, elixir-autogen, elixir-format
 msgid "Set as profile photo"
 msgstr "Сделать фото профиля"
+
+#: lib/phoenix_kit_staff/web/person_media_component.ex:161
+#, elixir-autogen, elixir-format
+msgid "This person is in the trash — restore them before adding media."
+msgstr "Этот сотрудник в корзине — восстановите его перед добавлением медиафайлов."

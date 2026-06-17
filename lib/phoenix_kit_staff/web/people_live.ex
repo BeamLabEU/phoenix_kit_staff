@@ -6,9 +6,9 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
 
   require Logger
 
-  alias PhoenixKitStaff.{Activity, Paths, Staff}
+  alias PhoenixKitStaff.{Activity, L10n, Paths, Staff}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
-  alias PhoenixKitStaff.Schemas.Person
+  alias PhoenixKitStaff.Schemas.{Department, Person}
   alias PhoenixKitStaff.Web.Helpers
 
   @impl true
@@ -269,7 +269,10 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, viewing_trash: assigns.status == Person.soft_delete_status())
+    assigns =
+      assigns
+      |> assign(viewing_trash: assigns.status == Person.soft_delete_status())
+      |> assign(:lang, L10n.current_content_lang())
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
@@ -376,8 +379,8 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
                     {p.user.email}
                   </div>
                 </.table_default_cell>
-                <.table_default_cell class="text-sm">{p.job_title || "—"}</.table_default_cell>
-                <.table_default_cell>{(p.primary_department && p.primary_department.name) || "—"}</.table_default_cell>
+                <.table_default_cell class="text-sm">{Person.localized_job_title(p, @lang) || "—"}</.table_default_cell>
+                <.table_default_cell>{(p.primary_department && Department.localized_name(p.primary_department, @lang)) || "—"}</.table_default_cell>
                 <.table_default_cell>
                   <span class={"badge badge-sm #{status_badge_class(p.status)}"}>
                     {Person.status_label(p.status)}

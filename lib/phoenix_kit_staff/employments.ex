@@ -69,11 +69,18 @@ defmodule PhoenixKitStaff.Employments do
   (today if it has none) so the one-open invariant holds.
   """
   @spec create(UUIDv7.t() | String.t(), map()) ::
-          {:ok, Employment.t()} | {:error, Ecto.Changeset.t(Employment.t())}
+          {:ok, Employment.t()}
+          | {:error, Ecto.Changeset.t(Employment.t())}
+          | {:error, :person_trashed}
   def create(person_uuid, attrs) do
     cs = Employment.changeset(%Employment{}, Map.put(attrs, "staff_person_uuid", person_uuid))
 
     repo().transaction(fn ->
+      # Don't open new employment history on a trashed person — mirrors the
+      # create-path guard on `Skills.assign_skill/3`. Update/end/delete stay
+      # unguarded so a trashed person's surviving spans can still be tidied.
+      if person_trashed?(person_uuid), do: repo().rollback(:person_trashed)
+
       # Closing the prior open span first keeps the partial-unique index happy;
       # an invalid insert rolls the close back with the transaction.
       if is_nil(Ecto.Changeset.get_field(cs, :employment_end_date)) do
@@ -151,6 +158,12 @@ defmodule PhoenixKitStaff.Employments do
   end
 
   # ── Internals ──────────────────────────────────────────────────────
+
+  defp person_trashed?(person_uuid) do
+    Person
+    |> where([p], p.uuid == ^person_uuid and p.status == ^Person.soft_delete_status())
+    |> repo().exists?()
+  end
 
   defp open_span(person_uuid) do
     Employment

@@ -6,8 +6,9 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
 
   require Logger
 
-  alias PhoenixKitStaff.{Departments, Paths, Teams}
+  alias PhoenixKitStaff.{Departments, L10n, Paths, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
+  alias PhoenixKitStaff.Schemas.{Department, Team}
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -58,9 +59,14 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :lang, L10n.current_content_lang())
+
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.admin_page_header title={@dept.name} subtitle={@dept.description}>
+      <.admin_page_header
+        title={Department.localized_name(@dept, @lang)}
+        subtitle={Department.localized_description(@dept, @lang)}
+      >
         <:actions>
           <.link navigate={Paths.edit_department(@dept.uuid)} class="btn btn-ghost btn-sm">
             <.icon name="hero-pencil" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
@@ -95,7 +101,7 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
                   <tr :for={team <- @teams}>
                     <td>
                       <.link navigate={Paths.team(team.uuid)} class="link link-hover font-medium">
-                        {team.name}
+                        {Team.localized_name(team, @lang)}
                       </.link>
                     </td>
                   </tr>

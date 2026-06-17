@@ -126,4 +126,44 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponentTest do
     assert Employments.list_for_person(person.uuid) == []
     assert reload(person.uuid).job_title == nil
   end
+
+  test "the end + remove buttons carry phx-disable-with", %{conn: conn} do
+    person = fixture_person()
+    span = fixture_employment(person.uuid, %{"job_title" => "Dev"})
+    view = open_employment_tab(conn, person)
+
+    assert has_element?(
+             view,
+             "button[phx-click='end_employment'][phx-value-uuid='#{span.uuid}'][phx-disable-with]"
+           )
+
+    assert has_element?(
+             view,
+             "button[phx-click='remove_employment'][phx-value-uuid='#{span.uuid}'][phx-disable-with]"
+           )
+  end
+
+  test "a stale remove (span already deleted) still writes a db_pending audit row", %{
+    conn: conn,
+    actor_uuid: actor_uuid
+  } do
+    person = fixture_person()
+    span = fixture_employment(person.uuid, %{"job_title" => "Dev"})
+    view = open_employment_tab(conn, person)
+
+    # Delete via the raw repo (no `:person_employment_changed` broadcast, so the
+    # LV doesn't reload and the rendered button's uuid goes stale) — clicking it
+    # then drives the `with` else (not-found) error branch.
+    PhoenixKit.RepoHelper.repo().delete!(span)
+
+    view
+    |> element("button[phx-click='remove_employment'][phx-value-uuid='#{span.uuid}']")
+    |> render_click()
+
+    assert_activity_logged("staff.person_employment_removed",
+      actor_uuid: actor_uuid,
+      resource_uuid: person.uuid,
+      metadata: %{"db_pending" => true}
+    )
+  end
 end

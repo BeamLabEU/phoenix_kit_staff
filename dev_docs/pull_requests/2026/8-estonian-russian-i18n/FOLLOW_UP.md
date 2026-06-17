@@ -17,7 +17,7 @@ canonical format and **re-verifies every disposition against current code**
 
 | Finding | Severity | Disposition |
 |---|---|---|
-| Multilang JSONB read path unwired (`localized_*/2` helpers had zero callers) | IMPROVEMENT-MEDIUM | **Re-opened.** PR #8 fixed this by adding `L10n.current_content_lang/0` and wiring `localized_*/2` into the 7 read LVs. PR #10's v0.5.0 reshape (`964d320`) rewrote those render bodies and **dropped all of it**: `current_content_lang/0` is gone from `l10n.ex` (0 refs), and `localized_*` now appears once in `web/` (only the new `person_employment_component.ex`). Per-language overrides the multilang forms collect are **write-only again**. **Being restored in this sweep (Phase 2)** with pinning tests so a future render-body rewrite can't silently drop it again. |
+| Multilang JSONB read path unwired (`localized_*/2` helpers had zero callers) | IMPROVEMENT-MEDIUM | **Re-opened, then fixed in the Phase 2 sweep.** PR #8 had wired this; PR #10's v0.5.0 reshape (`964d320`) rewrote the render bodies and dropped it (`current_content_lang/0` gone, overrides write-only again). The Phase 2 quality sweep restored `L10n.current_content_lang/0` (mirroring `phoenix_kit_projects`) and re-wired `localized_*/2` into all 7 read LVs (overview / departments / department-show / teams / team-show / people / person-show) + the employment component, and added `web/multilang_display_test.exs` — a locale-driven render pin (override shows in the active locale; primary fallback otherwise) so a future render-body rewrite can't silently drop it again. |
 
 ## Skipped (with rationale)
 
@@ -40,9 +40,7 @@ canonical format and **re-verifies every disposition against current code**
 
 ## Open
 
-1. **Multilang read-path restoration** — in progress in this sweep (Phase 2);
-   this entry flips to *Fixed in `<commit>`* once it lands.
-2. **`core_gettext/1` bridge decision (#3)** — the cross-backend call count
+1. **`core_gettext/1` bridge decision (#3)** — the cross-backend call count
    doubled (53 → 102), meeting the review's "re-open if material" trigger.
    Needs a maintainer call: introduce the bridge, or keep the explicit form and
    raise the re-open threshold. Not blocking.

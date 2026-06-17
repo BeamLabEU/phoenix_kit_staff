@@ -117,6 +117,16 @@ defmodule PhoenixKitStaff.LiveCase do
     Plug.Test.init_test_session(conn, %{"phoenix_kit_test_scope" => scope})
   end
 
+  @doc """
+  Sets the content locale the `:assign_scope` hook will `put_locale` at
+  mount, so `L10n.current_content_lang/0` resolves it during the LV render
+  (mirrors how production's admin live_session sets the request locale).
+  Chain after `put_test_scope/2`. Reset the global locale in an `on_exit`.
+  """
+  def put_test_locale(conn, locale) do
+    Plug.Conn.put_session(conn, "phoenix_kit_test_locale", locale)
+  end
+
   # Fixture helpers (`fixture_department/1`, `fixture_team/1`,
   # `fixture_person/1`) live on `PhoenixKitStaff.DataCase` and are
   # imported into the `using` block above. Keep them out of this

@@ -8,7 +8,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
 
   alias PhoenixKitStaff.{Departments, L10n, Paths, Staff, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
-  alias PhoenixKitStaff.Schemas.Person
+  alias PhoenixKitStaff.Schemas.{Department, Person, Team}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -42,11 +42,19 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
   defp person_label(%Person{} = person), do: Person.display_name(person)
   defp person_label(_), do: "—"
 
-  defp person_tooltip(%{job_title: t}) when is_binary(t) and t != "", do: t
-  defp person_tooltip(_), do: nil
+  defp person_tooltip(%Person{} = person, lang) do
+    case Person.localized_job_title(person, lang) do
+      t when is_binary(t) and t != "" -> t
+      _ -> nil
+    end
+  end
+
+  defp person_tooltip(_, _), do: nil
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :lang, L10n.current_content_lang())
+
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-6">
       <.admin_page_header
@@ -145,7 +153,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
               <div class="flex items-center justify-between">
                 <.link navigate={Paths.department(node.department.uuid)} class="flex items-center gap-2 group">
                   <.icon name="hero-building-office-2" class="w-5 h-5 text-primary" />
-                  <h2 class="text-lg font-bold group-hover:underline">{node.department.name}</h2>
+                  <h2 class="text-lg font-bold group-hover:underline">{Department.localized_name(node.department, @lang)}</h2>
                   <span class="badge badge-ghost badge-sm">
                     {ngettext("1 team", "%{count} teams", length(node.teams))}
                   </span>
@@ -165,7 +173,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
                 </.table_row_menu>
               </div>
               <p :if={node.department.description} class="text-sm text-base-content/60 mt-1">
-                {node.department.description}
+                {Department.localized_description(node.department, @lang)}
               </p>
 
               <%!-- Teams --%>
@@ -180,7 +188,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
                 <div class="flex items-center justify-between">
                   <.link navigate={Paths.team(t.team.uuid)} class="flex items-center gap-2 group">
                     <.icon name="hero-user-group" class="w-4 h-4 text-base-content/60" />
-                    <span class="font-medium group-hover:underline">{t.team.name}</span>
+                    <span class="font-medium group-hover:underline">{Team.localized_name(t.team, @lang)}</span>
                     <span class="badge badge-ghost badge-xs">
                       {length(t.people)}
                     </span>
@@ -207,7 +215,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
                     <.link
                       :for={m <- t.people}
                       navigate={Paths.person(m.uuid)}
-                      title={person_tooltip(m)}
+                      title={person_tooltip(m, @lang)}
                       class="badge badge-outline badge-sm gap-1 cursor-pointer hover:bg-primary hover:text-primary-content hover:border-primary transition-colors"
                     >
                       <.icon name="hero-user-circle" class="w-3 h-3" />

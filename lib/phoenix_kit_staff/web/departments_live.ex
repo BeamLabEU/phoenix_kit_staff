@@ -6,8 +6,9 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
 
   require Logger
 
-  alias PhoenixKitStaff.{Activity, Departments, Paths}
+  alias PhoenixKitStaff.{Activity, Departments, L10n, Paths}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
+  alias PhoenixKitStaff.Schemas.Department
   alias PhoenixKitStaff.Web.Helpers
 
   @impl true
@@ -66,6 +67,8 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :lang, L10n.current_content_lang())
+
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
       <.admin_page_header
@@ -102,10 +105,10 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
                 <tr :for={dept <- @departments} class="hover">
                   <td>
                     <.link navigate={Paths.department(dept.uuid)} class="link link-hover font-medium">
-                      {dept.name}
+                      {Department.localized_name(dept, @lang)}
                     </.link>
                     <div :if={dept.description} class="text-xs text-base-content/60 truncate max-w-md">
-                      {dept.description}
+                      {Department.localized_description(dept, @lang)}
                     </div>
                   </td>
                   <td>{length(dept.teams)}</td>
@@ -127,7 +130,7 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
                         phx-click="delete"
                         phx-value-uuid={dept.uuid}
                         phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
-                        data-confirm={gettext("Delete department %{name}? This will also delete its teams and memberships.", name: dept.name)}
+                        data-confirm={gettext("Delete department %{name}? This will also delete its teams and memberships.", name: Department.localized_name(dept, @lang))}
                         icon="hero-trash"
                         label={Gettext.gettext(PhoenixKitWeb.Gettext, "Delete")}
                         variant="error"

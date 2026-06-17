@@ -20,6 +20,8 @@ defmodule PhoenixKitStaff.Web.PersonMediaComponent do
 
   alias PhoenixKit.Modules.Storage
   alias PhoenixKitStaff.{Activity, Attachments}
+  alias PhoenixKitStaff.Schemas.Person
+  alias PhoenixKitStaff.Web.Helpers
   alias PhoenixKitWeb.Live.Components.MediaSelectorModal
 
   # ── Updates ────────────────────────────────────────────────────────
@@ -90,7 +92,14 @@ defmodule PhoenixKitStaff.Web.PersonMediaComponent do
           log(socket, "removed", %{"file_uuid" => uuid})
           {:noreply, socket |> maybe_clear_avatar(uuid) |> reload()}
 
-        {:error, _} ->
+        {:error, reason} ->
+          Helpers.log_operation_error("staff.person_#{noun(socket)}_removed", socket,
+            reason: reason,
+            resource_type: "staff_person",
+            resource_uuid: socket.assigns.person.uuid,
+            metadata: %{"file_uuid" => uuid}
+          )
+
           {:noreply, put_flash_safe(socket, :error, gettext("Could not remove the file."))}
       end
     else
@@ -142,17 +151,28 @@ defmodule PhoenixKitStaff.Web.PersonMediaComponent do
   end
 
   defp do_attach(socket, folder_uuid, uuids) do
-    {accepted, rejected} = partition_for_kind(socket.assigns.kind, uuids)
+    # Don't add media to a trashed person (the soft-delete contract — mirrors
+    # the create-path guards on employment/skills). UI-reachable because the
+    # tab stays interactive on a trashed profile; this is the backstop.
+    if Person.trashed?(socket.assigns.person) do
+      put_flash_safe(
+        socket,
+        :error,
+        gettext("This person is in the trash — restore them before adding media.")
+      )
+    else
+      {accepted, rejected} = partition_for_kind(socket.assigns.kind, uuids)
 
-    Enum.each(accepted, &Attachments.attach(&1, folder_uuid))
-    # A non-image uploaded via the picker lands in the folder as home; drop it.
-    Enum.each(rejected, &Attachments.detach(&1, folder_uuid))
+      Enum.each(accepted, &Attachments.attach(&1, folder_uuid))
+      # A non-image uploaded via the picker lands in the folder as home; drop it.
+      Enum.each(rejected, &Attachments.detach(&1, folder_uuid))
 
-    if accepted != [], do: log(socket, "added", %{"count" => length(accepted)})
+      if accepted != [], do: log(socket, "added", %{"count" => length(accepted)})
 
-    socket
-    |> assign(:folder_uuid, folder_uuid)
-    |> flash_rejected(rejected)
+      socket
+      |> assign(:folder_uuid, folder_uuid)
+      |> flash_rejected(rejected)
+    end
   end
 
   defp partition_for_kind(:images, uuids), do: Enum.split_with(uuids, &Attachments.image?/1)
@@ -268,6 +288,7 @@ defmodule PhoenixKitStaff.Web.PersonMediaComponent do
                 phx-target={@myself}
                 phx-click="remove_file"
                 phx-value-uuid={f.uuid}
+                phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
                 data-confirm={gettext("Remove this image?")}
                 class="btn btn-xs btn-circle btn-error absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition"
                 aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
@@ -325,6 +346,7 @@ defmodule PhoenixKitStaff.Web.PersonMediaComponent do
                 phx-target={@myself}
                 phx-click="remove_file"
                 phx-value-uuid={f.uuid}
+                phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
                 data-confirm={gettext("Remove this file?")}
                 class="btn btn-ghost btn-xs btn-square text-error shrink-0"
                 aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}

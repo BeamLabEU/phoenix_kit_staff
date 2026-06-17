@@ -1,0 +1,167 @@
+- main [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e7]:
+      - link "DON TESTER pk project" [ref=e8] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e9]: Admin Panel
+      - generic [ref=e10]:
+        - generic [ref=e11]: /
+        - generic [ref=e12]: Kara Kane
+    - generic [ref=e13]:
+      - group [ref=e16]
+      - generic "Notifications" [ref=e21] [cursor=pointer]
+      - button "M Avatar" [ref=e25] [cursor=pointer]:
+        - generic [ref=e27]:
+          - generic [ref=e28]: M
+          - img "Avatar" [ref=e29]
+  - generic [ref=e30]:
+    - generic [ref=e33]:
+      - generic [ref=e35]:
+        - generic [ref=e38]:
+          - button "Change photo" [ref=e40]:
+            - generic [ref=e41]: KK
+          - generic [ref=e42]:
+            - heading "Kara Kane" [level=1] [ref=e43]
+            - paragraph [ref=e44]: VP Engineering
+        - generic [ref=e45]:
+          - link "Edit" [ref=e46] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/staff/people/019e994c-0f3c-7551-8cb0-614b61ca42b9/edit
+            - text: Edit
+          - button "Move to trash" [ref=e48] [cursor=pointer]: Move to trash
+      - tablist [ref=e50]:
+        - tab "Overview" [ref=e51] [cursor=pointer]: Overview
+        - tab "Employment" [ref=e53] [cursor=pointer]: Employment
+        - tab "Files" [ref=e55] [cursor=pointer]: Files
+        - tab "Images" [ref=e57] [cursor=pointer]: Images
+        - tab "Events" [ref=e59] [cursor=pointer]: Events
+        - tab "Comments" [ref=e61] [cursor=pointer]: Comments
+      - generic [ref=e63]:
+        - generic [ref=e66]:
+          - generic [ref=e67]: Active
+          - generic [ref=e68]: Full-time
+          - link "Engineering" [ref=e69] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/staff/departments/019e994c-069a-78e2-a7c4-d2ba46702b56
+            - text: Engineering
+        - generic [ref=e70]:
+          - generic [ref=e72]:
+            - heading "Contact" [level=2] [ref=e73]: Contact
+            - generic [ref=e75]:
+              - term [ref=e76]: Work email
+              - definition [ref=e77]: kara@acme.test
+          - generic [ref=e79]:
+            - heading "Personal" [level=2] [ref=e80]: Personal
+            - generic [ref=e82]:
+              - term [ref=e83]: Birthday
+              - definition [ref=e84]: Jul 4, 1982 · age 43 · 🎂 in 17 days
+        - generic [ref=e86]:
+          - heading "Teams (0)" [level=2] [ref=e87]: Teams (0)
+          - paragraph [ref=e91]: Not on any teams yet.
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - heading "Skills (0)" [level=2] [ref=e95]: Skills (0)
+            - link "Manage" [ref=e97] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/people/019e994c-0f3c-7551-8cb0-614b61ca42b9/edit
+              - text: Manage
+          - generic [ref=e99]:
+            - paragraph [ref=e101]: No skills assigned yet.
+            - link "Add skills" [ref=e103] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/people/019e994c-0f3c-7551-8cb0-614b61ca42b9/edit
+    - complementary [ref=e105]:
+      - navigation "Admin navigation" [ref=e107]:
+        - generic [ref=e108]:
+          - link "Dashboard" [ref=e110] [cursor=pointer]:
+            - /url: /phoenix_kit/admin
+            - generic [ref=e113]: Dashboard
+          - link "Users" [ref=e115] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/users
+            - generic [ref=e118]: Users
+          - link "Activity" [ref=e120] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/activity
+            - generic [ref=e123]: Activity
+          - link "Media" [ref=e125] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/media
+            - generic [ref=e128]: Media
+        - generic [ref=e129]:
+          - link "Emails" [ref=e131] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/emails/dashboard
+            - generic [ref=e134]: Emails
+          - link "Billing" [ref=e136] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/billing
+            - generic [ref=e139]: Billing
+          - link "Newsletters" [ref=e141] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/newsletters/broadcasts
+            - generic [ref=e144]: Newsletters
+          - link "E-Commerce" [ref=e146] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/shop
+            - generic [ref=e149]: E-Commerce
+          - link "DB" [ref=e151] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/db
+            - generic [ref=e154]: DB
+          - link "Posts" [ref=e156] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/posts
+            - generic [ref=e159]: Posts
+          - link "Comments" [ref=e161] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/comments
+            - generic [ref=e164]: Comments
+          - link "Connections" [ref=e166] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/connections
+            - generic [ref=e169]: Connections
+          - link "Jobs" [ref=e171] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/jobs
+            - generic [ref=e174]: Jobs
+          - link "Modules" [ref=e176] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/modules
+            - generic [ref=e179]: Modules
+          - link "Notifications" [ref=e181] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/notifications
+            - generic [ref=e184]: Notifications
+          - link "Hello World" [ref=e186] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/hello-world
+            - generic [ref=e189]: Hello World
+          - link "AI" [ref=e191] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/ai/endpoints
+            - generic [ref=e194]: AI
+          - link "Sync" [ref=e196] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/sync
+            - generic [ref=e199]: Sync
+          - generic [ref=e200]:
+            - link "Staff" [ref=e201] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff
+              - generic [ref=e204]: Staff
+            - generic [ref=e205]:
+              - link "Overview" [ref=e206] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff
+                - generic [ref=e209]: Overview
+              - link "Departments" [ref=e210] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/departments
+                - generic [ref=e213]: Departments
+              - link "Teams" [ref=e214] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/teams
+                - generic [ref=e217]: Teams
+              - link "Staff" [ref=e218] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/people
+                - generic [ref=e221]: Staff
+              - link "Skills" [ref=e222] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/skills
+                - generic [ref=e225]: Skills
+          - link "Document Creator" [ref=e227] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/document-creator/documents
+            - generic [ref=e230]: Document Creator
+          - link "Projects" [ref=e232] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/projects
+            - generic [ref=e235]: Projects
+          - link "Catalogue" [ref=e237] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/catalogue
+            - generic [ref=e240]: Catalogue
+          - link "Locations" [ref=e242] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/locations
+            - generic [ref=e245]: Locations
+          - link "Entities" [ref=e247] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/entities
+            - generic [ref=e250]: Entities
+          - link "Publishing" [ref=e252] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/publishing
+            - generic [ref=e255]: Publishing
+        - link "Settings" [ref=e258] [cursor=pointer]:
+          - /url: /phoenix_kit/admin/settings
+          - generic [ref=e261]: Settings

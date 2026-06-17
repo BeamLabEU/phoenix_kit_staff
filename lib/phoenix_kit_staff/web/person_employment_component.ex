@@ -22,6 +22,7 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
 
   alias PhoenixKitStaff.{Activity, Departments, Employments, L10n, Teams}
   alias PhoenixKitStaff.Schemas.{Employment, Person}
+  alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def update(assigns, socket) do
@@ -86,7 +87,16 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
       {:error, %Ecto.Changeset{} = cs} ->
         {:noreply, assign(socket, :form, to_form(cs, as: :employment))}
 
-      {:error, _other} ->
+      {:error, other} ->
+        Helpers.log_operation_error(
+          "staff.person_employment_#{if socket.assigns.editing_uuid, do: "updated", else: "added"}",
+          socket,
+          reason: normalize_error(other),
+          resource_type: "staff_person",
+          resource_uuid: person.uuid,
+          metadata: editing_meta(socket.assigns.editing_uuid)
+        )
+
         {:noreply, reload(socket)}
     end
   end
@@ -115,7 +125,9 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
       log(socket, "ended", ended)
       {:noreply, socket |> reset_form() |> reload()}
     else
-      _ -> {:noreply, reload(socket)}
+      other ->
+        log_employment_error("staff.person_employment_ended", socket, uuid, other)
+        {:noreply, reload(socket)}
     end
   end
 
@@ -125,11 +137,31 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
       log(socket, "removed", removed)
       {:noreply, socket |> reset_form() |> reload()}
     else
-      _ -> {:noreply, reload(socket)}
+      other ->
+        log_employment_error("staff.person_employment_removed", socket, uuid, other)
+        {:noreply, reload(socket)}
     end
   end
 
   # ── Helpers ────────────────────────────────────────────────────────
+
+  defp log_employment_error(action, socket, uuid, other) do
+    Helpers.log_operation_error(action, socket,
+      reason: normalize_error(other),
+      resource_type: "staff_person",
+      resource_uuid: socket.assigns.person.uuid,
+      metadata: %{"employment_uuid" => uuid}
+    )
+  end
+
+  # `with` else value: nil span (not found) or `{:error, reason}` from the
+  # mutation; save's `{:error, other}` already unwraps to the bare reason.
+  defp normalize_error(nil), do: :not_found
+  defp normalize_error({:error, reason}), do: reason
+  defp normalize_error(other), do: other
+
+  defp editing_meta(nil), do: %{}
+  defp editing_meta(uuid), do: %{"employment_uuid" => uuid}
 
   defp reload(socket),
     do: assign(socket, :employments, Employments.list_for_person(socket.assigns.person.uuid))
@@ -345,10 +377,11 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
               :for={e <- @employments}
               class="border border-base-300 rounded-box p-3 flex items-start gap-3"
             >
+              <% open = Employment.open?(e) %>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-medium">{title(e, @locale)}</span>
-                  <span :if={Employment.open?(e)} class="badge badge-success badge-sm">
+                  <span :if={open} class="badge badge-success badge-sm">
                     {gettext("Current")}
                   </span>
                   <span :if={e.employment_type} class="badge badge-ghost badge-sm">
@@ -375,11 +408,12 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
                   <.icon name="hero-pencil" class="w-4 h-4" />
                 </button>
                 <button
-                  :if={Employment.open?(e)}
+                  :if={open}
                   type="button"
                   phx-target={@myself}
                   phx-click="end_employment"
                   phx-value-uuid={e.uuid}
+                  phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Saving…")}
                   class="btn btn-ghost btn-xs btn-square"
                   aria-label={gettext("End now")}
                   title={gettext("End this role today")}
@@ -391,6 +425,7 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
                   phx-target={@myself}
                   phx-click="remove_employment"
                   phx-value-uuid={e.uuid}
+                  phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
                   data-confirm={gettext("Remove this employment record?")}
                   class="btn btn-ghost btn-xs btn-square text-error"
                   aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}

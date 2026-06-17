@@ -1,0 +1,300 @@
+- main [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e7]:
+      - link "DON TESTER pk project" [ref=e8] [cursor=pointer]:
+        - /url: /
+      - generic [ref=e9]: Admin Panel
+      - generic [ref=e10]:
+        - generic [ref=e11]: /
+        - generic [ref=e12]: Staff
+    - generic [ref=e13]:
+      - group [ref=e16]
+      - generic "Notifications" [ref=e21] [cursor=pointer]
+      - button "M Avatar" [ref=e25] [cursor=pointer]:
+        - generic [ref=e27]:
+          - generic [ref=e28]: M
+          - img "Avatar" [ref=e29]
+  - generic [ref=e30]:
+    - generic [ref=e33]:
+      - generic [ref=e35]:
+        - generic [ref=e37]:
+          - heading "Staff" [level=1] [ref=e38]
+          - paragraph [ref=e39]: Departments, teams, and the people in them.
+        - generic [ref=e40]:
+          - link "Department" [ref=e41] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/staff/departments/new
+            - text: Department
+          - link "Team" [ref=e43] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/staff/teams/new
+            - text: Team
+          - link "Staff" [ref=e45] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/staff/people/new
+            - text: Staff
+      - generic [ref=e47]:
+        - link "Departments 4" [ref=e48] [cursor=pointer]:
+          - /url: /phoenix_kit/admin/staff/departments
+          - generic [ref=e49]:
+            - generic [ref=e50]: Departments
+            - generic [ref=e52]: "4"
+        - link "Teams 7" [ref=e53] [cursor=pointer]:
+          - /url: /phoenix_kit/admin/staff/teams
+          - generic [ref=e54]:
+            - generic [ref=e55]: Teams
+            - generic [ref=e57]: "7"
+        - link "Staff 13" [ref=e58] [cursor=pointer]:
+          - /url: /phoenix_kit/admin/staff/people
+          - generic [ref=e59]:
+            - generic [ref=e60]: Staff
+            - generic [ref=e62]: "13"
+      - generic [ref=e64]:
+        - heading "Upcoming birthdays" [level=2] [ref=e65]: Upcoming birthdays
+        - generic [ref=e67]:
+          - link "Mia Moore in 2d (Jun 19)" [ref=e68] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/staff/people/019e994c-1143-7cd1-918d-9a1a4cb35714
+            - generic [ref=e69]: Mia Moore
+            - generic [ref=e70]: in 2d (Jun 19)
+          - link "Erik Ericsson in 5d (Jun 22)" [ref=e71] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/staff/people/019e994c-091a-7d38-a166-757bfddb20c3
+            - generic [ref=e72]: Erik Ericsson
+            - generic [ref=e73]: in 5d (Jun 22)
+          - link "Jade Jensen in 11d (Jun 28)" [ref=e74] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/staff/people/019e994c-0e31-7f28-8731-7e120c237f81
+            - generic [ref=e75]: Jade Jensen
+            - generic [ref=e76]: in 11d (Jun 28)
+          - link "Fiona Flynn in 15d (Jul 2)" [ref=e77] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/staff/people/019e994c-0a24-70ed-a728-f4fc6d798f8f
+            - generic [ref=e78]: Fiona Flynn
+            - generic [ref=e79]: in 15d (Jul 2)
+          - link "Kara Kane in 17d (Jul 4)" [ref=e80] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/staff/people/019e994c-0f3c-7551-8cb0-614b61ca42b9
+            - generic [ref=e81]: Kara Kane
+            - generic [ref=e82]: in 17d (Jul 4)
+      - generic [ref=e83]:
+        - generic [ref=e85]:
+          - generic [ref=e86]:
+            - link "Engineering 3 teams" [ref=e87] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/departments/019e994c-069a-78e2-a7c4-d2ba46702b56
+              - heading "Engineering" [level=2] [ref=e89]
+              - generic [ref=e90]: 3 teams
+            - button "Actions" [ref=e92] [cursor=pointer]
+          - paragraph [ref=e94]: Builds and runs the product.
+          - generic [ref=e95]:
+            - generic [ref=e96]:
+              - link "Backend 2" [ref=e97] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/teams/019e994c-06aa-75af-b17f-8308d9df94d3
+                - generic [ref=e99]: Backend
+                - generic [ref=e100]: "2"
+              - button "Actions" [ref=e102] [cursor=pointer]
+            - generic [ref=e104]:
+              - link "Dana Devlin" [ref=e105] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/people/019e994c-080c-7cba-9700-ad079c388c9b
+                - text: Dana Devlin
+              - link "Erik Ericsson" [ref=e107] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/people/019e994c-091a-7d38-a166-757bfddb20c3
+                - text: Erik Ericsson
+          - generic [ref=e109]:
+            - generic [ref=e110]:
+              - link "Frontend 1" [ref=e111] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/teams/019e994c-06ad-7871-88ff-a7502ffb5224
+                - generic [ref=e113]: Frontend
+                - generic [ref=e114]: "1"
+              - button "Actions" [ref=e116] [cursor=pointer]
+            - link "Fiona Flynn" [ref=e119] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/people/019e994c-0a24-70ed-a728-f4fc6d798f8f
+              - text: Fiona Flynn
+          - generic [ref=e121]:
+            - generic [ref=e122]:
+              - link "Platform 1" [ref=e123] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/teams/019e994c-06b0-712e-9e99-65c996d94191
+                - generic [ref=e125]: Platform
+                - generic [ref=e126]: "1"
+              - button "Actions" [ref=e128] [cursor=pointer]
+            - link "Gabe Green" [ref=e131] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/people/019e994c-0b25-7c5e-8bc1-687d78fb4866
+              - text: Gabe Green
+          - generic [ref=e133]:
+            - generic [ref=e134]: In department, not on any team
+            - link "Kara Kane" [ref=e137] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/people/019e994c-0f3c-7551-8cb0-614b61ca42b9
+              - text: Kara Kane
+        - generic [ref=e140]:
+          - generic [ref=e141]:
+            - link "Marketing 1 team" [ref=e142] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/departments/019e994c-06a8-7a3d-a68d-577f20e2cca7
+              - heading "Marketing" [level=2] [ref=e144]
+              - generic [ref=e145]: 1 team
+            - button "Actions" [ref=e147] [cursor=pointer]
+          - paragraph [ref=e149]: Brand, growth, and demand generation.
+          - generic [ref=e150]:
+            - generic [ref=e151]:
+              - link "Growth 1" [ref=e152] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/teams/019e994c-06b4-736c-961a-f492d3959c7c
+                - generic [ref=e154]: Growth
+                - generic [ref=e155]: "1"
+              - button "Actions" [ref=e157] [cursor=pointer]
+            - link "Jade Jensen" [ref=e160] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/people/019e994c-0e31-7f28-8731-7e120c237f81
+              - text: Jade Jensen
+        - generic [ref=e163]:
+          - generic [ref=e164]:
+            - link "Operations 1 team" [ref=e165] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/departments/019e8451-8aa3-7d13-9b15-7ad2da92335c
+              - heading "Operations" [level=2] [ref=e167]
+              - generic [ref=e168]: 1 team
+            - button "Actions" [ref=e170] [cursor=pointer]
+          - generic [ref=e172]:
+            - generic [ref=e173]:
+              - link "Onboarding Team 0" [ref=e174] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/teams/019e8451-8aac-7436-9939-b8c7eb633fb5
+                - generic [ref=e176]: Onboarding Team
+                - generic [ref=e177]: "0"
+              - button "Actions" [ref=e179] [cursor=pointer]
+            - generic [ref=e181]: No staff on this team.
+        - generic [ref=e183]:
+          - generic [ref=e184]:
+            - link "Sales 2 teams" [ref=e185] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/departments/019e994c-06a6-7c7e-b8de-02b3ec9a7222
+              - heading "Sales" [level=2] [ref=e187]
+              - generic [ref=e188]: 2 teams
+            - button "Actions" [ref=e190] [cursor=pointer]
+          - paragraph [ref=e192]: Revenue and customer acquisition.
+          - generic [ref=e193]:
+            - generic [ref=e194]:
+              - link "Enterprise Sales 1" [ref=e195] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/teams/019e994c-06b2-7a16-9017-eeba0cab3c39
+                - generic [ref=e197]: Enterprise Sales
+                - generic [ref=e198]: "1"
+              - button "Actions" [ref=e200] [cursor=pointer]
+            - link "Hana Hill" [ref=e203] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/people/019e994c-0c25-733e-866d-d05d6a4e9aa8
+              - text: Hana Hill
+          - generic [ref=e205]:
+            - generic [ref=e206]:
+              - link "SMB Sales 1" [ref=e207] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/teams/019e994c-06b3-7d5b-b4b4-6ef46ccd20aa
+                - generic [ref=e209]: SMB Sales
+                - generic [ref=e210]: "1"
+              - button "Actions" [ref=e212] [cursor=pointer]
+            - link "Ivan Ipsen" [ref=e215] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/people/019e994c-0d25-7e89-af08-5286f47f0247
+              - text: Ivan Ipsen
+          - generic [ref=e217]:
+            - generic [ref=e218]: In department, not on any team
+            - link "Liam Lowe" [ref=e221] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/people/019e994c-1040-7458-a0f2-89ccc173c692
+              - text: Liam Lowe
+        - generic [ref=e224]:
+          - heading "Unassigned staff" [level=2] [ref=e225]: Unassigned staff
+          - paragraph [ref=e227]: These staff have no primary department and aren't on any team.
+          - generic [ref=e228]:
+            - link "Noah Novak" [ref=e229] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/people/019e994c-124d-7c78-8cdc-39b4bc3bf11e
+              - text: Noah Novak
+            - link "Mia Moore" [ref=e231] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/people/019e994c-1143-7cd1-918d-9a1a4cb35714
+              - text: Mia Moore
+            - link "Alice Anders" [ref=e233] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/people/019e8451-8be5-7897-8e52-7a99e29a9165
+              - text: Alice Anders
+            - link "Bob Brown" [ref=e235] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff/people/019e8451-8cf5-7210-9c7d-85de42f7b8fd
+              - text: Bob Brown
+    - complementary [ref=e238]:
+      - navigation "Admin navigation" [ref=e240]:
+        - generic [ref=e241]:
+          - link "Dashboard" [ref=e243] [cursor=pointer]:
+            - /url: /phoenix_kit/admin
+            - generic [ref=e246]: Dashboard
+          - link "Users" [ref=e248] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/users
+            - generic [ref=e251]: Users
+          - link "Activity" [ref=e253] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/activity
+            - generic [ref=e256]: Activity
+          - link "Media" [ref=e258] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/media
+            - generic [ref=e261]: Media
+        - generic [ref=e262]:
+          - link "Emails" [ref=e264] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/emails/dashboard
+            - generic [ref=e267]: Emails
+          - link "Billing" [ref=e269] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/billing
+            - generic [ref=e272]: Billing
+          - link "Newsletters" [ref=e274] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/newsletters/broadcasts
+            - generic [ref=e277]: Newsletters
+          - link "E-Commerce" [ref=e279] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/shop
+            - generic [ref=e282]: E-Commerce
+          - link "DB" [ref=e284] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/db
+            - generic [ref=e287]: DB
+          - link "Posts" [ref=e289] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/posts
+            - generic [ref=e292]: Posts
+          - link "Comments" [ref=e294] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/comments
+            - generic [ref=e297]: Comments
+          - link "Connections" [ref=e299] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/connections
+            - generic [ref=e302]: Connections
+          - link "Jobs" [ref=e304] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/jobs
+            - generic [ref=e307]: Jobs
+          - link "Modules" [ref=e309] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/modules
+            - generic [ref=e312]: Modules
+          - link "Notifications" [ref=e314] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/notifications
+            - generic [ref=e317]: Notifications
+          - link "Hello World" [ref=e319] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/hello-world
+            - generic [ref=e322]: Hello World
+          - link "AI" [ref=e324] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/ai/endpoints
+            - generic [ref=e327]: AI
+          - link "Sync" [ref=e329] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/sync
+            - generic [ref=e332]: Sync
+          - generic [ref=e333]:
+            - link "Staff" [ref=e334] [cursor=pointer]:
+              - /url: /phoenix_kit/admin/staff
+              - generic [ref=e337]: Staff
+            - generic [ref=e338]:
+              - link "Overview" [ref=e339] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff
+                - generic [ref=e342]: Overview
+              - link "Departments" [ref=e343] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/departments
+                - generic [ref=e346]: Departments
+              - link "Teams" [ref=e347] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/teams
+                - generic [ref=e350]: Teams
+              - link "Staff" [ref=e351] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/people
+                - generic [ref=e354]: Staff
+              - link "Skills" [ref=e355] [cursor=pointer]:
+                - /url: /phoenix_kit/admin/staff/skills
+                - generic [ref=e358]: Skills
+          - link "Document Creator" [ref=e360] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/document-creator/documents
+            - generic [ref=e363]: Document Creator
+          - link "Projects" [ref=e365] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/projects
+            - generic [ref=e368]: Projects
+          - link "Catalogue" [ref=e370] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/catalogue
+            - generic [ref=e373]: Catalogue
+          - link "Locations" [ref=e375] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/locations
+            - generic [ref=e378]: Locations
+          - link "Entities" [ref=e380] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/entities
+            - generic [ref=e383]: Entities
+          - link "Publishing" [ref=e385] [cursor=pointer]:
+            - /url: /phoenix_kit/admin/publishing
+            - generic [ref=e388]: Publishing
+        - link "Settings" [ref=e391] [cursor=pointer]:
+          - /url: /phoenix_kit/admin/settings
+          - generic [ref=e394]: Settings
