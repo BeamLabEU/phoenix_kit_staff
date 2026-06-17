@@ -1239,7 +1239,7 @@ msgstr "Töösuhteid pole veel lisatud."
 msgid "Carried over from %{role}, starting today — adjust the dates and change whatever differs."
 msgstr "Üle kantud rollist %{role}, algusega täna — kohanda kuupäevi ja muuda, mis erineb."
 
-#: lib/phoenix_kit_staff/activity_labels.ex:71
+#: lib/phoenix_kit_staff/activity_labels.ex:73
 #, elixir-autogen, elixir-format
 msgid "Activity"
 msgstr "Tegevus"
@@ -1254,7 +1254,7 @@ msgstr "Lisa failid"
 msgid "Add images"
 msgstr "Lisa pildid"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:65
+#: lib/phoenix_kit_staff/activity_labels.ex:67
 #, elixir-autogen, elixir-format
 msgid "Added to a team"
 msgstr "Lisatud meeskonda"
@@ -1269,33 +1269,33 @@ msgstr "Meediakausta ettevalmistamine ebaõnnestus."
 msgid "Could not remove the file."
 msgstr "Faili eemaldamine ebaõnnestus."
 
-#: lib/phoenix_kit_staff/activity_labels.ex:33
+#: lib/phoenix_kit_staff/activity_labels.ex:35
 #, elixir-autogen, elixir-format
 msgid "Employment added"
 msgstr "Töösuhe lisatud"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:39
+#: lib/phoenix_kit_staff/activity_labels.ex:41
 #, elixir-autogen, elixir-format
 msgid "Employment ended"
 msgstr "Töösuhe lõpetatud"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:42
+#: lib/phoenix_kit_staff/activity_labels.ex:44
 #, elixir-autogen, elixir-format
 msgid "Employment removed"
 msgstr "Töösuhe eemaldatud"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:36
+#: lib/phoenix_kit_staff/activity_labels.ex:38
 #, elixir-autogen, elixir-format
 msgid "Employment updated"
 msgstr "Töösuhe uuendatud"
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:84
+#: lib/phoenix_kit_staff/web/person_events_component.ex:107
 #: lib/phoenix_kit_staff/web/person_show_live.ex:601
 #, elixir-autogen, elixir-format
 msgid "Events"
 msgstr "Sündmused"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:57
+#: lib/phoenix_kit_staff/activity_labels.ex:59
 #, elixir-autogen, elixir-format
 msgid "File removed"
 msgstr "Fail eemaldatud"
@@ -1306,7 +1306,7 @@ msgstr "Fail eemaldatud"
 msgid "Files"
 msgstr "Failid"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:62
+#: lib/phoenix_kit_staff/activity_labels.ex:64
 #, elixir-autogen, elixir-format
 msgid "Image removed"
 msgstr "Pilt eemaldatud"
@@ -1317,12 +1317,12 @@ msgstr "Pilt eemaldatud"
 msgid "Images"
 msgstr "Pildid"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:27
+#: lib/phoenix_kit_staff/activity_labels.ex:29
 #, elixir-autogen, elixir-format
 msgid "Moved to trash"
 msgstr "Visatud prügikasti"
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:88
+#: lib/phoenix_kit_staff/web/person_events_component.ex:111
 #, elixir-autogen, elixir-format
 msgid "No activity recorded for this person yet."
 msgstr "Selle inimese kohta pole veel tegevusi."
@@ -1337,22 +1337,22 @@ msgstr "Faile veel pole."
 msgid "No images yet."
 msgstr "Pilte veel pole."
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:118
+#: lib/phoenix_kit_staff/web/person_events_component.ex:145
 #, elixir-autogen, elixir-format
 msgid "Page %{page} of %{total}"
 msgstr "Lehekülg %{page} / %{total}"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:19
+#: lib/phoenix_kit_staff/activity_labels.ex:21
 #, elixir-autogen, elixir-format
 msgid "Profile created"
 msgstr "Profiil loodud"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:25
+#: lib/phoenix_kit_staff/activity_labels.ex:27
 #, elixir-autogen, elixir-format
 msgid "Profile permanently deleted"
 msgstr "Profiil jäädavalt kustutatud"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:22
+#: lib/phoenix_kit_staff/activity_labels.ex:24
 #, elixir-autogen, elixir-format
 msgid "Profile updated"
 msgstr "Profiil uuendatud"
@@ -1367,27 +1367,27 @@ msgstr "Eemaldada see fail?"
 msgid "Remove this image?"
 msgstr "Eemaldada see pilt?"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:68
+#: lib/phoenix_kit_staff/activity_labels.ex:70
 #, elixir-autogen, elixir-format
 msgid "Removed from a team"
 msgstr "Eemaldatud meeskonnast"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:30
+#: lib/phoenix_kit_staff/activity_labels.ex:32
 #, elixir-autogen, elixir-format
 msgid "Restored from trash"
 msgstr "Taastatud prügikastist"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:45
+#: lib/phoenix_kit_staff/activity_labels.ex:47
 #, elixir-autogen, elixir-format
 msgid "Skill added"
 msgstr "Oskus lisatud"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:48
+#: lib/phoenix_kit_staff/activity_labels.ex:50
 #, elixir-autogen, elixir-format
 msgid "Skill level changed"
 msgstr "Oskuse tase muudetud"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:51
+#: lib/phoenix_kit_staff/activity_labels.ex:53
 #, elixir-autogen, elixir-format
 msgid "Skill removed"
 msgstr "Oskus eemaldatud"
@@ -1397,14 +1397,14 @@ msgstr "Oskus eemaldatud"
 msgid "System"
 msgstr "Süsteem"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:54
+#: lib/phoenix_kit_staff/activity_labels.ex:56
 #, elixir-autogen, elixir-format
 msgid "File added"
 msgid_plural "Files added"
 msgstr[0] "Fail lisatud"
 msgstr[1] "Failid lisatud"
 
-#: lib/phoenix_kit_staff/activity_labels.ex:60
+#: lib/phoenix_kit_staff/activity_labels.ex:62
 #, elixir-autogen, elixir-format
 msgid "Image added"
 msgid_plural "Images added"
@@ -1424,3 +1424,50 @@ msgid "Only images can be added here — skipped %{count} non-image file."
 msgid_plural "Only images can be added here — skipped %{count} non-image files."
 msgstr[0] "Siia saab lisada ainult pilte — %{count} muu fail jäeti vahele."
 msgstr[1] "Siia saab lisada ainult pilte — %{count} muud faili jäeti vahele."
+
+#: lib/phoenix_kit_staff/web/person_events_component.ex:92
+#, elixir-autogen, elixir-format
+msgid "%{count} day ago"
+msgid_plural "%{count} days ago"
+msgstr[0] "%{count} päev tagasi"
+msgstr[1] "%{count} päeva tagasi"
+
+#: lib/phoenix_kit_staff/activity_labels.ex:91
+#, elixir-autogen, elixir-format
+msgid "%{count} file"
+msgid_plural "%{count} files"
+msgstr[0] "%{count} fail"
+msgstr[1] "%{count} faili"
+
+#: lib/phoenix_kit_staff/web/person_events_component.ex:89
+#, elixir-autogen, elixir-format
+msgid "%{count} hour ago"
+msgid_plural "%{count} hours ago"
+msgstr[0] "%{count} tund tagasi"
+msgstr[1] "%{count} tundi tagasi"
+
+#: lib/phoenix_kit_staff/activity_labels.ex:94
+#, elixir-autogen, elixir-format
+msgid "%{count} image"
+msgid_plural "%{count} images"
+msgstr[0] "%{count} pilt"
+msgstr[1] "%{count} pilti"
+
+#: lib/phoenix_kit_staff/activity_labels.ex:99
+#, elixir-autogen, elixir-format
+msgid "%{count} level"
+msgid_plural "%{count} levels"
+msgstr[0] "%{count} tase"
+msgstr[1] "%{count} taset"
+
+#: lib/phoenix_kit_staff/web/person_events_component.ex:86
+#, elixir-autogen, elixir-format
+msgid "%{count} minute ago"
+msgid_plural "%{count} minutes ago"
+msgstr[0] "%{count} minut tagasi"
+msgstr[1] "%{count} minutit tagasi"
+
+#: lib/phoenix_kit_staff/web/person_events_component.ex:83
+#, elixir-autogen, elixir-format
+msgid "just now"
+msgstr "äsja"

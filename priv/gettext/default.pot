@@ -1218,7 +1218,7 @@ msgstr ""
 msgid "Carried over from %{role}, starting today — adjust the dates and change whatever differs."
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:71
+#: lib/phoenix_kit_staff/activity_labels.ex:73
 #, elixir-autogen, elixir-format
 msgid "Activity"
 msgstr ""
@@ -1233,7 +1233,7 @@ msgstr ""
 msgid "Add images"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:65
+#: lib/phoenix_kit_staff/activity_labels.ex:67
 #, elixir-autogen, elixir-format
 msgid "Added to a team"
 msgstr ""
@@ -1248,33 +1248,33 @@ msgstr ""
 msgid "Could not remove the file."
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:33
+#: lib/phoenix_kit_staff/activity_labels.ex:35
 #, elixir-autogen, elixir-format
 msgid "Employment added"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:39
+#: lib/phoenix_kit_staff/activity_labels.ex:41
 #, elixir-autogen, elixir-format
 msgid "Employment ended"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:42
+#: lib/phoenix_kit_staff/activity_labels.ex:44
 #, elixir-autogen, elixir-format
 msgid "Employment removed"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:36
+#: lib/phoenix_kit_staff/activity_labels.ex:38
 #, elixir-autogen, elixir-format
 msgid "Employment updated"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:84
+#: lib/phoenix_kit_staff/web/person_events_component.ex:107
 #: lib/phoenix_kit_staff/web/person_show_live.ex:601
 #, elixir-autogen, elixir-format
 msgid "Events"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:57
+#: lib/phoenix_kit_staff/activity_labels.ex:59
 #, elixir-autogen, elixir-format
 msgid "File removed"
 msgstr ""
@@ -1285,7 +1285,7 @@ msgstr ""
 msgid "Files"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:62
+#: lib/phoenix_kit_staff/activity_labels.ex:64
 #, elixir-autogen, elixir-format
 msgid "Image removed"
 msgstr ""
@@ -1296,12 +1296,12 @@ msgstr ""
 msgid "Images"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:27
+#: lib/phoenix_kit_staff/activity_labels.ex:29
 #, elixir-autogen, elixir-format
 msgid "Moved to trash"
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:88
+#: lib/phoenix_kit_staff/web/person_events_component.ex:111
 #, elixir-autogen, elixir-format
 msgid "No activity recorded for this person yet."
 msgstr ""
@@ -1316,22 +1316,22 @@ msgstr ""
 msgid "No images yet."
 msgstr ""
 
-#: lib/phoenix_kit_staff/web/person_events_component.ex:118
+#: lib/phoenix_kit_staff/web/person_events_component.ex:145
 #, elixir-autogen, elixir-format
 msgid "Page %{page} of %{total}"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:19
+#: lib/phoenix_kit_staff/activity_labels.ex:21
 #, elixir-autogen, elixir-format
 msgid "Profile created"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:25
+#: lib/phoenix_kit_staff/activity_labels.ex:27
 #, elixir-autogen, elixir-format
 msgid "Profile permanently deleted"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:22
+#: lib/phoenix_kit_staff/activity_labels.ex:24
 #, elixir-autogen, elixir-format
 msgid "Profile updated"
 msgstr ""
@@ -1346,27 +1346,27 @@ msgstr ""
 msgid "Remove this image?"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:68
+#: lib/phoenix_kit_staff/activity_labels.ex:70
 #, elixir-autogen, elixir-format
 msgid "Removed from a team"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:30
+#: lib/phoenix_kit_staff/activity_labels.ex:32
 #, elixir-autogen, elixir-format
 msgid "Restored from trash"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:45
+#: lib/phoenix_kit_staff/activity_labels.ex:47
 #, elixir-autogen, elixir-format
 msgid "Skill added"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:48
+#: lib/phoenix_kit_staff/activity_labels.ex:50
 #, elixir-autogen, elixir-format
 msgid "Skill level changed"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:51
+#: lib/phoenix_kit_staff/activity_labels.ex:53
 #, elixir-autogen, elixir-format
 msgid "Skill removed"
 msgstr ""
@@ -1376,14 +1376,14 @@ msgstr ""
 msgid "System"
 msgstr ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:54
+#: lib/phoenix_kit_staff/activity_labels.ex:56
 #, elixir-autogen, elixir-format
 msgid "File added"
 msgid_plural "Files added"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/phoenix_kit_staff/activity_labels.ex:60
+#: lib/phoenix_kit_staff/activity_labels.ex:62
 #, elixir-autogen, elixir-format
 msgid "Image added"
 msgid_plural "Images added"
@@ -1403,3 +1403,50 @@ msgid "Only images can be added here — skipped %{count} non-image file."
 msgid_plural "Only images can be added here — skipped %{count} non-image files."
 msgstr[0] ""
 msgstr[1] ""
+
+#: lib/phoenix_kit_staff/web/person_events_component.ex:92
+#, elixir-autogen, elixir-format
+msgid "%{count} day ago"
+msgid_plural "%{count} days ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/phoenix_kit_staff/activity_labels.ex:91
+#, elixir-autogen, elixir-format
+msgid "%{count} file"
+msgid_plural "%{count} files"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/phoenix_kit_staff/web/person_events_component.ex:89
+#, elixir-autogen, elixir-format
+msgid "%{count} hour ago"
+msgid_plural "%{count} hours ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/phoenix_kit_staff/activity_labels.ex:94
+#, elixir-autogen, elixir-format
+msgid "%{count} image"
+msgid_plural "%{count} images"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/phoenix_kit_staff/activity_labels.ex:99
+#, elixir-autogen, elixir-format
+msgid "%{count} level"
+msgid_plural "%{count} levels"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/phoenix_kit_staff/web/person_events_component.ex:86
+#, elixir-autogen, elixir-format
+msgid "%{count} minute ago"
+msgid_plural "%{count} minutes ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/phoenix_kit_staff/web/person_events_component.ex:83
+#, elixir-autogen, elixir-format
+msgid "just now"
+msgstr ""

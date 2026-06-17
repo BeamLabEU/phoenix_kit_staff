@@ -75,6 +75,29 @@ defmodule PhoenixKitStaff.Web.PersonEventsComponent do
 
   defp format_at(other), do: L10n.format_date(other) || ""
 
+  # Friendly "2 hours ago"; falls back to the absolute date past ~30 days.
+  # The exact timestamp stays available via the row's `title` (format_at/1).
+  defp relative_time(%DateTime{} = dt) do
+    case DateTime.diff(DateTime.utc_now(), dt, :second) do
+      d when d < 45 ->
+        gettext("just now")
+
+      d when d < 3600 ->
+        ngettext("%{count} minute ago", "%{count} minutes ago", max(div(d, 60), 1))
+
+      d when d < 86_400 ->
+        ngettext("%{count} hour ago", "%{count} hours ago", div(d, 3600))
+
+      d when d < 2_592_000 ->
+        ngettext("%{count} day ago", "%{count} days ago", div(d, 86_400))
+
+      _ ->
+        L10n.format_date(dt)
+    end
+  end
+
+  defp relative_time(other), do: L10n.format_date(other) || ""
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -91,13 +114,17 @@ defmodule PhoenixKitStaff.Web.PersonEventsComponent do
         <ul :if={@events != []} class="flex flex-col divide-y divide-base-200">
           <li :for={e <- @events} class="flex items-start gap-3 py-2.5">
             <% {icon, label} = ActivityLabels.describe(e.action, e.metadata || %{}) %>
+            <% detail = ActivityLabels.detail(e.action, e.metadata || %{}) %>
             <span class={"badge badge-sm shrink-0 mt-0.5 #{Activity.action_badge_color(e.action)}"}>
               <.icon name={icon} class="w-3.5 h-3.5" />
             </span>
             <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium">{label}</div>
-              <div class="text-xs text-base-content/50">
-                {actor_label(e)} · {format_at(e.inserted_at)}
+              <div class="text-sm">
+                <span class="font-medium">{label}</span>
+                <span :if={detail} class="text-base-content/60">— {detail}</span>
+              </div>
+              <div class="text-xs text-base-content/50" title={format_at(e.inserted_at)}>
+                {actor_label(e)} · {relative_time(e.inserted_at)}
               </div>
             </div>
           </li>

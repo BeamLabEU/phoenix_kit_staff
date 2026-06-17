@@ -12,6 +12,8 @@ defmodule PhoenixKitStaff.ActivityLabels do
 
   use Gettext, backend: PhoenixKitStaff.Gettext
 
+  alias PhoenixKitStaff.Schemas.Person
+
   @doc "Returns `{icon_name, label}` for an action string + its metadata."
   @spec describe(String.t(), map()) :: {String.t(), String.t()}
   def describe(action, metadata \\ %{})
@@ -69,6 +71,34 @@ defmodule PhoenixKitStaff.ActivityLabels do
 
   def describe(action, _meta) when is_binary(action), do: {"hero-clock", humanize(action)}
   def describe(_action, _meta), do: {"hero-clock", gettext("Activity")}
+
+  @doc """
+  An optional secondary detail string for an event, pulled from its metadata
+  (employment type, file/image count, person status, skill-level count), or
+  `nil` when there's nothing extra worth showing. Lets the Events feed say
+  *what* happened, not just the action category.
+  """
+  @spec detail(String.t(), map()) :: String.t() | nil
+  def detail("staff.person_created", %{"status" => status})
+      when is_binary(status) and status != "",
+      do: Person.status_label(status)
+
+  def detail("staff.person_employment_" <> _verb, %{"employment_type" => type})
+      when is_binary(type) and type != "",
+      do: Person.employment_type_label(type)
+
+  def detail("staff.person_file_added", %{"count" => n}) when is_integer(n) and n > 0,
+    do: ngettext("%{count} file", "%{count} files", n)
+
+  def detail("staff.person_image_added", %{"count" => n}) when is_integer(n) and n > 0,
+    do: ngettext("%{count} image", "%{count} images", n)
+
+  def detail(action, %{"proficiency_levels" => levels})
+      when action in ["staff.person_skill_added", "staff.person_skill_updated"] and
+             is_list(levels) and levels != [],
+      do: ngettext("%{count} level", "%{count} levels", length(levels))
+
+  def detail(_action, _metadata), do: nil
 
   # Number of files in an "added" batch, from the logged metadata (≥1).
   defp count_of(%{"count" => n}) when is_integer(n) and n > 0, do: n
