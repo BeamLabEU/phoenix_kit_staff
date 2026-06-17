@@ -272,6 +272,47 @@ the **open/current** span), `work_location`, and `notes`.
   single-span columns (guarded, retry-safe; people with no employment data are
   skipped).
 
+## Media attachments — Files & Images tabs
+
+The person profile has **Files** and **Images** tabs backed by core
+`PhoenixKit.Modules.Storage` (the same folder-scoped convention
+`phoenix_kit_catalogue`/`phoenix_kit_locations` use — **no module-owned table,
+no migration**). `PhoenixKitStaff.Attachments` is the helper.
+
+- **Nested folders.** Each person owns a deterministic root folder
+  `staff-person-<uuid>` (generic files) with a nested **`Images`** subfolder
+  (`parent_uuid` = root) — *all of a person's files in one folder, images in a
+  folder inside it* (the boss's layout). Folders are **resolved by name on every
+  read** (never cached on `Person`, so an admin renaming/deleting the folder in
+  `/admin/media` can't strand a dangling uuid) and **created lazily** on first
+  upload. The core `[:name, :parent_uuid]` unique index makes find-or-create
+  race-safe (a lost create re-resolves the winner).
+- **One component, two kinds.** `Web.PersonMediaComponent` (`kind: :files |
+  :images`) renders a file list / thumbnail grid + an "Add" button that opens
+  core's `MediaSelectorModal` scoped to the folder (`file_type_filter :all` vs
+  `:image`). The modal owns its own `allow_upload` (this component never
+  configures uploads); it `notify`s results back, which we attach to the folder
+  (uploads land there directly; library-picks get a `FolderLink`). Both tabs are
+  gated on `PhoenixKit.Modules.Storage.enabled?()` (rescued, like Comments) — at
+  the tab AND in the mutation handlers; `valid_tabs/1` clamps deep-links.
+- **Removal is non-destructive:** soft-trash a sole-owner file (recoverable in
+  the media trash), unlink a shared one — never a hard delete. On a person's
+  **permanent** delete, `Attachments.purge_person_media/1` cascades the folder
+  subtree (core `delete_folder_completely/1`); soft-trash keeps the files.
+
+## Events tab
+
+`Web.PersonEventsComponent` is a **read-only, paginated** feed of the
+`PhoenixKit.Activity` entries for this person (`resource_type: "staff_person"` +
+the person's uuid). **Gotcha:** core `Activity.list/1`'s `apply_filters/2`
+honours `resource_type` but **not `resource_uuid`**, so the component queries
+`PhoenixKit.Activity.Entry` directly (filtering both) — using `list/1` would leak
+every staff person's events into each profile. Labels/icons come from
+`PhoenixKitStaff.ActivityLabels` (domain gettext; humanized fallback for unknown
+actions); badge colour reuses core `Activity.action_badge_color/1`. No live
+PubSub prepend (a fresh load on tab open / page change suffices for an audit
+log). *(Consider upstreaming a `resource_uuid` filter into core's `apply_filters`.)*
+
 ## Person.name
 
 A single `name` field (VARCHAR, nullable, max 255) holds the staff person's full display name — consistent with `Department.name`, `Team.name`, `Space.name`, and `Location.name` in the broader plugin ecosystem. The field lives on Person (not on the linked User) because:
@@ -388,6 +429,7 @@ Every mutation logs via the `PhoenixKitStaff.Activity` wrapper — **never call 
 - `staff.skill_created/updated/deleted`
 - `staff.person_skill_added/removed/updated` (skill assigned to / unassigned from / re-leveled on a person)
 - `staff.person_employment_added/updated/ended/removed` (employment span created / edited / end-dated / deleted)
+- `staff.person_file_added/removed` · `staff.person_image_added/removed` (media attached to / removed from the person's media folder)
 
 **Where to log:** activity logging happens at the **LiveView layer**, not inside context functions. The LiveView is where `actor_uuid` is accessible (via `socket.assigns[:phoenix_kit_current_user]`) and where user intent is unambiguous ("admin clicked Save" vs. "internal function called during a cascade"). Context functions like `Staff.create_person/2` stay pure — they perform the mutation and return `{:ok, record} | {:error, changeset}`, and the calling LiveView logs on success.
 
@@ -407,6 +449,8 @@ Uses `permission: "staff"` from the PhoenixKit role/permission matrix. Tabs are 
 lib/phoenix_kit_staff.ex                     # Main module (PhoenixKit.Module behaviour)
 lib/phoenix_kit_staff/
 ├── activity.ex                              # Activity logging wrapper
+├── activity_labels.ex                       # Events-tab humanizer (action → {icon, label})
+├── attachments.ex                           # Context: folder-scoped person media (Files/Images tabs)
 ├── departments.ex                           # Context: departments CRUD
 ├── l10n.ex                                  # Date/time localization helpers
 ├── paths.ex                                 # Path helpers (/admin/staff/*)
@@ -430,8 +474,10 @@ lib/phoenix_kit_staff/
     ├── overview_live.ex                     # Org tree + upcoming birthdays
     ├── people_live.ex
     ├── person_employment_component.ex       # Employment tab (timeline + add/edit/end/remove)
+    ├── person_events_component.ex           # Events tab (read-only per-person activity feed)
     ├── person_form_live.ex                  # Placeholder-user flow lives here
-    ├── person_show_live.ex                  # Overview + Employment + Comments tabs
+    ├── person_media_component.ex            # Files + Images tabs (folder-scoped media)
+    ├── person_show_live.ex                  # Overview + Employment + Files + Images + Events + Comments tabs
     ├── skill_form_live.ex
     ├── skill_show_live.ex                   # Skill → people assignment (+ level)
     ├── skills_live.ex

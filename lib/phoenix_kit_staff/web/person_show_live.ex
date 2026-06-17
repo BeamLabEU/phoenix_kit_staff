@@ -12,7 +12,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
   require Logger
 
-  alias PhoenixKitStaff.{Activity, L10n, Paths, Skills, Staff}
+  alias PhoenixKit.Modules.Storage
+  alias PhoenixKitStaff.{Activity, Attachments, L10n, Paths, Skills, Staff}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
   alias PhoenixKitStaff.Schemas.{Person, Skill}
   alias PhoenixKitStaff.Web.Helpers
@@ -43,7 +44,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
            person: person,
            memberships: Staff.list_memberships_for_person(person.uuid),
            active_tab: "overview",
-           comments_enabled: comments_enabled?()
+           comments_enabled: comments_enabled?(),
+           storage_enabled: storage_enabled?()
          )
          |> load_skills()}
     end
@@ -97,6 +99,10 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   # declared explicitly to keep it out of the unexpected-message log.
   def handle_info({:comments_updated, _info}, socket), do: {:noreply, socket}
 
+  # Flash relay for embedded LiveComponents (e.g. the media tabs), which can't
+  # put_flash on their own socket.
+  def handle_info({:put_flash, kind, msg}, socket), do: {:noreply, put_flash(socket, kind, msg)}
+
   # Note: the composer's {:leaf_changed, …} message is handled by the
   # `use PhoenixKitComments.Embed` lifecycle hook (it halts before reaching
   # handle_info), so there's no explicit clause for it here.
@@ -109,7 +115,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
     # Clamp to a currently-available tab so a stale/crafted value (e.g.
     # "comments" when the module is gone) can't land on a blank panel.
-    tab = if tab in valid_tabs(socket.assigns.comments_enabled), do: tab, else: "overview"
+    valid = valid_tabs(socket.assigns.comments_enabled, socket.assigns.storage_enabled)
+    tab = if tab in valid, do: tab, else: "overview"
     {:noreply, assign(socket, :active_tab, tab)}
   end
 
@@ -160,6 +167,10 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
     case Staff.delete_person(person) do
       {:ok, _} ->
+        # Best-effort: purge the person's media folder subtree (files + the
+        # nested images) now that they're permanently gone. Never blocks.
+        Attachments.purge_person_media(person.uuid)
+
         Activity.log("staff.person_deleted",
           actor_uuid: Activity.actor_uuid(socket),
           resource_type: "staff_person",
@@ -198,6 +209,14 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   # only so a missing settings table during boot/discovery never crashes.
   defp comments_enabled? do
     PhoenixKitComments.enabled?()
+  rescue
+    _ -> false
+  end
+
+  # The Files/Images tabs need the core Storage (Media) module. Gated like
+  # Comments — hidden + deep-link-clamped when the module is off.
+  defp storage_enabled? do
+    Storage.enabled?()
   rescue
     _ -> false
   end
@@ -300,7 +319,11 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         <span>{gettext("This staff is in the trash. Restore to bring them back to the active roster.")}</span>
       </div>
 
-      <.tabs_strip event="switch_tab" active={@active_tab} tabs={tab_list(@comments_enabled)} />
+      <.tabs_strip
+        event="switch_tab"
+        active={@active_tab}
+        tabs={tab_list(@comments_enabled, @storage_enabled)}
+      />
 
       <%!-- Overview tab — the full profile --%>
       <div :if={@active_tab == "overview"} class="flex flex-col gap-4">
@@ -513,6 +536,37 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         />
       </div>
 
+      <%!-- Files tab — generic file attachments in the person's media folder. --%>
+      <div :if={@active_tab == "files"}>
+        <.live_component
+          module={PhoenixKitStaff.Web.PersonMediaComponent}
+          id={"staff-person-files-#{@person.uuid}"}
+          kind={:files}
+          person={@person}
+          phoenix_kit_current_user={@phoenix_kit_current_user}
+        />
+      </div>
+
+      <%!-- Images tab — images in the nested `Images` subfolder. --%>
+      <div :if={@active_tab == "images"}>
+        <.live_component
+          module={PhoenixKitStaff.Web.PersonMediaComponent}
+          id={"staff-person-images-#{@person.uuid}"}
+          kind={:images}
+          person={@person}
+          phoenix_kit_current_user={@phoenix_kit_current_user}
+        />
+      </div>
+
+      <%!-- Events tab — read-only activity timeline for this person. --%>
+      <div :if={@active_tab == "events"}>
+        <.live_component
+          module={PhoenixKitStaff.Web.PersonEventsComponent}
+          id={"staff-person-events-#{@person.uuid}"}
+          person={@person}
+        />
+      </div>
+
       <%!-- Comments tab — embedded thread. The tab only renders when the
            comments admin toggle is on (see `comments_enabled?`). --%>
       <div :if={@active_tab == "comments"}>
@@ -528,20 +582,28 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     """
   end
 
-  # Tab set for the profile: Overview always; Comments only when the
-  # comments module's admin toggle is enabled.
-  defp valid_tabs(comments_enabled?) do
-    comments_enabled? |> tab_list() |> Enum.map(fn {value, _label, _icon} -> value end)
+  # Tab set for the profile: Overview/Employment/Events always; Files + Images
+  # only when the Storage module is on; Comments only when its toggle is on.
+  defp valid_tabs(comments_enabled?, storage_enabled?) do
+    tab_list(comments_enabled?, storage_enabled?)
+    |> Enum.map(fn {value, _label, _icon} -> value end)
   end
 
-  defp tab_list(comments_enabled?) do
-    base = [
+  defp tab_list(comments_enabled?, storage_enabled?) do
+    [
       {"overview", gettext("Overview"), "hero-identification"},
       {"employment", gettext("Employment"), "hero-briefcase"}
     ]
-
-    if comments_enabled?,
-      do: base ++ [{"comments", gettext("Comments"), "hero-chat-bubble-left-right"}],
-      else: base
+    |> maybe_tabs(storage_enabled?, [
+      {"files", gettext("Files"), "hero-document"},
+      {"images", gettext("Images"), "hero-photo"}
+    ])
+    |> Kernel.++([{"events", gettext("Events"), "hero-clock"}])
+    |> maybe_tabs(comments_enabled?, [
+      {"comments", gettext("Comments"), "hero-chat-bubble-left-right"}
+    ])
   end
+
+  defp maybe_tabs(tabs, true, extra), do: tabs ++ extra
+  defp maybe_tabs(tabs, false, _extra), do: tabs
 end

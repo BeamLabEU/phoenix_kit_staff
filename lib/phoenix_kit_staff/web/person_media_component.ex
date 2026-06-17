@@ -1,0 +1,246 @@
+defmodule PhoenixKitStaff.Web.PersonMediaComponent do
+  @moduledoc """
+  The **Files** and **Images** tabs of a staff person's profile (one component,
+  parameterized by `:kind`). Media is folder-scoped via core
+  `PhoenixKit.Modules.Storage` (see `PhoenixKitStaff.Attachments`): the person's
+  root `staff-person-<uuid>` folder for `:files`, the nested `Images` subfolder
+  for `:images`.
+
+  Upload/browse is delegated to core's `MediaSelectorModal` (scoped to the
+  folder via `scope_folder_id`, so the modal owns its own `allow_upload` — this
+  component never configures uploads itself). The modal `notify`s its result
+  back here; we attach each picked/uploaded file to the folder and refresh.
+  Removal soft-trashes a sole-owner file or unlinks a shared one. Every add/
+  remove is activity-logged (`staff.person_file_added/removed`,
+  `staff.person_image_added/removed`) so it surfaces on the Events tab.
+  """
+
+  use PhoenixKitWeb, :live_component
+  use Gettext, backend: PhoenixKitStaff.Gettext
+
+  alias PhoenixKit.Modules.Storage
+  alias PhoenixKitStaff.{Activity, Attachments}
+  alias PhoenixKitWeb.Live.Components.MediaSelectorModal
+
+  # ── Updates ────────────────────────────────────────────────────────
+
+  # Modal results delivered via `notify: {__MODULE__, id}`.
+  @impl true
+  def update(%{media_selected: uuids}, socket) when is_list(uuids) do
+    {:ok, socket |> attach_selected(uuids) |> close_picker() |> reload()}
+  end
+
+  def update(%{media_selector_closed: true}, socket), do: {:ok, close_picker(socket)}
+
+  def update(assigns, socket) do
+    socket = assign(socket, assigns)
+    kind = socket.assigns.kind
+
+    {:ok,
+     socket
+     |> assign_new(:show_picker, fn -> false end)
+     |> assign(:folder_uuid, Attachments.folder_uuid(socket.assigns.person.uuid, kind))
+     |> reload()}
+  end
+
+  # ── Events ─────────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("open_picker", _params, socket) do
+    case ensure_folder(socket) do
+      {:ok, folder_uuid} ->
+        {:noreply, assign(socket, folder_uuid: folder_uuid, show_picker: true)}
+
+      {:error, _reason} ->
+        {:noreply, put_flash_safe(socket, :error, gettext("Could not prepare the media folder."))}
+    end
+  end
+
+  def handle_event("close_picker", _params, socket), do: {:noreply, close_picker(socket)}
+
+  def handle_event("remove_file", %{"uuid" => uuid}, socket) do
+    if storage_enabled?() do
+      case Attachments.detach(uuid, socket.assigns.folder_uuid) do
+        :ok ->
+          log(socket, "removed", %{"file_uuid" => uuid})
+          {:noreply, reload(socket)}
+
+        {:error, _} ->
+          {:noreply, put_flash_safe(socket, :error, gettext("Could not remove the file."))}
+      end
+    else
+      {:noreply, reload(socket)}
+    end
+  end
+
+  # ── Helpers ────────────────────────────────────────────────────────
+
+  defp ensure_folder(socket) do
+    Attachments.ensure_folder(
+      socket.assigns.person.uuid,
+      socket.assigns.kind,
+      Activity.actor_uuid(socket)
+    )
+  end
+
+  # Attach each selected/uploaded file to the folder (uploads are already home
+  # there; library-picks get linked). Gated on storage being enabled so a
+  # stale client can't act after the module is turned off.
+  defp attach_selected(socket, []), do: socket
+
+  defp attach_selected(socket, uuids) do
+    if storage_enabled?() do
+      case ensure_folder(socket) do
+        {:ok, folder_uuid} ->
+          Enum.each(uuids, &Attachments.attach(&1, folder_uuid))
+          log(socket, "added", %{"count" => length(uuids)})
+          assign(socket, :folder_uuid, folder_uuid)
+
+        {:error, _} ->
+          socket
+      end
+    else
+      socket
+    end
+  end
+
+  defp close_picker(socket), do: assign(socket, :show_picker, false)
+
+  defp reload(socket) do
+    files =
+      Attachments.list_files(socket.assigns.folder_uuid,
+        images_only: socket.assigns.kind == :images
+      )
+
+    assign(socket, :files, files)
+  end
+
+  defp log(socket, verb, metadata) do
+    Activity.log("staff.person_#{noun(socket)}_#{verb}",
+      actor_uuid: Activity.actor_uuid(socket),
+      resource_type: "staff_person",
+      resource_uuid: socket.assigns.person.uuid,
+      metadata: metadata
+    )
+  end
+
+  defp noun(%{assigns: %{kind: :images}}), do: "image"
+  defp noun(_), do: "file"
+
+  defp storage_enabled? do
+    Storage.enabled?()
+  rescue
+    _ -> false
+  end
+
+  defp put_flash_safe(socket, kind, msg) do
+    send(self(), {:put_flash, kind, msg})
+    socket
+  end
+
+  # ── Render ─────────────────────────────────────────────────────────
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <div class="flex flex-col gap-4">
+      <div class="card bg-base-100 shadow">
+        <div class="card-body">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="card-title text-lg">
+              <.icon name={if @kind == :images, do: "hero-photo", else: "hero-document"} class="w-5 h-5" />
+              {if @kind == :images, do: gettext("Images"), else: gettext("Files")} ({length(@files)})
+            </h2>
+            <button
+              type="button"
+              phx-target={@myself}
+              phx-click="open_picker"
+              class="btn btn-primary btn-sm"
+            >
+              <.icon name="hero-plus" class="w-4 h-4" />
+              {if @kind == :images, do: gettext("Add images"), else: gettext("Add files")}
+            </button>
+          </div>
+
+          <p :if={@files == []} class="text-sm text-base-content/60 py-2">
+            {if @kind == :images,
+              do: gettext("No images yet."),
+              else: gettext("No files yet.")}
+          </p>
+
+          <%!-- Images: thumbnail grid --%>
+          <div
+            :if={@kind == :images and @files != []}
+            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"
+          >
+            <div :for={f <- @files} class="relative group rounded-box overflow-hidden border border-base-300">
+              <a href={Attachments.download_url(f)} target="_blank" rel="noopener" class="block aspect-square bg-base-200">
+                <img
+                  src={Attachments.thumb_url(f)}
+                  alt={f.original_file_name || f.file_name}
+                  loading="lazy"
+                  class="w-full h-full object-cover"
+                />
+              </a>
+              <button
+                type="button"
+                phx-target={@myself}
+                phx-click="remove_file"
+                phx-value-uuid={f.uuid}
+                data-confirm={gettext("Remove this image?")}
+                class="btn btn-xs btn-circle btn-error absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition"
+                aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
+              >
+                <.icon name="hero-x-mark" class="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          <%!-- Files: list --%>
+          <ul :if={@kind == :files and @files != []} class="flex flex-col divide-y divide-base-200">
+            <li :for={f <- @files} class="flex items-center gap-3 py-2">
+              <.icon name={Attachments.file_icon(f)} class="w-5 h-5 text-base-content/60 shrink-0" />
+              <div class="flex-1 min-w-0">
+                <a
+                  href={Attachments.download_url(f)}
+                  target="_blank"
+                  rel="noopener"
+                  class="link link-hover font-medium block truncate"
+                >
+                  {f.original_file_name || f.file_name}
+                </a>
+                <div class="text-xs text-base-content/50">{Attachments.format_file_size(f.size)}</div>
+              </div>
+              <button
+                type="button"
+                phx-target={@myself}
+                phx-click="remove_file"
+                phx-value-uuid={f.uuid}
+                data-confirm={gettext("Remove this file?")}
+                class="btn btn-ghost btn-xs btn-square text-error shrink-0"
+                aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Remove")}
+              >
+                <.icon name="hero-x-mark" class="w-4 h-4" />
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <%!-- Core picker: uploads land in / browse is scoped to the folder.
+           It owns its own upload channel and notifies results back here. --%>
+      <.live_component
+        module={MediaSelectorModal}
+        id={"#{@id}-selector"}
+        show={@show_picker}
+        mode={:multiple}
+        file_type_filter={if @kind == :images, do: :image, else: :all}
+        selected_uuids={[]}
+        scope_folder_id={@folder_uuid}
+        phoenix_kit_current_user={@phoenix_kit_current_user}
+        notify={{__MODULE__, @id}}
+      />
+    </div>
+    """
+  end
+end
