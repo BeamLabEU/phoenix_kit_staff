@@ -1,8 +1,8 @@
 # Follow-up — PR #10 (Structured skills + per-skill dynamic proficiency levels)
 
-After-action triage of the two review docs in this folder
-(`CLAUDE_REVIEW.md`, `KIMI_REVIEW.md`). Every finding is resolved; see the
-disposition column for where.
+After-action triage of the three review docs in this folder
+(`CLAUDE_REVIEW.md`, `KIMI_REVIEW.md`, `MISTRAL_REVIEW.md`). Every finding is
+resolved; see the disposition column for where.
 
 ## CLAUDE_REVIEW.md
 
@@ -61,6 +61,22 @@ the person-keyed, non-trashed-filtering `list_skills_for_person/1` /
 `mix credo --strict` (no issues), `mix dialyzer` (passed; 2 known gettext skips),
 `mix test` — **437 tests, 0 failures** (against released core `phoenix_kit`
 1.7.152, no `PHOENIX_KIT_PATH`).
+
+## MISTRAL_REVIEW.md
+
+Mistral's doc is a **follow-up audit** of the PR #10 review trail (added in
+`d7a8b2a`), not a fresh review. It cross-checked the Claude + Kimi findings and
+confirmed 8 fixed. Its one "new" finding — *context write functions
+(`Skills.assign_skill/3`, `Staff.Memberships.add_team_person/2`) still accept a
+trashed person* — is explicitly an **elevation of Kimi's open item**, the same
+gap tracked above.
+
+| Finding | Severity | Disposition |
+|---|---|---|
+| 8 prior Claude/Kimi findings | — | Verified fixed (matches the dispositions above) |
+| Context create-paths accept a trashed person | IMPROVEMENT-MEDIUM | **Fixed in `2dc3043`** — `{:error, :person_trashed}` guard in both paths (see the Kimi section above); pinned by `integration/soft_delete_test.exs` |
+
+No findings unique to Mistral remain.
 
 ## Open
 

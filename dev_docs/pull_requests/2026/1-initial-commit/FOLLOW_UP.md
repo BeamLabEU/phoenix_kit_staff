@@ -59,20 +59,38 @@ integration tests covering:
 Auto-excluded without `phoenix_kit_staff_test` DB (same policy as the other
 integration tests).
 
-## Not addressed (yet)
+## Skipped (with rationale)
 
 - **Item 3 — email regex.** Intentionally basic per codebase style; real
   validation happens at user confirmation / registration in
   `PhoenixKit.Users.Auth`.
 - **Item 4 — `Person` changeset field grouping.** Cosmetic; deferred.
-- **Item 5 — `staff.ex` file size.** Still ~440 lines after this change.
-  Splitting into `Staff.People` / `Staff.Memberships` / `Staff.Org` makes
-  sense when the file grows further; not urgent now.
+- **Item 5 — `staff.ex` file size.** Was ~440 lines at the time.
+  Subsequently addressed in part — `Staff.Memberships`
+  (`lib/phoenix_kit_staff/staff/memberships.ex`) and `Staff.Org`
+  (`staff/org.ex`) were extracted in the #10 reshape; `staff.ex` is the
+  remaining people/placeholder context.
 
-## Missing follow-up — DB index
+## Files touched
 
-`date_of_birth` has no index. With `status='active' + NOT NULL` narrowing
-first via `phoenix_kit_staff_people_status_index`, this is fine at current
-scale. A partial index `WHERE status = 'active' AND date_of_birth IS NOT NULL`
-would let Postgres combine index scan with the fragment; worth adding in a
-future `VNN` migration if the org grows large.
+| File | Change |
+|---|---|
+| `lib/phoenix_kit_staff/staff.ex` | `upcoming_birthdays/0` SQL push-down (day-window filter in Postgres); `org_tree/0` loads memberships once and derives both shapes in memory |
+| `test/phoenix_kit_staff/integration/staff_queries_test.exs` | NEW — 17 integration tests (birthdays + org tree) |
+
+## Verification
+
+Items 1–2 validated independently against live Postgres (see Item 1) and
+pinned by the new `staff_queries_test.exs`. Re-verified live on current code
+by the PR #2 follow-up (the perf push-downs remain in place) and folded into
+the PR #3 quality sweep's green suite.
+
+## Open
+
+- **`date_of_birth` partial index** — deferred future-`VNN` item, not
+  blocking. `date_of_birth` has no index; with `status='active' + NOT NULL`
+  narrowing first via `phoenix_kit_staff_people_status_index` this is fine at
+  current scale. A partial index `WHERE status = 'active' AND date_of_birth IS
+  NOT NULL` would let Postgres combine the index scan with the fragment.
+  **Trigger:** add it if/when the org grows large enough that birthday lookups
+  show up in slow-query logs.
