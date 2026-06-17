@@ -279,6 +279,7 @@ defmodule PhoenixKitStaff.Web.PersonMediaComponent do
         show={@show_picker}
         mode={:multiple}
         file_type_filter={if @kind == :images, do: :image, else: :all}
+        browse={false}
         selected_uuids={[]}
         scope_folder_id={@folder_uuid}
         phoenix_kit_current_user={@phoenix_kit_current_user}
