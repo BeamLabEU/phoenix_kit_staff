@@ -1,7 +1,7 @@
 defmodule PhoenixKitStaff.MixProject do
   use Mix.Project
 
-  @version "0.5.0"
+  @version "0.6.0"
   @source_url "https://github.com/BeamLabEU/phoenix_kit_staff"
 
   def project do
@@ -84,7 +84,7 @@ defmodule PhoenixKitStaff.MixProject do
 
   defp deps do
     [
-      pk_dep(:phoenix_kit, "~> 1.7 and >= 1.7.132"),
+      pk_dep(:phoenix_kit, "~> 1.7 and >= 1.7.159"),
       # Hard dep: PersonShowLive embeds the comment thread (Comments tab) and
       # `use PhoenixKitComments.Embed` for the composer's Leaf-event forwarding,
       # both compile-time. `~> 0.2` — Embed lives in the 0.2.x line.

@@ -4,6 +4,74 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.0] - 2026-06-18
+
+Post-0.5.0 person-profile features — a full **employment history**, person
+**media** (Files / Images tabs + avatars), a read-only **Events** activity
+feed, and a reshape of skill proficiency into **multiple named, translatable
+level selectors** — plus a multilang-display restoration and soft-delete /
+async hardening. Merged as PR #12, with a follow-up skills-localization fix.
+
+**Requires `phoenix_kit ~> 1.7 and >= 1.7.159`** (raised from `>= 1.7.132`)
+for the `phoenix_kit_staff_employments` table (V136), the `Activity.list/1`
+`resource_uuid` filter (Events tab scoping), and the `MediaSelectorModal`
+`browse` / filter-aware accept (Files / Images tabs). The hard dep on
+`phoenix_kit_comments ~> 0.2` (person Comments tab) is unchanged.
+
+### Added
+- **Employment history (V136).** A per-person timeline of employment spans
+  (`PhoenixKitStaff.Schemas.Employment`, `phoenix_kit_staff_employments`),
+  surfaced as a dedicated **Employment tab** with add / edit / end / remove.
+  Each span records `employment_type`, a translatable `job_title`, the org
+  placement (`primary_department_uuid` + a `primary_team_uuid` snapshot), the
+  date range (`employment_end_date` `nil` = the open/current span),
+  `work_location`, and `notes`. A partial unique index enforces one open span
+  per person; `PhoenixKitStaff.Employments` is the sole write path and
+  denormalizes the current span onto `Person` via `sync_current/1`. New actions
+  `staff.person_employment_added/updated/ended/removed`.
+- **Files & Images tabs.** Folder-scoped person media via core
+  `PhoenixKit.Modules.Storage` (no module table): a per-person
+  `staff-person-<uuid>` root folder with a nested `Images` subfolder.
+  `PhoenixKitStaff.Attachments` + `Web.PersonMediaComponent`; per-tab type
+  enforcement (Images keep only images, Files only non-images), non-destructive
+  removal (soft-trash a sole owner, unlink a shared file). New actions
+  `staff.person_file_added/removed`, `staff.person_image_added/removed`.
+- **Avatars.** A circular profile photo in the show header (initials
+  fallback), backed by an image pointer in `Person.metadata["avatar_uuid"]`,
+  settable from the Images tab; new actions `staff.person_avatar_set/removed`.
+- **Events tab.** A read-only, paginated `PhoenixKit.Activity` feed scoped to
+  the person (`Web.PersonEventsComponent` + `ActivityLabels`), with an
+  "Open in Activity log" deep link.
+
+### Changed
+- **Skill levels → multiple named selectors.** A skill's `levels` reshapes from
+  a single flat option list (+ a skill-wide `allow_multiple_levels` flag) into
+  an ordered list of named **selectors**, each with its own translatable name,
+  single-vs-multiple toggle, and ordered translatable options (e.g. a "Driving
+  licence" skill can carry "Licence category" B/C/D alongside a "Proficiency"
+  ladder). JSONB-only — no migration; `Skill.level_groups/1` read-wraps any
+  legacy flat list into one default selector, so existing rows and assignments
+  keep working until re-saved. The skill form gains a staged selector editor
+  with per-language name inputs, per-selector single/multiple toggles, and
+  drag-and-drop reordering.
+- **Person edit form simplified.** The employment fields, department picker,
+  and `job_title` move to the Employment tab (the open span drives the
+  denormalized `Person` mirror); only `status` + the single team-membership
+  picker remain on the form.
+
+### Fixed
+- **Multilang display restored and completed.** The 0.5.0 reshape had silently
+  dropped the `localized_*/2` read path (per-language overrides went
+  write-only); restored `L10n.current_content_lang/0` and re-wired the
+  department / team / person read LVs + the employment component. Extended the
+  same wiring to the **Skills list and Skill show pages**, which still rendered
+  the primary `Skill.name` / `description` even though both are translatable —
+  so skill names now localize consistently with the person profile.
+- **Soft-delete create-path guards.** `Employments.create/2`,
+  `Attachments.set_avatar/2`, and the media-attach path now refuse a trashed
+  person, mirroring the existing skills / team-membership guards (update /
+  remove paths stay open for cleanup).
+
 ## [0.5.0] - 2026-06-15
 
 Structured skills taxonomy with per-skill dynamic proficiency levels,
