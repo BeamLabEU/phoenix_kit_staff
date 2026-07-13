@@ -16,6 +16,7 @@ defmodule PhoenixKitStaff.Schemas.Employment do
   """
 
   use Ecto.Schema
+  use PhoenixKit.SchemaPrefix
   use Gettext, backend: PhoenixKitWeb.Gettext
 
   import Ecto.Changeset

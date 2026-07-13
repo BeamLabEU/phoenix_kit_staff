@@ -41,6 +41,7 @@ defmodule PhoenixKitStaff.Schemas.Skill do
   """
 
   use Ecto.Schema
+  use PhoenixKit.SchemaPrefix
   use Gettext, backend: PhoenixKitWeb.Gettext
 
   import Ecto.Changeset

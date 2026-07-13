@@ -2,6 +2,7 @@ defmodule PhoenixKitStaff.Schemas.TeamMembership do
   @moduledoc "Join between `Team` and `Person` — represents a person's membership on a team."
 
   use Ecto.Schema
+  use PhoenixKit.SchemaPrefix
   use Gettext, backend: PhoenixKitWeb.Gettext
 
   import Ecto.Changeset
