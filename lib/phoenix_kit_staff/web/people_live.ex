@@ -4,6 +4,18 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
   use PhoenixKitWeb, :live_view
   use Gettext, backend: PhoenixKitStaff.Gettext
 
+  # Search and status live in the query string, so a filtered list is a real
+  # URL: shareable, reload-proof, and Back returns to the previous query
+  # instead of leaving the page. The status whitelist is the set the form
+  # offers and `Staff.scope_status/3` understands — note "trashed" is
+  # deliberately absent from `Person.statuses/0`, which covers the editable
+  # values only.
+  use PhoenixKitWeb.Live.UrlState,
+    params: [
+      search: [default: "", url_key: "q"],
+      status: [default: "", url_key: "status", in: ["", "active", "inactive", "trashed"]]
+    ]
+
   require Logger
 
   alias PhoenixKitStaff.{Activity, L10n, Paths, Staff}
@@ -15,17 +27,27 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
   def mount(_params, _session, socket) do
     if connected?(socket), do: StaffPubSub.subscribe(StaffPubSub.topic_people())
 
+    # :search and :status are assigned from the query string by UrlState before
+    # mount/3 runs — re-assigning them here would overwrite a shared link's
+    # state with the defaults.
     {:ok,
-     socket
-     |> assign(
+     assign(socket,
        page_title: Gettext.gettext(PhoenixKitWeb.Gettext, "Staff"),
-       search: "",
-       status: "",
        captured_uuids: [],
        show_bulk_delete_modal: false
-     )
-     |> load_people()}
+     )}
   end
+
+  # The list is loaded here rather than in mount/3: UrlState calls this after
+  # mount and on every change to the query string, so one code path serves the
+  # first render, a shared link, and the Back button alike.
+  @impl true
+  def handle_url_state(_state, socket), do: load_people(socket)
+
+  # Explicit rather than letting the macro inject its stub: the injected one
+  # carries no @impl, and this module annotates every callback.
+  @impl true
+  def handle_params(_params, _uri, socket), do: {:noreply, socket}
 
   @impl true
   # Every mutation here broadcasts on `topic_people` (delivered to self), so the
@@ -52,12 +74,17 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
   # ── Filtering ──────────────────────────────────────────────────────
 
   @impl true
-  def handle_event("filter", %{"search" => s, "status" => st}, socket) do
-    {:noreply, socket |> assign(search: s, status: st) |> load_people()}
+  # One form drives both controls, so the event alone does not say which of them
+  # moved — `_target` does. Typing collapses to a single history entry, or Back
+  # would walk the query backwards a few characters at a time; picking a status
+  # is a discrete action and earns a real entry.
+  def handle_event("filter", %{"search" => s, "status" => st} = params, socket) do
+    {:noreply,
+     push_url_state(socket, [search: s, status: st], replace: params["_target"] == ["search"])}
   end
 
   def handle_event("clear", _params, socket) do
-    {:noreply, socket |> assign(search: "", status: "") |> load_people()}
+    {:noreply, reset_url_state(socket)}
   end
 
   # ── Single-row soft-delete actions ─────────────────────────────────
@@ -288,7 +315,14 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
       </.admin_page_header>
 
       <div class="bg-base-200 rounded-lg p-3">
-        <.form for={%{}} phx-change="filter" class="flex flex-wrap gap-3 items-end">
+    <%!-- The id is required: `for={%{}}` supplies none of its own, and without
+             one LiveView silently disables form recovery for this form. --%>
+        <.form
+          for={%{}}
+          id="staff-people-filter-form"
+          phx-change="filter"
+          class="flex flex-wrap gap-3 items-end"
+        >
           <.input
             name="search"
             label={Gettext.gettext(PhoenixKitWeb.Gettext, "Search")}
