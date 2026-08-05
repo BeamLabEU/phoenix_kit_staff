@@ -1,7 +1,7 @@
 defmodule PhoenixKitStaff.MixProject do
   use Mix.Project
 
-  @version "0.6.0"
+  @version "0.7.0"
   @source_url "https://github.com/BeamLabEU/phoenix_kit_staff"
 
   def project do
@@ -84,7 +84,10 @@ defmodule PhoenixKitStaff.MixProject do
 
   defp deps do
     [
-      pk_dep(:phoenix_kit, "~> 1.7.189"),
+      # `~> 1.7.231` — `PeopleLive` compiles against `PhoenixKitWeb.Live.UrlState`,
+      # which core first shipped in 1.7.231. A looser pin lets Hex resolve a core
+      # without that module and the package fails to compile at the `use` site.
+      pk_dep(:phoenix_kit, "~> 1.7.231"),
       # Hard dep: PersonShowLive embeds the comment thread (Comments tab) and
       # `use PhoenixKitComments.Embed` for the composer's Leaf-event forwarding,
       # both compile-time. `~> 0.2` — Embed lives in the 0.2.x line.

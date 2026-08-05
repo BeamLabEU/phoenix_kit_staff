@@ -4,6 +4,46 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.0] - 2026-08-05
+
+The staff list's search and status filter now live in the **query string**, so
+a filtered list is a real URL — shareable, reload-proof, and Back returns to
+the previous query instead of leaving the page. Merged as PR #14, with a
+post-merge review that raised the core requirement and added the test coverage
+the PR shipped without.
+
+**Requires `phoenix_kit ~> 1.7.231`** (raised from `~> 1.7.189`) for
+`PhoenixKitWeb.Live.UrlState`, which `PeopleLive` now uses at compile time.
+The previous pin allowed cores back to 1.7.189, none of which carry that
+module — resolving one would have failed to compile the package. The hard dep
+on `phoenix_kit_comments ~> 0.2` is unchanged.
+
+### Added
+- **URL-backed staff list state.** `PhoenixKitStaff.Web.PeopleLive` adopts core's
+  `PhoenixKitWeb.Live.UrlState`: the search box publishes as `?q=` and the
+  status filter as `?status=`, both omitted when unset so an unfiltered list
+  stays at the bare path. Debounced typing collapses into a single history
+  entry (`replace: true`); picking a status pushes a real one. `?status=` is
+  whitelisted to the values the form offers and `Staff.scope_status/3`
+  understands (`""`, `active`, `inactive`, `trashed`), so a crafted link falls
+  back to the unfiltered list. Deep links to the Trash view now work.
+- **Tests for the above** — 9 database-free tests pinning the declared spec and
+  core's codec (including that the status whitelist stays in sync with
+  `Person.statuses/0` + `Person.soft_delete_status/0`), plus 5 LiveView tests
+  covering shared links, crafted input, and the patch written on filter/clear.
+
+### Changed
+- `PeopleLive` no longer queries in `mount/3`. The list load moved to
+  `handle_url_state/2`, so the first render, a shared link and a Back press all
+  take one path. The filter form gained the explicit `id` LiveView needs for
+  form recovery.
+- Raised the `phoenix_kit` requirement to `~> 1.7.231` (see above).
+
+### Fixed
+- Pruned eight stale `mix.lock` entries (`igniter` and its transitive closure —
+  an *optional* dep of core) left behind by the dependency refresh; they were
+  failing `mix precommit`'s `deps.unlock --check-unused` step.
+
 ## [0.6.0] - 2026-06-18
 
 Post-0.5.0 person-profile features — a full **employment history**, person

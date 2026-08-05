@@ -315,8 +315,8 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
       </.admin_page_header>
 
       <div class="bg-base-200 rounded-lg p-3">
-    <%!-- The id is required: `for={%{}}` supplies none of its own, and without
-             one LiveView silently disables form recovery for this form. --%>
+        <%!-- The id is required: `for={%{}}` supplies none of its own, and
+        without one LiveView silently disables form recovery for this form. --%>
         <.form
           for={%{}}
           id="staff-people-filter-form"

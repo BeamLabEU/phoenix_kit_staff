@@ -186,6 +186,66 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
     end
   end
 
+  # PR #14 moved the search + status filter into the query string. The point of
+  # doing so is that the URL alone reproduces the list, so these drive the two
+  # directions: a link decides what mounts, and a filter change rewrites the
+  # address bar.
+  describe "PeopleLive — URL-backed filter state" do
+    test "a shared ?q= link mounts an already-filtered list", %{conn: conn} do
+      tag = "Findable-#{System.unique_integer([:positive])}"
+      match = fixture_person(%{"name" => tag})
+      other = fixture_person()
+
+      {:ok, _view, html} = live(conn, "/en/admin/staff/people?q=#{tag}")
+
+      assert html =~ match.user.email
+      refute html =~ other.user.email
+    end
+
+    test "a shared ?status=trashed link mounts the trash view", %{conn: conn} do
+      trashed = fixture_person()
+      {:ok, _} = PhoenixKitStaff.Staff.trash_person(trashed)
+      active = fixture_person()
+
+      {:ok, _view, html} = live(conn, "/en/admin/staff/people?status=trashed")
+
+      assert html =~ trashed.user.email
+      refute html =~ active.user.email
+    end
+
+    # A crafted status is interpolated into `scope_status/3`'s query, so the
+    # whitelist has to drop it back to the unfiltered list rather than pass it
+    # through — and the LV must still mount.
+    test "a status outside the whitelist mounts unfiltered instead of failing", %{conn: conn} do
+      person = fixture_person()
+
+      query = URI.encode_query(%{"status" => "' OR 1=1 --"})
+      {:ok, view, html} = live(conn, "/en/admin/staff/people?#{query}")
+
+      assert Process.alive?(view.pid)
+      assert html =~ person.user.email
+    end
+
+    test "changing the status filter patches it into the URL", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people")
+
+      view
+      |> form("form[phx-change='filter']", %{search: "", status: "inactive"})
+      |> render_change()
+
+      assert_patch(view) =~ "status=inactive"
+    end
+
+    test "clear returns to the bare, unfiltered path", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people?q=ann&status=active")
+
+      view |> element("button[phx-click='clear']") |> render_click()
+
+      path = assert_patch(view)
+      assert path == "/en/admin/staff/people"
+    end
+  end
+
   describe "DepartmentShowLive" do
     test "mounts existing department", %{conn: conn} do
       dept = fixture_department(%{"name" => "Eng-#{System.unique_integer([:positive])}"})
