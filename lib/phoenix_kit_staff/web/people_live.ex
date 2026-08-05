@@ -315,7 +315,14 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
       </.admin_page_header>
 
       <div class="bg-base-200 rounded-lg p-3">
-        <.form for={%{}} phx-change="filter" class="flex flex-wrap gap-3 items-end">
+    <%!-- The id is required: `for={%{}}` supplies none of its own, and without
+             one LiveView silently disables form recovery for this form. --%>
+        <.form
+          for={%{}}
+          id="staff-people-filter-form"
+          phx-change="filter"
+          class="flex flex-wrap gap-3 items-end"
+        >
           <.input
             name="search"
             label={Gettext.gettext(PhoenixKitWeb.Gettext, "Search")}
