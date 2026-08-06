@@ -90,8 +90,10 @@ defmodule PhoenixKitStaff.MixProject do
       pk_dep(:phoenix_kit, "~> 1.7.231"),
       # Hard dep: PersonShowLive embeds the comment thread (Comments tab) and
       # `use PhoenixKitComments.Embed` for the composer's Leaf-event forwarding,
-      # both compile-time. `~> 0.2` — Embed lives in the 0.2.x line.
-      pk_dep(:phoenix_kit_comments, "~> 0.2"),
+      # both compile-time. `Embed` arrived *mid*-0.2.x — in 0.2.6 — so `~> 0.2`
+      # was the same defect the core pin above fixes: it admits 0.2.0–0.2.5,
+      # where the module doesn't exist and the `use` site fails to compile.
+      pk_dep(:phoenix_kit_comments, "~> 0.2.6"),
       {:phoenix_live_view, "~> 1.1"},
       {:ecto_sql, "~> 3.13"},
       # Own Gettext backend for staff-specific (domain) UI strings; generic
