@@ -1,7 +1,7 @@
 defmodule PhoenixKitStaff.MixProject do
   use Mix.Project
 
-  @version "0.7.0"
+  @version "0.8.0"
   @source_url "https://github.com/BeamLabEU/phoenix_kit_staff"
 
   def project do
@@ -87,13 +87,13 @@ defmodule PhoenixKitStaff.MixProject do
       # `~> 1.7.231` — `PeopleLive` compiles against `PhoenixKitWeb.Live.UrlState`,
       # which core first shipped in 1.7.231. A looser pin lets Hex resolve a core
       # without that module and the package fails to compile at the `use` site.
-      pk_dep(:phoenix_kit, "~> 1.7.231"),
+      pk_dep(:phoenix_kit, "~> 2.0"),
       # Hard dep: PersonShowLive embeds the comment thread (Comments tab) and
       # `use PhoenixKitComments.Embed` for the composer's Leaf-event forwarding,
       # both compile-time. `Embed` arrived *mid*-0.2.x — in 0.2.6 — so `~> 0.2`
       # was the same defect the core pin above fixes: it admits 0.2.0–0.2.5,
       # where the module doesn't exist and the `use` site fails to compile.
-      pk_dep(:phoenix_kit_comments, "~> 0.2.6"),
+      pk_dep(:phoenix_kit_comments, "~> 0.3"),
       {:phoenix_live_view, "~> 1.1"},
       {:ecto_sql, "~> 3.13"},
       # Own Gettext backend for staff-specific (domain) UI strings; generic

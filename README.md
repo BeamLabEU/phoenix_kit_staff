@@ -23,7 +23,7 @@ Add to your parent PhoenixKit app's `mix.exs`:
 ```elixir
 {:phoenix_kit_staff, path: "../phoenix_kit_staff"}
 # or, once published to Hex:
-{:phoenix_kit_staff, "~> 0.1"}
+{:phoenix_kit_staff, "~> 0.8"}
 ```
 
 Also add `:phoenix_kit_staff` to `extra_applications` so `PhoenixKit.ModuleDiscovery` finds it:
