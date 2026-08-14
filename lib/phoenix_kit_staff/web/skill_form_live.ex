@@ -386,9 +386,9 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
                are translatable, edited for the active language). --%>
           <div class="card-body pt-4 flex flex-col gap-4">
             <label class="label p-0">
-              <span class="label-text font-semibold">
+              <span class="fieldset-legend font-semibold">
                 {gettext("Level selectors")}
-                <span class="label-text-alt text-base-content/50 font-normal">{gettext("optional")}</span>
+                <span class="fieldset-label text-base-content/50 font-normal">{gettext("optional")}</span>
               </span>
             </label>
 

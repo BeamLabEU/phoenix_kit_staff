@@ -719,9 +719,9 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             <%= if @email_editable? do %>
               <div>
                 <label class="label mb-2">
-                  <span class="label-text font-semibold">{Gettext.gettext(PhoenixKitWeb.Gettext, "Email")}</span>
+                  <span class="fieldset-legend font-semibold">{Gettext.gettext(PhoenixKitWeb.Gettext, "Email")}</span>
                   <%= if @live_action == :edit do %>
-                    <span class="label-text-alt text-base-content/50 font-normal">
+                    <span class="fieldset-label text-base-content/50 font-normal">
                       {gettext("(editable — account not yet claimed)")}
                     </span>
                   <% end %>
@@ -774,8 +774,8 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             <% else %>
               <div>
                 <label class="label mb-2">
-                  <span class="label-text font-semibold">{Gettext.gettext(PhoenixKitWeb.Gettext, "User")}</span>
-                  <span class="label-text-alt text-base-content/50 font-normal">
+                  <span class="fieldset-legend font-semibold">{Gettext.gettext(PhoenixKitWeb.Gettext, "User")}</span>
+                  <span class="fieldset-label text-base-content/50 font-normal">
                     <.icon name="hero-lock-closed" class="w-3 h-3 inline" /> {gettext("locked")}
                   </span>
                 </label>
@@ -868,7 +868,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             <div phx-window-focus="refresh_skills" class="flex flex-col gap-3">
               <div :if={@all_skills == []}>
                 <label class="label mb-2">
-                  <span class="label-text font-semibold">{gettext("Add a skill")}</span>
+                  <span class="fieldset-legend font-semibold">{gettext("Add a skill")}</span>
                 </label>
                 <p class="text-sm text-base-content/60">
                   {gettext("No skills have been created yet.")}
@@ -952,12 +952,12 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
                 <% else %>
                   <div>
                     <label class="label mb-2">
-                      <span class="label-text font-semibold">{gettext("Add a skill")}</span>
+                      <span class="fieldset-legend font-semibold">{gettext("Add a skill")}</span>
                       <.link
                         href={Paths.skills()}
                         target="_blank"
                         rel="noopener"
-                        class="label-text-alt link link-primary"
+                        class="fieldset-label link link-primary"
                       >
                         {gettext("Add / edit skills")}
                       </.link>
