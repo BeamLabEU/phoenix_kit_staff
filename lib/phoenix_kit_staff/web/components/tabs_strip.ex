@@ -34,7 +34,7 @@ defmodule PhoenixKitStaff.Web.Components.TabsStrip do
 
   def tabs_strip(assigns) do
     ~H"""
-    <div role="tablist" class={["tabs tabs-boxed", @class]}>
+    <div role="tablist" class={["tabs tabs-box", @class]}>
       <button
         :for={{value, label, icon} <- @tabs}
         type="button"
