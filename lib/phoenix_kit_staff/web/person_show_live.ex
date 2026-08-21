@@ -18,8 +18,6 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   alias PhoenixKitStaff.Schemas.{Department, Person, Skill, Team}
   alias PhoenixKitStaff.Web.Helpers
 
-  import PhoenixKitStaff.Web.Components.TabsStrip
-
   @impl true
   def mount(%{"id" => id}, _session, socket) do
     # Subscribe BEFORE the DB read so a broadcast between fetch and
@@ -491,9 +489,13 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         <span>{gettext("This staff is in the trash. Restore to bring them back to the active roster.")}</span>
       </div>
 
-      <.tabs_strip
-        event="switch_tab"
-        active={@active_tab}
+      <%!-- Was a module-local TabsStrip that duplicated core's <.nav_tabs>
+           event mode, down to the phx-value-tab payload. Its own docstring
+           flagged it as "a candidate for promotion to core once a third
+           module needs it" — the third case already existed. --%>
+      <.nav_tabs
+        active_tab={@active_tab}
+        on_change="switch_tab"
         tabs={tab_list(@comments_enabled, @storage_enabled)}
       />
 
@@ -758,21 +760,24 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   # only when the Storage module is on; Comments only when its toggle is on.
   defp valid_tabs(comments_enabled?, storage_enabled?) do
     tab_list(comments_enabled?, storage_enabled?)
-    |> Enum.map(fn {value, _label, _icon} -> value end)
+    |> Enum.map(& &1.id)
   end
 
+  # Maps rather than {value, label, icon} tuples: core's <.nav_tabs> takes
+  # maps, and a positional tuple cannot grow a :badge or a link key without
+  # breaking every caller at once.
   defp tab_list(comments_enabled?, storage_enabled?) do
     [
-      {"overview", gettext("Overview"), "hero-identification"},
-      {"employment", gettext("Employment"), "hero-briefcase"}
+      %{id: "overview", label: gettext("Overview"), icon: "hero-identification"},
+      %{id: "employment", label: gettext("Employment"), icon: "hero-briefcase"}
     ]
     |> maybe_tabs(storage_enabled?, [
-      {"files", gettext("Files"), "hero-document"},
-      {"images", gettext("Images"), "hero-photo"}
+      %{id: "files", label: gettext("Files"), icon: "hero-document"},
+      %{id: "images", label: gettext("Images"), icon: "hero-photo"}
     ])
-    |> Kernel.++([{"events", gettext("Events"), "hero-clock"}])
+    |> Kernel.++([%{id: "events", label: gettext("Events"), icon: "hero-clock"}])
     |> maybe_tabs(comments_enabled?, [
-      {"comments", gettext("Comments"), "hero-chat-bubble-left-right"}
+      %{id: "comments", label: gettext("Comments"), icon: "hero-chat-bubble-left-right"}
     ])
   end
 
