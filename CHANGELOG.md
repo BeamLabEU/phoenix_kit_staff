@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.8.2 - 2026-08-21
+
+### Changed
+
+- **`PersonShowLive` uses core's `<.nav_tabs>`.** The local `TabsStrip`
+  (a copy of the component, including daisyUI 4's `tabs-boxed`) is
+  deleted. Tab definitions are maps rather than `{value, label, icon}`
+  tuples (#16).
+
 ## 0.8.1 - 2026-08-11
 
 ### Changed
