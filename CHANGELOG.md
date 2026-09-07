@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.8.3 - 2026-09-07
+
+### Fixed
+
+- Removed duplicate page headings across Staff admin pages (overview, people, departments, teams, skills, and every show/form page) — each repeated the page title already shown in the top breadcrumb bar.
+- Fixed department/skill/team show pages' breadcrumb title not re-deriving after a rename.
+
 ## 0.8.2 - 2026-08-21
 
 ### Changed
