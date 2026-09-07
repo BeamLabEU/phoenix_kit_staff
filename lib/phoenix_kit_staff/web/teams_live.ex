@@ -14,7 +14,18 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket), do: StaffPubSub.subscribe(StaffPubSub.topic_teams())
-    {:ok, assign(socket, page_title: gettext("Teams")) |> load_teams()}
+
+    {:ok,
+     assign(socket,
+       page_title: gettext("Teams"),
+       page_subtitle: gettext("Teams across all departments."),
+       page_action: %{
+         icon: "hero-plus",
+         label: gettext("New team"),
+         navigate: Paths.new_team()
+       }
+     )
+     |> load_teams()}
   end
 
   defp load_teams(socket), do: assign(socket, teams: Teams.list())
@@ -69,17 +80,6 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.admin_page_header
-        title={gettext("Teams")}
-        subtitle={gettext("Teams across all departments.")}
-      >
-        <:actions>
-          <.link navigate={Paths.new_team()} class="btn btn-primary btn-sm">
-            <.icon name="hero-plus" class="w-4 h-4" /> {gettext("New team")}
-          </.link>
-        </:actions>
-      </.admin_page_header>
-
       <%= if @teams == [] do %>
         <.empty_state icon="hero-user-group" title={gettext("No teams yet.")}>
           <:cta>

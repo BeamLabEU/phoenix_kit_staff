@@ -22,7 +22,12 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
     dept = %Department{}
 
     socket
-    |> assign(page_title: gettext("New department"), dept: dept, live_action: :new)
+    |> assign(
+      page_title: gettext("New department"),
+      page_subtitle: gettext("Create a new department."),
+      dept: dept,
+      live_action: :new
+    )
     |> assign_form(Departments.change(dept))
   end
 
@@ -37,6 +42,7 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
         socket
         |> assign(
           page_title: gettext("Edit %{name}", name: dept.name),
+          page_subtitle: gettext("Update department details."),
           dept: dept,
           live_action: :edit
         )
@@ -138,15 +144,6 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.admin_page_header
-        title={@page_title}
-        subtitle={
-          if @live_action == :new,
-            do: gettext("Create a new department."),
-            else: gettext("Update department details.")
-        }
-      />
-
       <div class="card bg-base-100 shadow max-w-3xl mx-auto w-full">
         <.multilang_tabs
           multilang_enabled={@multilang_enabled}

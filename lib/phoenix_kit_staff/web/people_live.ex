@@ -33,6 +33,12 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
     {:ok,
      assign(socket,
        page_title: Gettext.gettext(PhoenixKitWeb.Gettext, "Staff"),
+       page_subtitle: gettext("Everyone on staff, linked to their PhoenixKit user."),
+       page_action: %{
+         icon: "hero-plus",
+         label: gettext("New staff"),
+         navigate: Paths.new_person()
+       },
        captured_uuids: [],
        show_bulk_delete_modal: false
      )}
@@ -303,17 +309,6 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.admin_page_header
-        title={Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}
-        subtitle={gettext("Everyone on staff, linked to their PhoenixKit user.")}
-      >
-        <:actions>
-          <.link navigate={Paths.new_person()} class="btn btn-primary btn-sm">
-            <.icon name="hero-plus" class="w-4 h-4" /> {gettext("New staff")}
-          </.link>
-        </:actions>
-      </.admin_page_header>
-
       <div class="bg-base-200 rounded-lg p-3">
         <%!-- The id is required: `for={%{}}` supplies none of its own, and
         without one LiveView silently disables form recovery for this form. --%>

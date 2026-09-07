@@ -52,6 +52,7 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
     socket
     |> assign(
       page_title: gettext("New skill"),
+      page_subtitle: gettext("Create a new skill."),
       skill: skill,
       live_action: :new,
       staged_groups: []
@@ -70,6 +71,7 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
         socket
         |> assign(
           page_title: gettext("Edit %{name}", name: skill.name),
+          page_subtitle: gettext("Update skill details."),
           skill: skill,
           live_action: :edit,
           staged_groups: Skill.level_groups(skill)
@@ -327,15 +329,6 @@ defmodule PhoenixKitStaff.Web.SkillFormLive do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.admin_page_header
-        title={@page_title}
-        subtitle={
-          if @live_action == :new,
-            do: gettext("Create a new skill."),
-            else: gettext("Update skill details.")
-        }
-      />
-
       <div class="card bg-base-100 shadow max-w-3xl mx-auto w-full">
         <.form for={@form} id="skill-form" phx-change="validate" phx-submit="save" phx-debounce="300">
           <.multilang_tabs

@@ -14,7 +14,18 @@ defmodule PhoenixKitStaff.Web.SkillsLive do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket), do: StaffPubSub.subscribe(StaffPubSub.topic_skills())
-    {:ok, assign(socket, page_title: gettext("Skills")) |> load_skills()}
+
+    {:ok,
+     assign(socket,
+       page_title: gettext("Skills"),
+       page_subtitle: gettext("Skills you can assign to staff."),
+       page_action: %{
+         icon: "hero-plus",
+         label: gettext("New skill"),
+         navigate: Paths.new_skill()
+       }
+     )
+     |> load_skills()}
   end
 
   defp load_skills(socket) do
@@ -68,17 +79,6 @@ defmodule PhoenixKitStaff.Web.SkillsLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.admin_page_header
-        title={gettext("Skills")}
-        subtitle={gettext("Skills you can assign to staff.")}
-      >
-        <:actions>
-          <.link navigate={Paths.new_skill()} class="btn btn-primary btn-sm">
-            <.icon name="hero-plus" class="w-4 h-4" /> {gettext("New skill")}
-          </.link>
-        </:actions>
-      </.admin_page_header>
-
       <%= if @skills == [] do %>
         <.empty_state icon="hero-academic-cap" title={gettext("No skills yet.")}>
           <:cta>

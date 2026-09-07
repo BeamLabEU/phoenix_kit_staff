@@ -14,7 +14,18 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket), do: StaffPubSub.subscribe(StaffPubSub.topic_departments())
-    {:ok, assign(socket, page_title: gettext("Departments")) |> load_departments()}
+
+    {:ok,
+     assign(socket,
+       page_title: gettext("Departments"),
+       page_subtitle: gettext("Top-level organizational units."),
+       page_action: %{
+         icon: "hero-plus",
+         label: gettext("New department"),
+         navigate: Paths.new_department()
+       }
+     )
+     |> load_departments()}
   end
 
   defp load_departments(socket) do
@@ -71,17 +82,6 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.admin_page_header
-        title={gettext("Departments")}
-        subtitle={gettext("Top-level organizational units.")}
-      >
-        <:actions>
-          <.link navigate={Paths.new_department()} class="btn btn-primary btn-sm">
-            <.icon name="hero-plus" class="w-4 h-4" /> {gettext("New department")}
-          </.link>
-        </:actions>
-      </.admin_page_header>
-
       <%= if @departments == [] do %>
         <.empty_state icon="hero-building-office-2" title={gettext("No departments yet.")}>
           <:cta>

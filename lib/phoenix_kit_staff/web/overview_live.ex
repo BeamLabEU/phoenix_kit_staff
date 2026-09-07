@@ -18,7 +18,12 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
       StaffPubSub.subscribe(StaffPubSub.topic_people())
     end
 
-    {:ok, assign(socket, page_title: Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")) |> reload()}
+    {:ok,
+     assign(socket,
+       page_title: Gettext.gettext(PhoenixKitWeb.Gettext, "Staff"),
+       page_subtitle: gettext("Departments, teams, and the people in them.")
+     )
+     |> reload()}
   end
 
   defp reload(socket) do
@@ -57,10 +62,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-6">
-      <.admin_page_header
-        title={Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}
-        subtitle={gettext("Departments, teams, and the people in them.")}
-      >
+      <.admin_page_header>
         <:actions>
           <.link navigate={Paths.new_department()} class="btn btn-primary btn-sm">
             <.icon name="hero-plus" class="w-4 h-4" /> {gettext("Department")}

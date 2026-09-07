@@ -35,6 +35,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     socket
     |> assign(
       page_title: gettext("New staff"),
+      page_subtitle: gettext("Add a new person on staff."),
       person: person,
       live_action: :new,
       email: "",
@@ -74,6 +75,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
         socket
         |> assign(
           page_title: gettext("Edit staff"),
+          page_subtitle: gettext("Update staff profile."),
           person: person,
           live_action: :edit,
           email: (person.user && person.user.email) || "",
@@ -653,15 +655,6 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.admin_page_header
-        title={@page_title}
-        subtitle={
-          if @live_action == :new,
-            do: gettext("Add a new person on staff."),
-            else: gettext("Update staff profile.")
-        }
-      />
-
       <div class="card bg-base-100 shadow max-w-3xl mx-auto w-full">
         <.form
           for={@form}

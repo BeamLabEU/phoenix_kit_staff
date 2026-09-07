@@ -27,7 +27,12 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
     team = %Team{}
 
     socket
-    |> assign(page_title: gettext("New team"), team: team, live_action: :new)
+    |> assign(
+      page_title: gettext("New team"),
+      page_subtitle: gettext("Create a new team within a department."),
+      team: team,
+      live_action: :new
+    )
     |> assign_form(Teams.change(team))
   end
 
@@ -42,6 +47,7 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
         socket
         |> assign(
           page_title: gettext("Edit %{name}", name: team.name),
+          page_subtitle: gettext("Update team details."),
           team: team,
           live_action: :edit
         )
@@ -142,15 +148,6 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
   def render(assigns) do
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.admin_page_header
-        title={@page_title}
-        subtitle={
-          if @live_action == :new,
-            do: gettext("Create a new team within a department."),
-            else: gettext("Update team details.")
-        }
-      />
-
       <%= if @dept_options == [] do %>
         <div class="alert alert-warning max-w-3xl mx-auto w-full">
           <.icon name="hero-exclamation-triangle" class="w-5 h-5" />

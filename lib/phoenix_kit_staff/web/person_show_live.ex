@@ -421,9 +421,6 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
             </button>
           </div>
           <div>
-            <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-base-content">
-              {Person.display_name(@person)}
-            </h1>
             <p :if={@person.job_title} class="text-sm sm:text-base text-base-content/60 mt-0.5">
               {Person.localized_job_title(@person, @lang)}
             </p>

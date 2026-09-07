@@ -27,9 +27,30 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
       team ->
         {:ok,
          socket
-         |> assign(page_title: team.name, team: team)
+         |> assign(team_header_assigns(team))
+         |> assign(team: team)
          |> load_memberships()}
     end
+  end
+
+  # Team name/department/description are all translatable, so the header
+  # assigns are derived together and refreshed on every broadcast alongside
+  # `team` itself — otherwise a rename via PubSub would leave the breadcrumb
+  # title stale.
+  defp team_header_assigns(team) do
+    lang = L10n.current_content_lang()
+
+    [
+      page_title: Team.localized_name(team, lang),
+      page_subtitle: Team.localized_description(team, lang),
+      page_section: Department.localized_name(team.department, lang),
+      page_section_path: Paths.department(team.department.uuid),
+      page_action: %{
+        icon: "hero-pencil",
+        label: Gettext.gettext(PhoenixKitWeb.Gettext, "Edit"),
+        navigate: Paths.edit_team(team.uuid)
+      }
+    ]
   end
 
   @impl true
@@ -46,7 +67,11 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
         {:noreply, push_navigate(socket, to: Paths.teams())}
 
       team ->
-        {:noreply, socket |> assign(team: team) |> load_memberships()}
+        {:noreply,
+         socket
+         |> assign(team_header_assigns(team))
+         |> assign(team: team)
+         |> load_memberships()}
     end
   end
 
@@ -132,25 +157,8 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :lang, L10n.current_content_lang())
-
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.admin_page_header>
-        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-base-content">{Team.localized_name(@team, @lang)}</h1>
-        <p class="text-sm sm:text-base text-base-content/60 mt-0.5">
-          <.link navigate={Paths.department(@team.department.uuid)} class="link link-hover">
-            {Department.localized_name(@team.department, @lang)}
-          </.link>
-          <span :if={@team.description} class="ml-2">— {Team.localized_description(@team, @lang)}</span>
-        </p>
-        <:actions>
-          <.link navigate={Paths.edit_team(@team.uuid)} class="btn btn-ghost btn-sm">
-            <.icon name="hero-pencil" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
-          </.link>
-        </:actions>
-      </.admin_page_header>
-
       <div class="card bg-base-100 shadow">
         <div class="card-body">
           <h2 class="card-title text-lg">{gettext("Add staff")}</h2>

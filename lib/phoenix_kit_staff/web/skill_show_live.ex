@@ -31,8 +31,30 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
          |> push_navigate(to: Paths.skills())}
 
       skill ->
-        {:ok, socket |> assign(page_title: skill.name, skill: skill) |> load_assignments()}
+        {:ok,
+         socket
+         |> assign(skill_header_assigns(skill))
+         |> assign(skill: skill)
+         |> load_assignments()}
     end
+  end
+
+  # Skill name/description are translatable, so the header assigns are
+  # derived together and refreshed on every broadcast alongside `skill`
+  # itself — otherwise a rename via PubSub would leave the breadcrumb
+  # title stale.
+  defp skill_header_assigns(skill) do
+    lang = L10n.current_content_lang()
+
+    [
+      page_title: Skill.localized_name(skill, lang),
+      page_subtitle: Skill.localized_description(skill, lang),
+      page_action: %{
+        icon: "hero-pencil",
+        label: Gettext.gettext(PhoenixKitWeb.Gettext, "Edit"),
+        navigate: Paths.edit_skill(skill.uuid)
+      }
+    ]
   end
 
   @impl true
@@ -45,8 +67,15 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
 
   def handle_info({:staff, _event, _payload}, socket) do
     case Skills.get(socket.assigns.skill.uuid) do
-      nil -> {:noreply, push_navigate(socket, to: Paths.skills())}
-      skill -> {:noreply, socket |> assign(skill: skill) |> load_assignments()}
+      nil ->
+        {:noreply, push_navigate(socket, to: Paths.skills())}
+
+      skill ->
+        {:noreply,
+         socket
+         |> assign(skill_header_assigns(skill))
+         |> assign(skill: skill)
+         |> load_assignments()}
     end
   end
 
@@ -173,20 +202,6 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.admin_page_header>
-        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold text-base-content">
-          {Skill.localized_name(@skill, @lang)}
-        </h1>
-        <p :if={@skill.description} class="text-sm sm:text-base text-base-content/60 mt-0.5">
-          {Skill.localized_description(@skill, @lang)}
-        </p>
-        <:actions>
-          <.link navigate={Paths.edit_skill(@skill.uuid)} class="btn btn-ghost btn-sm">
-            <.icon name="hero-pencil" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
-          </.link>
-        </:actions>
-      </.admin_page_header>
-
       <div class="card bg-base-100 shadow">
         <div class="card-body">
           <h2 class="card-title text-lg">{gettext("Add staff")}</h2>

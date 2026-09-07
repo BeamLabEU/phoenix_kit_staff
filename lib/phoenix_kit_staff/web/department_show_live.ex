@@ -25,9 +25,17 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
          |> push_navigate(to: Paths.departments())}
 
       dept ->
+        lang = L10n.current_content_lang()
+
         {:ok,
          assign(socket,
-           page_title: dept.name,
+           page_title: Department.localized_name(dept, lang),
+           page_subtitle: Department.localized_description(dept, lang),
+           page_action: %{
+             icon: "hero-pencil",
+             label: Gettext.gettext(PhoenixKitWeb.Gettext, "Edit"),
+             navigate: Paths.edit_department(dept.uuid)
+           },
            dept: dept,
            teams: Teams.list(department_uuid: dept.uuid)
          )}
@@ -48,7 +56,15 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
         {:noreply, push_navigate(socket, to: Paths.departments())}
 
       dept ->
-        {:noreply, assign(socket, dept: dept, teams: Teams.list(department_uuid: dept.uuid))}
+        lang = L10n.current_content_lang()
+
+        {:noreply,
+         assign(socket,
+           page_title: Department.localized_name(dept, lang),
+           page_subtitle: Department.localized_description(dept, lang),
+           dept: dept,
+           teams: Teams.list(department_uuid: dept.uuid)
+         )}
     end
   end
 
@@ -63,17 +79,6 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.admin_page_header
-        title={Department.localized_name(@dept, @lang)}
-        subtitle={Department.localized_description(@dept, @lang)}
-      >
-        <:actions>
-          <.link navigate={Paths.edit_department(@dept.uuid)} class="btn btn-ghost btn-sm">
-            <.icon name="hero-pencil" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
-          </.link>
-        </:actions>
-      </.admin_page_header>
-
       <div class="card bg-base-100 shadow">
         <div class="card-body">
           <div class="flex items-center justify-between">
