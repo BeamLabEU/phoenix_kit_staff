@@ -13,6 +13,8 @@ defmodule PhoenixKitStaff do
   use PhoenixKit.Module
   use Gettext, backend: PhoenixKitStaff.Gettext
 
+  @version Mix.Project.config()[:version]
+
   # Tab labels are translated at render time via each `%Tab{}`'s
   # `gettext_backend`, so they aren't `gettext/1` call sites and wouldn't be
   # picked up by `mix gettext.extract`. List them through `gettext_noop/1`
@@ -70,7 +72,7 @@ defmodule PhoenixKitStaff do
   # ── Optional callbacks ────────────────────────────────────────────
 
   @impl PhoenixKit.Module
-  def version, do: "0.8.2"
+  def version, do: @version
 
   @impl PhoenixKit.Module
   def permission_metadata do
