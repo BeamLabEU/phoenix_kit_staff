@@ -46,6 +46,11 @@ PHOENIX_KIT_COMMENTS_PATH=../phoenix_kit_comments mix test
 
 `mix precommit` here also runs `deps.unlock --check-unused` and `mix hex.audit`. `mix test.setup` / `mix test.reset` create / drop the test database through the test Repo.
 
+Repo-local aliases:
+
+- `mix quality` — `format` + `credo --strict` + `dialyzer` (applies formatting).
+- `mix quality.ci` — `format --check-formatted` + `credo --strict` + `dialyzer`: it CHECKS formatting rather than applying it, so run `mix format` first.
+
 ## Conventions
 
 - Module key `"staff"`; tab ids are prefixed `:admin_staff_`; URL segments live under `/admin/staff/` (`departments`, `teams`, `people`, `skills`; a multi-word segment uses hyphens).
