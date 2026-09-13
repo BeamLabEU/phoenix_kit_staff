@@ -69,7 +69,8 @@ defmodule PhoenixKitStaff.LiveCase do
   end
 
   @doc """
-  Returns a real `PhoenixKit.Users.Auth.Scope` struct for testing.
+  Returns a real `PhoenixKit.Users.Auth.Scope` struct for testing, wrapping a
+  `PhoenixKit.Users.Auth.User` struct that exists only in memory (no DB row).
 
   Staff LVs read `socket.assigns[:phoenix_kit_current_user]` to thread
   the user UUID into activity logging. They don't call `Scope.admin?/1`
@@ -98,7 +99,10 @@ defmodule PhoenixKitStaff.LiveCase do
     permissions = Keyword.get(opts, :permissions, ["staff"])
     authenticated? = Keyword.get(opts, :authenticated?, true)
 
-    user = %{uuid: user_uuid, email: email}
+    # A real `%User{}` struct, not a bare map: core's `Roles.user_has_role_*?/1`
+    # (reached through the embedded comments component's admin check) matches
+    # on the struct and raises `FunctionClauseError` on a plain map.
+    user = %PhoenixKit.Users.Auth.User{uuid: user_uuid, email: email}
 
     %PhoenixKit.Users.Auth.Scope{
       user: user,

@@ -1,7 +1,7 @@
 defmodule PhoenixKitStaff.MixProject do
   use Mix.Project
 
-  @version "0.8.3"
+  @version "0.8.4"
   @source_url "https://github.com/BeamLabEU/phoenix_kit_staff"
 
   def project do
@@ -84,9 +84,12 @@ defmodule PhoenixKitStaff.MixProject do
 
   defp deps do
     [
-      # `~> 1.7.231` — `PeopleLive` compiles against `PhoenixKitWeb.Live.UrlState`,
-      # which core first shipped in 1.7.231. A looser pin lets Hex resolve a core
-      # without that module and the package fails to compile at the `use` site.
+      # `~> 2.0` — core 2.0 squashed the migration chain into the V135 baseline
+      # that ships the staff tables, and every compile-time dependency here
+      # (`PhoenixKitWeb.Live.UrlState`, `MultilangForm`, `nav_tabs`) predates it.
+      # Keep the pin two-segment: a three-segment `~> 2.x.y` excludes the next
+      # core minor and breaks hosts' `mix deps.get` (see
+      # test/core_pin_conformance_test.exs).
       pk_dep(:phoenix_kit, "~> 2.0"),
       # Hard dep: PersonShowLive embeds the comment thread (Comments tab) and
       # `use PhoenixKitComments.Embed` for the composer's Leaf-event forwarding,

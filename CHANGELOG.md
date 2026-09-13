@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.8.4 - 2026-09-13
+
+### Fixed
+
+- The 0.8.3 header rewrite pushed every page's title/subtitle/section/action into layout assigns core's admin layout renders in its breadcrumb bar, but the test layout never rendered them — 22 LiveView tests were asserting on text the page no longer emitted anywhere the test harness could see, and had been failing since 0.8.3 shipped. The test layout now renders stand-ins for those assigns.
+- The `phoenix_kit_comments` 0.4.x admin check pattern-matches on a real `PhoenixKit.Users.Auth.User` struct; the test suite's fake scope wrapped a bare map, crashing the Comments tab test with a `FunctionClauseError`. The fake scope now wraps a real (in-memory) `User` struct.
+- `test/test_helper.exs`'s Postgres-preflight fallback messages had `The reason is printed above. && mix test.setup` mashed onto the previous line with no line break; each path now prints a coherent message, and the header comment matches the current V135/V136 migration baseline instead of the pre-squash V40/V90/V100 chain.
+- `mix.exs`'s core-pin comment still explained a `~> 1.7.231` floor that moved to `~> 2.0` in 0.8.0.
+- `OverviewLive`'s birthday test accepted the page's ever-present subtitle text as a pass, so it never actually exercised the upcoming-birthdays branch; it now asserts the section's own heading.
+
 ## 0.8.3 - 2026-09-07
 
 ### Fixed

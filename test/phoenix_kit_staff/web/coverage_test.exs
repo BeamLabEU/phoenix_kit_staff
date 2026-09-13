@@ -378,9 +378,10 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
 
       {:ok, _view, html} = live(conn, "/en/admin/staff/")
 
-      # Birthday section labels exist on the page; pin the surrounding header.
-      assert html =~ "Birthday" or html =~ "🎂" or
-               html =~ "Departments, teams, and the people in them"
+      # The section only renders when `upcoming_birthdays/1` returns rows, so
+      # its heading is the assertion — not the page subtitle, which is always
+      # there and would make this pass with no birthdays at all.
+      assert html =~ "Upcoming birthdays"
     end
 
     test "PubSub broadcast triggers reload (handle_info {:staff, _, _} branch)", %{conn: conn} do

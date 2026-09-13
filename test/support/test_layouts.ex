@@ -8,6 +8,10 @@ defmodule PhoenixKitStaff.Test.Layouts do
   via `render(view) =~ "Saved."` after click events. Without these,
   Phoenix.Flash.get/2 returns the message but it never reaches the
   rendered HTML, and tests fall back to "process alive" tautologies.
+
+  It also renders the `page_title` / `page_subtitle` / `page_section` /
+  `page_action` assigns that core's admin layout shows in its breadcrumb
+  bar, because the Staff LiveViews no longer render their own headers.
   """
 
   use Phoenix.Component
@@ -45,6 +49,21 @@ defmodule PhoenixKitStaff.Test.Layouts do
         {msg}
       </div>
     </div>
+    <%!-- Stand-in for core's admin breadcrumb bar. Since 0.8.3 every Staff
+         page pushes its heading into `page_title` / `page_subtitle` /
+         `page_section` / `page_action` instead of rendering an in-body
+         header (see `LayoutWrapper` in core), so the test harness has to
+         render those assigns somewhere for `html =~` / `has_element?`
+         assertions to see them. `assigns[:…]` because a page that sets
+         none of them must still render. --%>
+    <div :if={assigns[:page_title]} id="test-page-title">{@page_title}</div>
+    <div :if={assigns[:page_subtitle]} id="test-page-subtitle">{@page_subtitle}</div>
+    <a :if={assigns[:page_section]} id="test-page-section" href={assigns[:page_section_path]}>
+      {@page_section}
+    </a>
+    <a :if={assigns[:page_action]} id="test-page-action" href={@page_action[:navigate]}>
+      {@page_action[:label]}
+    </a>
     {@inner_content}
     """
   end

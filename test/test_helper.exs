@@ -7,11 +7,11 @@
 #
 # First-time setup:
 #
-#   createdb phoenix_kit_staff_test
+#   mix test.setup          # or: createdb phoenix_kit_staff_test
 #
 # After that, `mix test` boots the repo, runs core's versioned migrations
-# via `PhoenixKit.Migration.ensure_current/2` (V40 extensions +
-# uuid_generate_v7, V03 settings, V90 activities, V100 staff tables),
+# via `PhoenixKit.Migration.ensure_current/2` (the V135 baseline carries the
+# staff tables; V136 adds employments; later versions apply on every boot),
 # and lets the Ecto sandbox handle isolation. No module-owned DDL.
 
 # Elixir 1.19's `mix test` no longer auto-loads modules from
@@ -53,7 +53,7 @@ db_check =
     # could reach it over TCP. When it could not, the answer arrived minutes
     # later as a pool checkout timeout that reads like a flaky test.
     case PhoenixKit.TestSupport.PostgresPreflight.check(
-           Application.get_env(:phoenix_kit_staff, PhoenixKitStaff.Test.Repo, [])
+           Application.get_env(:phoenix_kit_staff, TestRepo, [])
          ) do
       :ok ->
         :exists
@@ -71,7 +71,7 @@ repo_available =
     IO.puts("""
 
       Cannot reach test database "#{db_name}" — integration tests excluded.
-       The reason is printed above. && mix test.setup
+      The reason is printed above. Once fixed, run: mix test.setup
     """)
 
     false
@@ -94,7 +94,8 @@ repo_available =
       e ->
         IO.puts("""
 
-          Could not connect to test database — integration tests excluded.          The reason is printed above. && mix test.setup
+          Could not connect to test database — integration tests excluded.
+          Run: createdb #{db_name} && mix test.setup
           Error: #{Exception.message(e)}
         """)
 
@@ -103,7 +104,8 @@ repo_available =
       :exit, reason ->
         IO.puts("""
 
-          Could not connect to test database — integration tests excluded.          The reason is printed above. && mix test.setup
+          Could not connect to test database — integration tests excluded.
+          Run: createdb #{db_name} && mix test.setup
           Error: #{inspect(reason)}
         """)
 
