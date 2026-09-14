@@ -20,6 +20,18 @@ defmodule PhoenixKitStaff.Attachments do
   them — mirroring `PhoenixKitCatalogue.Attachments`' write semantics
   (soft-trash a sole-owner file, unlink a shared one). It never hard-deletes
   a possibly-shared asset.
+
+  ## Parent folder
+
+  By default a person's folder is created at the storage root. A host can
+  group them:
+
+      config :phoenix_kit_staff, :attachments_parent_folder, {MyApp.Media, :parent_for}
+
+  called as `parent_for(:person, actor_uuid, subject)` (or `parent_for(:person, actor_uuid)`),
+  returning `{:ok, parent_folder_uuid}` or `nil` (root). Lookups, purge and the avatar
+  check search the parent first and the root second, so folders that predate the
+  setting are still found.
   """
 
   require Logger
@@ -49,13 +61,16 @@ defmodule PhoenixKitStaff.Attachments do
   nested `Images` subfolder) **without creating** it. Returns the uuid or
   `nil` (used on render so viewing a tab doesn't spawn empty folders).
   """
-  @spec folder_uuid(binary(), :files | :images) :: binary() | nil
-  def folder_uuid(person_uuid, :files),
-    do: uuid_of(get_folder(root_folder_name(person_uuid), nil))
+  @spec folder_uuid(binary(), :files | :images, binary() | nil) :: binary() | nil
+  def folder_uuid(person_uuid, kind, actor_uuid \\ nil)
 
-  def folder_uuid(person_uuid, :images) do
-    case get_folder(root_folder_name(person_uuid), nil) do
-      %Folder{uuid: root} -> uuid_of(get_folder(@images_folder_name, root))
+  def folder_uuid(person_uuid, :files, actor_uuid),
+    do:
+      uuid_of(get_folder(root_folder_name(person_uuid), parent_folder_uuid(:person, actor_uuid)))
+
+  def folder_uuid(person_uuid, :images, actor_uuid) do
+    case get_folder(root_folder_name(person_uuid), parent_folder_uuid(:person, actor_uuid)) do
+      %Folder{uuid: root} -> uuid_of(get_folder_under(@images_folder_name, root))
       _ -> nil
     end
   end
@@ -69,11 +84,15 @@ defmodule PhoenixKitStaff.Attachments do
   @spec ensure_folder(binary(), :files | :images, binary() | nil) ::
           {:ok, binary()} | {:error, term()}
   def ensure_folder(person_uuid, :files, actor_uuid) do
-    find_or_create(root_folder_name(person_uuid), nil, actor_uuid)
+    find_or_create(
+      root_folder_name(person_uuid),
+      parent_folder_uuid(:person, actor_uuid),
+      actor_uuid
+    )
   end
 
   def ensure_folder(person_uuid, :images, actor_uuid) do
-    with {:ok, root} <- find_or_create(root_folder_name(person_uuid), nil, actor_uuid) do
+    with {:ok, root} <- ensure_folder(person_uuid, :files, actor_uuid) do
       find_or_create(@images_folder_name, root, actor_uuid)
     end
   end
@@ -103,7 +122,45 @@ defmodule PhoenixKitStaff.Attachments do
       {:error, :folder_unavailable}
   end
 
-  defp get_folder(name, nil) do
+  @doc false
+  # Host-configured parent folder for `:person`; `nil` = storage root (default).
+  # Contract: `fun(:person, actor_uuid, subject)` (preferred) or `fun(:person, actor_uuid)`.
+  def parent_folder_uuid(kind, actor_uuid, subject \\ nil) do
+    case Application.get_env(:phoenix_kit_staff, :attachments_parent_folder) do
+      {mod, fun} when is_atom(mod) and is_atom(fun) ->
+        result =
+          cond do
+            Code.ensure_loaded?(mod) and function_exported?(mod, fun, 3) ->
+              apply(mod, fun, [kind, actor_uuid, subject])
+
+            Code.ensure_loaded?(mod) and function_exported?(mod, fun, 2) ->
+              apply(mod, fun, [kind, actor_uuid])
+
+            true ->
+              nil
+          end
+
+        case result do
+          {:ok, uuid} when is_binary(uuid) -> uuid
+          _ -> nil
+        end
+
+      _ ->
+        nil
+    end
+  rescue
+    error ->
+      Logger.warning("[Staff] parent folder hook failed for #{inspect(kind)}: #{inspect(error)}")
+      nil
+  end
+
+  # name under `parent_uuid` first, then at root (folders that predate the hook)
+  defp get_folder(name, nil), do: get_folder_under(name, nil)
+
+  defp get_folder(name, parent_uuid),
+    do: get_folder_under(name, parent_uuid) || get_folder_under(name, nil)
+
+  defp get_folder_under(name, nil) do
     from(f in Folder, where: f.name == ^name and is_nil(f.parent_uuid), limit: 1) |> repo().one()
   rescue
     error ->
@@ -111,7 +168,7 @@ defmodule PhoenixKitStaff.Attachments do
       nil
   end
 
-  defp get_folder(name, parent_uuid) do
+  defp get_folder_under(name, parent_uuid) do
     from(f in Folder, where: f.name == ^name and f.parent_uuid == ^parent_uuid, limit: 1)
     |> repo().one()
   rescue
@@ -275,7 +332,7 @@ defmodule PhoenixKitStaff.Attachments do
   """
   @spec purge_person_media(binary()) :: :ok
   def purge_person_media(person_uuid) do
-    case get_folder(root_folder_name(person_uuid), nil) do
+    case get_folder(root_folder_name(person_uuid), parent_folder_uuid(:person, nil)) do
       %Folder{} = folder ->
         Storage.delete_folder_completely(folder)
         :ok
