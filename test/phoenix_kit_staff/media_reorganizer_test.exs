@@ -24,6 +24,16 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
     def parent(_, _, _), do: nil
   end
 
+  defmodule RaisingHook do
+    def parent(:person, _actor, _subject), do: raise("boom")
+    def parent(_, _, _), do: nil
+  end
+
+  defmodule ErrorHook do
+    def parent(:person, _actor, _subject), do: {:error, :timeout}
+    def parent(_, _, _), do: nil
+  end
+
   setup do
     on_exit(fn -> Application.delete_env(:phoenix_kit_staff, :attachments_parent_folder) end)
     :ok
@@ -200,6 +210,60 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
     end
   end
 
+  describe "legacy folder relocated elsewhere" do
+    test "legacy folder live under a parent that isn't root or the resolved parent → reported :relocated, not adopted" do
+      person = fixture_person(%{"name" => "Relocated"})
+      {:ok, target} = Storage.create_folder(%{name: "Staff"})
+      {:ok, elsewhere} = Storage.create_folder(%{name: "Some other container"})
+
+      {:ok, folder} =
+        Storage.create_folder(%{name: "staff-person-#{person.uuid}", parent_uuid: elsewhere.uuid})
+
+      Process.put(:target_folder, target.uuid)
+      hook_on()
+
+      actions = MediaReorganizer.plan(nil, [])
+
+      refute Enum.any?(actions, &(&1.kind == :person and &1.op == :move))
+      relocated = Enum.find(actions, &(&1.kind == :relocated and &1.label == "Relocated"))
+      refute is_nil(relocated)
+      assert relocated.op == :report
+      assert relocated.folder.uuid == folder.uuid
+      # E6: staff's hook is actor-dependent — the report says so instead of
+      # implying the folder is unconditionally misplaced.
+      assert relocated.reason =~ "acting user"
+    end
+  end
+
+  describe "hook failure (R2)" do
+    test "hook raises → record skipped, one hook_error report with the count, never planned as root" do
+      person = fixture_person()
+      {:ok, _folder} = Storage.create_folder(%{name: "staff-person-#{person.uuid}"})
+
+      Application.put_env(:phoenix_kit_staff, :attachments_parent_folder, {RaisingHook, :parent})
+
+      actions = MediaReorganizer.plan(nil, [])
+
+      refute Enum.any?(actions, &(&1.kind == :person))
+      error = Enum.find(actions, &(&1.kind == :hook_error))
+      refute is_nil(error)
+      assert error.op == :report
+      assert error.reason =~ "1 record"
+    end
+
+    test "hook returns {:error, _} → same as raising, never treated as root" do
+      person = fixture_person()
+      {:ok, _folder} = Storage.create_folder(%{name: "staff-person-#{person.uuid}"})
+
+      Application.put_env(:phoenix_kit_staff, :attachments_parent_folder, {ErrorHook, :parent})
+
+      actions = MediaReorganizer.plan(nil, [])
+
+      refute Enum.any?(actions, &(&1.kind == :person and &1.op == :move))
+      assert Enum.any?(actions, &(&1.kind == :hook_error))
+    end
+  end
+
   describe "trashed people" do
     test "trashed person with a live folder → not planned" do
       person = fixture_person()
@@ -211,7 +275,7 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
     end
   end
 
-  describe "hook call discipline (X12)" do
+  describe "hook call discipline (X12/R8)" do
     test "a person with no candidate folder never triggers the parent hook" do
       _person = fixture_person()
       {:ok, target} = Storage.create_folder(%{name: "Staff"})
@@ -230,9 +294,33 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
       calls = Agent.get(CallCountingHook.Counter, & &1)
       Agent.stop(CallCountingHook.Counter)
 
-      # Only the single subject-less (X13) call, never one for the person
-      # who has no folder at all.
-      assert calls == [nil]
+      # No candidate at all → no hook call whatsoever: not for the person
+      # (no folder to move), and not a subject-less per-plan call either
+      # (R8 — that call was removed; see the orphan tests below for the
+      # resulting trade-off).
+      assert calls == []
+    end
+
+    test "one candidate → the hook is called exactly once, for that person" do
+      person = fixture_person()
+      {:ok, target} = Storage.create_folder(%{name: "Staff"})
+      {:ok, _folder} = Storage.create_folder(%{name: "staff-person-#{person.uuid}"})
+
+      Process.put(:target_folder, target.uuid)
+      {:ok, _} = Agent.start_link(fn -> [] end, name: CallCountingHook.Counter)
+
+      Application.put_env(
+        :phoenix_kit_staff,
+        :attachments_parent_folder,
+        {CallCountingHook, :parent}
+      )
+
+      MediaReorganizer.plan(nil, [])
+
+      calls = Agent.get(CallCountingHook.Counter, & &1)
+      Agent.stop(CallCountingHook.Counter)
+
+      assert calls == [person.uuid]
     end
   end
 
@@ -290,12 +378,20 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
       refute Enum.any?(actions, &(&1.kind == :orphan and &1.folder.uuid == folder.uuid))
     end
 
-    test "orphan folder found under a resolved parent too, not only at root" do
+    test "orphan folder found under a parent resolved via a live candidate, not only at root" do
       uuid = Ecto.UUID.generate()
       {:ok, target} = Storage.create_folder(%{name: "Staff"})
 
       {:ok, folder} =
         Storage.create_folder(%{name: "staff-person-#{uuid}", parent_uuid: target.uuid})
+
+      # A live person whose own folder already sits at `target` anchors the
+      # resolved-parent set — the orphan under the very same parent is then
+      # found too.
+      candidate = fixture_person()
+
+      {:ok, _candidate_folder} =
+        Storage.create_folder(%{name: "staff-person-#{candidate.uuid}", parent_uuid: target.uuid})
 
       Process.put(:target_folder, target.uuid)
       hook_on()
@@ -306,23 +402,21 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
       refute is_nil(action)
     end
 
-    test "orphan under the resolved parent is found even with zero live people (X13)" do
+    test "orphan under a parent no live candidate resolved to is not found (R8 — no subject-less hook call)" do
       uuid = Ecto.UUID.generate()
       {:ok, target} = Storage.create_folder(%{name: "Staff"})
 
       {:ok, folder} =
         Storage.create_folder(%{name: "staff-person-#{uuid}", parent_uuid: target.uuid})
 
-      # No live person fixture at all — the resolved parent can only come
-      # from the subject-less kind-level hook call, not from any
-      # candidate's `parent_uuid`.
+      # No live person fixture at all — with no candidate to resolve a
+      # parent from, the hook is never called (R8), `target` never becomes
+      # a resolved parent, and only root is checked for orphans.
       Process.put(:target_folder, target.uuid)
       hook_on()
 
       actions = MediaReorganizer.plan(nil, [])
-      action = Enum.find(actions, &(&1.kind == :orphan and &1.folder.uuid == folder.uuid))
-
-      refute is_nil(action)
+      refute Enum.any?(actions, &(&1.kind == :orphan and &1.folder.uuid == folder.uuid))
     end
 
     test "trashed folder is skipped, never reported as orphan" do
