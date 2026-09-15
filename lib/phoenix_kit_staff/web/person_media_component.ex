@@ -41,7 +41,10 @@ defmodule PhoenixKitStaff.Web.PersonMediaComponent do
     {:ok,
      socket
      |> assign_new(:show_picker, fn -> false end)
-     |> assign(:folder_uuid, Attachments.folder_uuid(socket.assigns.person.uuid, kind))
+     |> assign(
+       :folder_uuid,
+       Attachments.folder_uuid(socket.assigns.person.uuid, kind, Activity.actor_uuid(socket))
+     )
      |> assign(:avatar_uuid, Attachments.avatar_uuid(socket.assigns.person))
      |> reload()}
   end
