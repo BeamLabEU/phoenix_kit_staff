@@ -4,11 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## Unreleased
+## 0.8.5 - 2026-09-15
 
 ### Added
 
-- Attachment folders can be created under a host-configured parent folder (`:attachments_parent_folder`); lookups and purge are parent-aware.
+- Attachment folders can be created under a host-configured parent folder (`config :phoenix_kit_staff, :attachments_parent_folder, {Mod, :fun}`, called as `fun(:person, actor_uuid, person_uuid)` or `fun(:person, actor_uuid)`). Folders created at the root before the setting are still found and reused.
+
+### Fixed
+
+- Folder lookups no longer depend on the hook's answer. The Files/Images tabs resolved the folder without the actor while uploads created it with one, so a hook that varies by actor left uploaded media invisible after a reload, and a second admin got a twin folder. The person's root folder is now resolved by its person-unique name (configured parent, then root, then any parent).
+- Permanent person delete purges every `staff-person-<uuid>` folder wherever it sits, instead of only the one under the parent the hook returned for a `nil` actor.
+- The parent-folder hook now receives the person uuid as its subject (it was always `nil`) and a hook that exits falls back to the root like one that raises.
 
 ## 0.8.4 - 2026-09-13
 
