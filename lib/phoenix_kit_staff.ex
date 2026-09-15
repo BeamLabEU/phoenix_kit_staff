@@ -87,6 +87,13 @@ defmodule PhoenixKitStaff do
   @impl PhoenixKit.Module
   def css_sources, do: [:phoenix_kit_staff]
 
+  # PhoenixKit.Module.media_reorganizer/0 (core ≥ the release that ships
+  # Storage.Reorganizer). No `@impl` yet — today's hex core pin (~> 2.0)
+  # predates the callback; `ModuleRegistry.all_media_reorganizers/0` looks
+  # this function up by name, not by behaviour, so it is collected either
+  # way once core ships it.
+  def media_reorganizer, do: PhoenixKitStaff.MediaReorganizer
+
   @impl PhoenixKit.Module
   def admin_tabs do
     parent = [

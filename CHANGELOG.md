@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Added
+
+- `PhoenixKitStaff.MediaReorganizer`: plans legacy media-folder moves for
+  each person's root attachment folder from the `:attachments_parent_folder`
+  hook, plus a report per orphaned legacy folder whose person record is
+  missing or trashed. Staff has no folder-name hook or cached pointer, so a
+  plan never needs a pointer back-fill. Registered via
+  `PhoenixKitStaff.media_reorganizer/0` (no `@impl` yet — the core engine
+  that will consume it has not shipped).
+
 ## 0.8.5 - 2026-09-15
 
 ### Added
