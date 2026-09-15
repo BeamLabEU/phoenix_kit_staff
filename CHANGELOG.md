@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Added
+
+- Attachment folders can be created under a host-configured parent folder (`:attachments_parent_folder`); lookups and purge are parent-aware.
+
 ## 0.8.4 - 2026-09-13
 
 ### Fixed
