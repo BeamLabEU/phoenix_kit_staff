@@ -3,6 +3,7 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
 
   alias PhoenixKit.Modules.Storage
   alias PhoenixKitStaff.MediaReorganizer
+  alias PhoenixKitStaff.Schemas.Person
   alias PhoenixKitStaff.Staff
 
   defmodule Hook do
@@ -207,6 +208,39 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
       assert dup.op == :report
       assert dup.reason =~ at_root.uuid
       assert dup.reason =~ under_parent.uuid
+    end
+
+    test "legacy folder live in two places, neither root nor the resolved parent → one duplicate report, not silently dropped" do
+      person = fixture_person(%{"name" => "Scattered"})
+      {:ok, target} = Storage.create_folder(%{name: "Staff"})
+      {:ok, elsewhere1} = Storage.create_folder(%{name: "Somewhere else 1"})
+      {:ok, elsewhere2} = Storage.create_folder(%{name: "Somewhere else 2"})
+
+      {:ok, folder1} =
+        Storage.create_folder(%{
+          name: "staff-person-#{person.uuid}",
+          parent_uuid: elsewhere1.uuid
+        })
+
+      {:ok, folder2} =
+        Storage.create_folder(%{
+          name: "staff-person-#{person.uuid}",
+          parent_uuid: elsewhere2.uuid
+        })
+
+      Process.put(:target_folder, target.uuid)
+      hook_on()
+
+      actions = MediaReorganizer.plan(nil, [])
+
+      refute Enum.any?(actions, &(&1.kind == :person and &1.label == "Scattered"))
+      refute Enum.any?(actions, &(&1.kind == :relocated and &1.label == "Scattered"))
+
+      dup = Enum.find(actions, &(&1.kind == :duplicate and &1.label == "Scattered"))
+      refute is_nil(dup)
+      assert dup.op == :report
+      assert dup.reason =~ folder1.uuid
+      assert dup.reason =~ folder2.uuid
     end
   end
 
@@ -433,6 +467,36 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
 
       actions = MediaReorganizer.plan(nil, [])
       refute Enum.any?(actions, &(&1.kind == :orphan and &1.label == "staff-person-not-a-uuid"))
+    end
+  end
+
+  describe "deterministic order (R10)" do
+    test "person move actions ordered by inserted_at then uuid, not DB read order" do
+      person_a = fixture_person(%{"name" => "Alpha"})
+      person_b = fixture_person(%{"name" => "Beta"})
+
+      {:ok, target} = Storage.create_folder(%{name: "Staff"})
+      {:ok, _folder_a} = Storage.create_folder(%{name: "staff-person-#{person_a.uuid}"})
+      {:ok, _folder_b} = Storage.create_folder(%{name: "staff-person-#{person_b.uuid}"})
+
+      # person_b was inserted after person_a, but back-date it so a plan
+      # that merely read rows in table order would get the pair backwards
+      # — only an explicit ORDER BY inserted_at, uuid is correct here.
+      earlier =
+        DateTime.utc_now() |> DateTime.add(-3600, :second) |> DateTime.truncate(:second)
+
+      Repo.update_all(
+        from(p in Person, where: p.uuid == ^person_b.uuid),
+        set: [inserted_at: earlier]
+      )
+
+      Process.put(:target_folder, target.uuid)
+      hook_on()
+
+      actions = MediaReorganizer.plan(nil, [])
+      labels = actions |> Enum.filter(&(&1.kind == :person)) |> Enum.map(& &1.label)
+
+      assert labels == ["Beta", "Alpha"]
     end
   end
 

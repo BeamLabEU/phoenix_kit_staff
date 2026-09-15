@@ -84,7 +84,7 @@ defmodule PhoenixKitStaff.MediaReorganizer do
 
   defp resource_plan(actor_uuid) do
     if hook_configured?() do
-      build_resource_plan(live_people(), actor_uuid)
+      build_resource_plan(light_people(), actor_uuid)
     else
       {[], []}
     end
@@ -191,8 +191,10 @@ defmodule PhoenixKitStaff.MediaReorganizer do
   # moved to). A live match at both is ambiguous (X11). A candidate always
   # has at least one live match somewhere (that's what made it a
   # candidate in the first place) — when neither the resolved parent nor
-  # root has one, the folder is live elsewhere and reported `:relocated`,
-  # never adopted.
+  # root has one, a single live match elsewhere is reported `:relocated`,
+  # never adopted; two or more live matches elsewhere are unresolvable the
+  # same way root+parent is — one `:duplicate` naming every copy, not the
+  # first match with the rest silently dropped.
   defp resolve_entry(d, by_name) do
     matches = Map.get(by_name, d.name, [])
     under_parent = d.parent_uuid && Enum.find(matches, &(&1.parent_uuid == d.parent_uuid))
@@ -200,7 +202,7 @@ defmodule PhoenixKitStaff.MediaReorganizer do
 
     case {under_parent, at_root} do
       {nil, nil} ->
-        Map.merge(d, %{folder: nil, ambiguous: nil, relocated: List.first(matches)})
+        resolve_scattered_entry(d, matches)
 
       {f, nil} ->
         Map.merge(d, %{folder: f, ambiguous: nil, relocated: nil})
@@ -209,9 +211,15 @@ defmodule PhoenixKitStaff.MediaReorganizer do
         Map.merge(d, %{folder: f, ambiguous: nil, relocated: nil})
 
       {f1, f2} ->
-        Map.merge(d, %{folder: nil, ambiguous: {f1, f2}, relocated: nil})
+        Map.merge(d, %{folder: nil, ambiguous: [f1, f2], relocated: nil})
     end
   end
+
+  defp resolve_scattered_entry(d, [only]),
+    do: Map.merge(d, %{folder: nil, ambiguous: nil, relocated: only})
+
+  defp resolve_scattered_entry(d, matches),
+    do: Map.merge(d, %{folder: nil, ambiguous: matches, relocated: nil})
 
   # A `:move` whose folder already sits at `parent_uuid` under `name` is a
   # no-op — filtered here since this Source has no core `Action.noop?/1`
@@ -240,7 +248,9 @@ defmodule PhoenixKitStaff.MediaReorganizer do
   defp noop_move?(%Folder{parent_uuid: parent_uuid, name: name}, parent_uuid, name), do: true
   defp noop_move?(_folder, _parent_uuid, _name), do: false
 
-  defp build_duplicate_action(%{record: person, ambiguous: {f1, f2}}) do
+  defp build_duplicate_action(%{record: person, ambiguous: folders}) do
+    uuids = Enum.map_join(folders, ", ", & &1.uuid)
+
     %{
       source: "staff",
       kind: :duplicate,
@@ -248,7 +258,7 @@ defmodule PhoenixKitStaff.MediaReorganizer do
       op: :report,
       counts: nil,
       reason:
-        "legacy folder found live in two places (#{f1.uuid} and #{f2.uuid}) — pick one and remove the other"
+        "legacy folder found live in #{length(folders)} places (#{uuids}) — pick one and remove the others"
     }
   end
 
@@ -367,12 +377,15 @@ defmodule PhoenixKitStaff.MediaReorganizer do
 
   # One query for every candidate uuid — not per folder. Reads every status
   # (including "trashed") so a trashed person's folder can still be
-  # reported, and the missing case is distinguished by a plain miss.
+  # reported, and the missing case is distinguished by a plain miss. R9:
+  # only the columns an orphan report needs, same light select as the
+  # live-people lookup above.
   defp load_candidate_people(candidates) do
     uuids = candidates |> Enum.map(fn {_folder, uuid} -> uuid end) |> Enum.uniq()
 
     Person
     |> where([p], p.uuid in ^uuids)
+    |> select([p], struct(p, [:uuid, :name, :status, :inserted_at]))
     |> repo().all()
     |> Map.new(&{&1.uuid, &1})
   end
@@ -460,8 +473,15 @@ defmodule PhoenixKitStaff.MediaReorganizer do
     end)
   end
 
-  defp live_people do
-    Person |> where([p], p.status != "trashed") |> repo().all()
+  # R9/R10: only the columns a plan needs (never the full row, which would
+  # pull every translatable/jsonb field this schema carries), ordered by
+  # `inserted_at`/`uuid` — a deterministic, readable report order.
+  defp light_people do
+    Person
+    |> where([p], p.status != "trashed")
+    |> order_by([p], asc: p.inserted_at, asc: p.uuid)
+    |> select([p], struct(p, [:uuid, :name, :status, :inserted_at]))
+    |> repo().all()
   end
 
   defp repo, do: PhoenixKit.RepoHelper.repo()
