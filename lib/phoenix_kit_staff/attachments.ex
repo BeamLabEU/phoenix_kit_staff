@@ -144,10 +144,7 @@ defmodule PhoenixKitStaff.Attachments do
               nil
           end
 
-        case result do
-          {:ok, uuid} when is_binary(uuid) -> uuid
-          _ -> nil
-        end
+        normalize_parent(kind, result)
 
       _ ->
         nil
@@ -162,6 +159,27 @@ defmodule PhoenixKitStaff.Attachments do
       nil
   end
 
+  # Cast + downcase, the same normalisation `MediaReorganizer` applies to the
+  # hook's answer: an upper-cased uuid would otherwise miss `root_rank/2`'s
+  # parent match, and a non-uuid string would reach `Storage.create_folder/1`
+  # and fail every upload. Anything unusable falls back to root, like a hook
+  # that raised.
+  defp normalize_parent(kind, {:ok, uuid}) when is_binary(uuid) do
+    case Ecto.UUID.cast(uuid) do
+      {:ok, cast} ->
+        String.downcase(cast)
+
+      :error ->
+        Logger.warning(
+          "[Staff] parent folder hook returned a non-uuid for #{inspect(kind)}: #{inspect(uuid)}"
+        )
+
+        nil
+    end
+  end
+
+  defp normalize_parent(_kind, _result), do: nil
+
   defp get_root_folder(person_uuid, actor_uuid) do
     find_root_folder(
       root_folder_name(person_uuid),
@@ -173,9 +191,15 @@ defmodule PhoenixKitStaff.Attachments do
   # person's wherever it sits. Prefer the configured parent, then the root
   # (folders that predate the hook), then any other parent (the hook's answer
   # changed, e.g. it varies by actor) — oldest first within a rank, so the
-  # answer never depends on who is asking.
+  # answer never depends on who is asking. Live folders only: the
+  # `[:name, :parent_uuid]` unique index is partial (`trashed_at IS NULL`), so
+  # a trashed twin can sit next to the live folder (e.g. after a media
+  # reorganizer move) and, being older, would otherwise win the tie.
   defp find_root_folder(name, parent_uuid) do
-    from(f in Folder, where: f.name == ^name, order_by: [asc: f.uuid])
+    from(f in Folder,
+      where: f.name == ^name and is_nil(f.trashed_at),
+      order_by: [asc: f.uuid]
+    )
     |> repo().all()
     |> Enum.min_by(&root_rank(&1, parent_uuid), fn -> nil end)
   rescue
@@ -191,7 +215,10 @@ defmodule PhoenixKitStaff.Attachments do
   defp root_rank(%Folder{}, _), do: 2
 
   defp get_folder(name, parent_uuid) do
-    from(f in Folder, where: f.name == ^name and f.parent_uuid == ^parent_uuid, limit: 1)
+    from(f in Folder,
+      where: f.name == ^name and f.parent_uuid == ^parent_uuid and is_nil(f.trashed_at),
+      limit: 1
+    )
     |> repo().one()
   rescue
     error ->

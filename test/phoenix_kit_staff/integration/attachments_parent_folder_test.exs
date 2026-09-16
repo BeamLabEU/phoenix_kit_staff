@@ -124,6 +124,53 @@ defmodule PhoenixKitStaff.Integration.AttachmentsParentFolderTest do
     assert count_named(uuid) == 1
   end
 
+  test "a hook answer is cast and downcased; a non-uuid answer falls back to root", %{staff: s} do
+    uuid = Ecto.UUID.generate()
+
+    hook(fn :person, _actor, _subject -> {:ok, String.upcase(s.uuid)} end)
+    assert Attachments.parent_folder_uuid(:person, nil, uuid) == s.uuid
+
+    hook(fn :person, _actor, _subject -> {:ok, "not-a-uuid"} end)
+    assert Attachments.parent_folder_uuid(:person, nil, uuid) == nil
+    assert {:ok, root} = Attachments.ensure_folder(uuid, :files, nil)
+    assert Repo.get!(Folder, root).parent_uuid == nil
+  end
+
+  test "an upper-cased hook answer still prefers the folder under the parent over a root twin",
+       %{staff: s} do
+    uuid = Ecto.UUID.generate()
+    name = Attachments.root_folder_name(uuid)
+    {:ok, under} = Storage.create_folder(%{name: name, parent_uuid: s.uuid})
+    {:ok, _at_root} = Storage.create_folder(%{name: name})
+
+    hook(fn :person, _actor, _subject -> {:ok, String.upcase(s.uuid)} end)
+    assert Attachments.folder_uuid(uuid, :files) == under.uuid
+  end
+
+  test "a trashed folder is never resolved, even when it is the older twin", %{staff: s} do
+    hook_on()
+    uuid = Ecto.UUID.generate()
+    name = Attachments.root_folder_name(uuid)
+
+    {:ok, trashed} = Storage.create_folder(%{name: name, parent_uuid: s.uuid})
+    {:ok, trashed_images} = Storage.create_folder(%{name: "Images", parent_uuid: trashed.uuid})
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    for folder <- [trashed, trashed_images],
+        do: folder |> Ecto.Changeset.change(trashed_at: now) |> Repo.update!()
+
+    assert Attachments.folder_uuid(uuid, :files) == nil
+
+    # The partial unique index admits a live twin next to the trashed one.
+    {:ok, live} = Storage.create_folder(%{name: name, parent_uuid: s.uuid})
+    assert Attachments.folder_uuid(uuid, :files) == live.uuid
+    assert Attachments.folder_uuid(uuid, :images) == nil
+    live_uuid = live.uuid
+    assert {:ok, ^live_uuid} = Attachments.ensure_folder(uuid, :files, nil)
+    assert {:ok, images} = Attachments.ensure_folder(uuid, :images, nil)
+    refute images == trashed_images.uuid
+  end
+
   test "purge_person_media deletes a nested folder" do
     hook_on()
     uuid = Ecto.UUID.generate()

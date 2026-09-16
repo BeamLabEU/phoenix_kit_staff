@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.8.6 - 2026-09-16
+
+### Added
+
+- `PhoenixKitStaff.MediaReorganizer`, staff's plan source for core's media reorganizer (core 2.24+), registered via `media_reorganizer/0`. It plans moves of each person's `staff-person-<uuid>` folder under the `:attachments_parent_folder` hook's answer and reports duplicates, relocated copies, hook failures, root answers for parented folders, and orphaned folders of missing or trashed people. With no hook configured it only reports.
+
+### Fixed
+
+- Person folder lookups skip trashed folders. A trashed `staff-person-<uuid>` (or its `Images` subfolder) was still resolved, and as the older twin it won over a live folder beside it, so the Files/Images tabs showed the trashed folder and new uploads went into it.
+- The parent-folder hook's answer is cast and downcased. An upper-cased uuid no longer loses to a root twin, and a non-uuid answer falls back to the root with a warning instead of failing every first upload.
+
 ## 0.8.5 - 2026-09-15
 
 ### Added

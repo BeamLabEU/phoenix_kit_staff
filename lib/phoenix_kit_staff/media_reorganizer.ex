@@ -2,13 +2,12 @@ defmodule PhoenixKitStaff.MediaReorganizer do
   @moduledoc """
   Staff's media-reorganizer plan source.
 
-  Not compiled against a core `PhoenixKit.Modules.Storage.Reorganizer.Source`
-  behaviour — today's hex core (2.23.x) does not ship the engine yet. This
-  module declares no `@behaviour` and returns plain maps; see
+  Implements the contract of core's `PhoenixKit.Modules.Storage.Reorganizer.Source`
+  (shipped in core 2.24) without declaring `@behaviour`: the `:phoenix_kit`
+  pin stays `~> 2.0`, which still admits cores that predate the engine, and
+  an undefined behaviour would warn in those hosts. `plan/2` returns plain
+  maps, so nothing here depends on the engine at compile time; see
   `PhoenixKitStaff.media_reorganizer/0` for the registration comment.
-  Once core ships the engine, `plan/2`'s contract (`plan(actor_uuid, opts)
-  :: [map()]`) already matches `Source.plan/2` — the only follow-up is
-  adding `@behaviour`/`@impl`.
 
   Contract (design §9/§10/§11 of `2026-09-15-media-reorganizer-design.md`):
 
