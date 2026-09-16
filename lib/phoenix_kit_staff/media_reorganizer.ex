@@ -194,7 +194,10 @@ defmodule PhoenixKitStaff.MediaReorganizer do
     # current folder gets its own `:relocated` report — all of them, not
     # just the first — except a copy that is itself another record's
     # claimed (adopted) folder, which is never also reported `:relocated`.
-    stray_actions = stray_relocated_actions(with_folder ++ without_folder, claimed)
+    # U9: includes `ambiguous` too — a THIRD live copy beyond the two the
+    # duplicate report already names must still surface here, not be
+    # dropped.
+    stray_actions = stray_relocated_actions(with_folder ++ without_folder ++ ambiguous, claimed)
 
     all_actions =
       move_actions ++ dup_actions ++ stray_actions ++ hook_error_actions ++ hook_nil_actions
@@ -304,9 +307,15 @@ defmodule PhoenixKitStaff.MediaReorganizer do
     resolve_entry_result(d, matches, under_parent, at_root)
   end
 
-  defp resolve_entry_result(d, _matches, under_parent, at_root)
+  # U9: the ambiguous pair claims two folders, but any FURTHER live match
+  # (neither root nor the resolved parent) is a stray copy of its own —
+  # still reported `:relocated` (via `stray_relocated_actions/2` below),
+  # never silently dropped just because the duplicate report already named
+  # the other two.
+  defp resolve_entry_result(d, matches, under_parent, at_root)
        when not is_nil(under_parent) and not is_nil(at_root) do
-    Map.merge(d, %{folder: nil, ambiguous: [under_parent, at_root], stray_legacy: []})
+    stray = Enum.reject(matches, &(&1.uuid in [under_parent.uuid, at_root.uuid]))
+    Map.merge(d, %{folder: nil, ambiguous: [under_parent, at_root], stray_legacy: stray})
   end
 
   defp resolve_entry_result(d, matches, under_parent, nil) when not is_nil(under_parent) do

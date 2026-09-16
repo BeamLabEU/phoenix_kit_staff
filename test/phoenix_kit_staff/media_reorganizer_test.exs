@@ -261,6 +261,37 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
       assert dup.reason =~ folder1.uuid
       assert dup.reason =~ folder2.uuid
     end
+
+    test "legacy folder live at root, under the resolved parent, AND a third place → duplicate names the pair, third copy still reported relocated (U9)" do
+      person = fixture_person(%{"name" => "Triplicated"})
+      {:ok, target} = Storage.create_folder(%{name: "Staff"})
+      {:ok, elsewhere} = Storage.create_folder(%{name: "Some other container"})
+      {:ok, at_root} = Storage.create_folder(%{name: "staff-person-#{person.uuid}"})
+
+      {:ok, under_parent} =
+        Storage.create_folder(%{name: "staff-person-#{person.uuid}", parent_uuid: target.uuid})
+
+      {:ok, third} =
+        Storage.create_folder(%{name: "staff-person-#{person.uuid}", parent_uuid: elsewhere.uuid})
+
+      Process.put(:target_folder, target.uuid)
+      hook_on()
+
+      actions = MediaReorganizer.plan(nil, [])
+
+      refute Enum.any?(actions, &(&1.kind == :person and &1.label == "Triplicated"))
+
+      dup = Enum.find(actions, &(&1.kind == :duplicate and &1.label == "Triplicated"))
+      refute is_nil(dup)
+      assert dup.reason =~ at_root.uuid
+      assert dup.reason =~ under_parent.uuid
+      refute dup.reason =~ third.uuid
+
+      relocated = Enum.find(actions, &(&1.kind == :relocated and &1.label == "Triplicated"))
+      refute is_nil(relocated)
+      assert relocated.folder.uuid == third.uuid
+      assert relocated.reason =~ "Some other container"
+    end
   end
 
   describe "legacy folder relocated elsewhere" do
