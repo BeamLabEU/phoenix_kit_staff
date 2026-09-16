@@ -15,8 +15,9 @@ defmodule PhoenixKitStaff.MediaReorganizer do
     * **No configured `:attachments_parent_folder` hook → `:report`-only.**
       Orphan reports are still produced (informational, no writes); no
       `:move`, no `:trash`, no pointer back-fill (staff writes no pointer
-      at all — see below). A `{mod, fun}` that IS configured but not
-      actually callable (typo, removed function) is a distinct failure
+      at all — see below). A configured value that isn't a `{mod, fun}`
+      tuple with an exported function — a typo, a removed function, or
+      plain garbage that isn't even a tuple — is a distinct failure
       (`kind: :hook_error`, "not callable") from "no hook configured at
       all" — it does not silently degrade to report-only without saying
       why nothing moved.
@@ -82,10 +83,11 @@ defmodule PhoenixKitStaff.MediaReorganizer do
   deterministic name, a `:report` (`kind: :duplicate`) per person whose
   legacy folder is live in both places at once, a `:report`
   (`kind: :relocated`) per live legacy-named copy other than a person's
-  adopted current folder, a `:report` (`kind: :hook_error`) counting every
+  adopted current folder, a `:report` (`kind: :hook_error`) naming every
   candidate the configured hook failed (or wasn't callable) for, a
-  `:report` (`kind: :hook_nil`) counting every candidate whose parented
-  folder was left in place because the hook answered root, and a `:report`
+  `:report` (`kind: :hook_nil`) naming every candidate whose parented
+  folder was left in place because the hook answered root (both cap the
+  named list at 10, then just count the rest), and a `:report`
   (`kind: :orphan`) per legacy folder whose record is missing or trashed.
 
   `opts` is accepted for parity with the `Source.plan/2` contract; staff has
@@ -98,8 +100,8 @@ defmodule PhoenixKitStaff.MediaReorganizer do
         {:ok, mod, fun} ->
           build_resource_plan(light_people(), actor_uuid, mod, fun)
 
-        {:not_callable, mod, fun} ->
-          {[not_callable_hook_action(mod, fun)], []}
+        {:not_callable, config} ->
+          {[not_callable_hook_action(config)], []}
 
         :none ->
           {[], []}
@@ -110,17 +112,21 @@ defmodule PhoenixKitStaff.MediaReorganizer do
 
   # ── People ───────────────────────────────────────────────────────
 
-  # T3: a configured `{mod, fun}` that is not actually callable (a typo, a
-  # removed function) is a distinct failure from "no hook configured at
-  # all" — it must not silently degrade to report-only (E1) without
-  # telling the owner why nothing moved.
+  # T3/U7/V3: a configured value that isn't a `{mod, fun}` tuple with an
+  # exported function — a typo, a removed function, or plain garbage (not
+  # even a tuple) — is one `:hook_error` "not callable" failure, distinct
+  # from "no hook configured at all" (`nil`, unconfigured). It must never
+  # silently degrade to report-only (E1) without saying why nothing moved.
   defp hook_status do
     case Application.get_env(:phoenix_kit_staff, :attachments_parent_folder) do
-      {mod, fun} when is_atom(mod) and is_atom(fun) ->
-        if callable?(mod, fun), do: {:ok, mod, fun}, else: {:not_callable, mod, fun}
-
-      _ ->
+      nil ->
         :none
+
+      {mod, fun} = config when is_atom(mod) and is_atom(fun) ->
+        if callable?(mod, fun), do: {:ok, mod, fun}, else: {:not_callable, config}
+
+      garbage ->
+        {:not_callable, garbage}
     end
   end
 
@@ -129,14 +135,14 @@ defmodule PhoenixKitStaff.MediaReorganizer do
       (function_exported?(mod, fun, 3) or function_exported?(mod, fun, 2))
   end
 
-  defp not_callable_hook_action(mod, fun) do
+  defp not_callable_hook_action(config) do
     %{
       source: "staff",
       kind: :hook_error,
       op: :report,
       label: "attachments parent hook",
       counts: nil,
-      reason: "configured parent hook {#{inspect(mod)}, #{inspect(fun)}} is not callable"
+      reason: "configured parent hook #{inspect(config)} is not callable / invalid config"
     }
   end
 
@@ -157,28 +163,30 @@ defmodule PhoenixKitStaff.MediaReorganizer do
 
     candidates = Enum.filter(prelim, &Map.has_key?(by_name, &1.name))
 
-    {resolved_candidates, hook_error_count} = resolve_candidates(candidates, mod, fun, actor_uuid)
+    {resolved_candidates, hook_error_records} =
+      resolve_candidates(candidates, mod, fun, actor_uuid)
+
+    # NEW-10/U4: orphan scope is every parent a SUCCESSFUL hook answer named
+    # for ANY candidate, regardless of that candidate's outcome — taken here,
+    # before `apply_nil_root_guard/1` below can overwrite an entry's
+    # `parent_uuid` with the parent a folder merely happens to live under
+    # (F1 adoption). That adopted parent was never returned by the hook, so
+    # it must never enter orphan scope either.
+    resolved_parents =
+      resolved_candidates |> Enum.map(& &1.parent_uuid) |> Enum.reject(&is_nil/1) |> Enum.uniq()
 
     entries =
       resolved_candidates
       |> Enum.map(&resolve_entry(&1, by_name))
       |> Enum.map(&apply_nil_root_guard/1)
 
-    # NEW-10: parents are taken from EVERY candidate the hook resolved a
-    # parent for, not only the ones that ended up with a chosen current
-    # folder — an orphan under a parent must still be found even when the
-    # only candidate resolving to it went `:relocated` (its own folder
-    # lives somewhere else entirely).
-    resolved_parents =
-      entries |> Enum.map(& &1.parent_uuid) |> Enum.reject(&is_nil/1) |> Enum.uniq()
-
     {ambiguous, normal} = Enum.split_with(entries, & &1.ambiguous)
     {with_folder, without_folder} = Enum.split_with(normal, & &1.folder)
 
     move_actions = with_folder |> Enum.map(&build_move_action/1) |> Enum.reject(&is_nil/1)
     dup_actions = Enum.map(ambiguous, &build_duplicate_action/1)
-    hook_error_actions = hook_error_action(hook_error_count)
-    hook_nil_actions = hook_nil_action(Enum.count(entries, & &1.hook_nil))
+    hook_error_actions = hook_error_action(hook_error_records)
+    hook_nil_actions = hook_nil_action(Enum.filter(entries, & &1.hook_nil))
 
     claimed = claimed_folder_uuids(with_folder, ambiguous)
 
@@ -186,8 +194,7 @@ defmodule PhoenixKitStaff.MediaReorganizer do
     # current folder gets its own `:relocated` report — all of them, not
     # just the first — except a copy that is itself another record's
     # claimed (adopted) folder, which is never also reported `:relocated`.
-    stray_actions =
-      Enum.flat_map(with_folder ++ without_folder, &stray_relocated_actions(&1, claimed))
+    stray_actions = stray_relocated_actions(with_folder ++ without_folder, claimed)
 
     all_actions =
       move_actions ++ dup_actions ++ stray_actions ++ hook_error_actions ++ hook_nil_actions
@@ -198,18 +205,18 @@ defmodule PhoenixKitStaff.MediaReorganizer do
   # R2: resolves the desired parent for every candidate via the host's
   # exact hook, distinguishing an explicit `nil` (root) from a hook that
   # raised/exited/returned anything else (failure — the candidate is
-  # dropped from `entries` and counted in `hook_error_count`, never
-  # treated as "root").
+  # dropped from `entries` and its record kept in `hook_error_records`
+  # (U8 — the report names who was skipped), never treated as "root").
   defp resolve_candidates(candidates, mod, fun, actor_uuid) do
-    {entries, hook_error_count} =
-      Enum.reduce(candidates, {[], 0}, fn c, {acc, errs} ->
+    {entries, errors} =
+      Enum.reduce(candidates, {[], []}, fn c, {acc, errs} ->
         case resolve_parent(mod, fun, actor_uuid, c.record.uuid) do
           {:ok, parent_uuid} -> {[Map.put(c, :parent_uuid, parent_uuid) | acc], errs}
-          :error -> {acc, errs + 1}
+          :error -> {acc, [c.record | errs]}
         end
       end)
 
-    {Enum.reverse(entries), hook_error_count}
+    {Enum.reverse(entries), Enum.reverse(errors)}
   end
 
   # T3: `build_resource_plan/4` is only reached once `hook_status/0` has
@@ -217,9 +224,9 @@ defmodule PhoenixKitStaff.MediaReorganizer do
   # module — there is no third "not callable" outcome left to handle here.
   defp resolve_parent(mod, fun, actor_uuid, person_uuid) do
     if function_exported?(mod, fun, 3) do
-      guarded_hook_call(fn -> apply(mod, fun, [:person, actor_uuid, person_uuid]) end)
+      guarded_hook_call(mod, fun, fn -> apply(mod, fun, [:person, actor_uuid, person_uuid]) end)
     else
-      guarded_hook_call(fn -> apply(mod, fun, [:person, actor_uuid]) end)
+      guarded_hook_call(mod, fun, fn -> apply(mod, fun, [:person, actor_uuid]) end)
     end
   end
 
@@ -227,36 +234,54 @@ defmodule PhoenixKitStaff.MediaReorganizer do
   # `{:ok, ""}` / `{:ok, "not-a-uuid"}` are hook FAILURES (`:error`), never
   # sent into a later `in ^uuids` query (which would raise a CastError and
   # take down the whole plan). F2: an explicit `{:ok, nil}` or bare `nil`
-  # means root. T4: an exception is logged (not just swallowed) with the
-  # module/function it came from.
-  defp guarded_hook_call(fun) do
+  # means root. U6: every failure is logged with `{mod, fun}` and the kind
+  # (`:person`) it came from — an exception, AND a bad return value alike
+  # (a silently-counted `{:error, _}` or `{:ok, "x"}` tells the owner
+  # nothing about which hook misbehaved).
+  defp guarded_hook_call(mod, fun_name, fun) do
     case fun.() do
       {:ok, nil} ->
         {:ok, nil}
 
       {:ok, uuid} ->
         case valid_uuid(uuid) do
-          nil -> :error
-          cast -> {:ok, cast}
+          nil ->
+            log_bad_hook_return(mod, fun_name, {:ok, uuid})
+            :error
+
+          cast ->
+            {:ok, cast}
         end
 
       nil ->
         {:ok, nil}
 
-      _other ->
+      other ->
+        log_bad_hook_return(mod, fun_name, other)
         :error
     end
   rescue
     error ->
       Logger.warning(
-        "Attachments parent hook raised: " <> Exception.format(:error, error, __STACKTRACE__)
+        "Attachments parent hook #{inspect(mod)}.#{fun_name} (person) raised: " <>
+          Exception.format(:error, error, __STACKTRACE__)
       )
 
       :error
   catch
-    kind, reason ->
-      Logger.warning("Attachments parent hook #{kind}: #{inspect(reason)}")
+    error_kind, reason ->
+      Logger.warning(
+        "Attachments parent hook #{inspect(mod)}.#{fun_name} (person) #{error_kind}: " <>
+          inspect(reason)
+      )
+
       :error
+  end
+
+  defp log_bad_hook_return(mod, fun_name, value) do
+    Logger.warning(
+      "Attachments parent hook #{inspect(mod)}.#{fun_name} (person) returned #{inspect(value)}"
+    )
   end
 
   # Resolves one person's current folder: the legacy name looked up under
@@ -376,18 +401,60 @@ defmodule PhoenixKitStaff.MediaReorganizer do
     MapSet.new(folder_uuids ++ ambiguous_uuids)
   end
 
-  defp stray_relocated_actions(entry, claimed) do
-    entry.stray_legacy
-    |> Enum.reject(&MapSet.member?(claimed, &1.uuid))
-    |> Enum.map(&build_relocated_action(%{record: entry.record, relocated: &1}))
+  # F5/T5 + U3: batched over the whole plan so naming a stray copy's actual
+  # (third-party) parent for the report never costs a query per copy.
+  defp stray_relocated_actions(entries, claimed) do
+    pairs =
+      Enum.flat_map(entries, fn entry ->
+        entry.stray_legacy
+        |> Enum.reject(&MapSet.member?(claimed, &1.uuid))
+        |> Enum.map(&{entry, &1})
+      end)
+
+    parent_names = load_stray_parent_names(pairs)
+
+    Enum.map(pairs, fn {entry, folder} ->
+      build_relocated_action(%{
+        record: entry.record,
+        relocated: folder,
+        target_parent_uuid: entry.parent_uuid,
+        parent_names: parent_names
+      })
+    end)
   end
+
+  # Only a stray parent that is neither root nor the record's own target
+  # needs a name — those two cases already have their own wording.
+  defp load_stray_parent_names(pairs) do
+    uuids =
+      pairs
+      |> Enum.map(fn {entry, folder} -> other_parent_uuid(folder, entry.parent_uuid) end)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+
+    case uuids do
+      [] ->
+        %{}
+
+      uuids ->
+        Folder
+        |> where([f], f.uuid in ^uuids)
+        |> select([f], {f.uuid, f.name})
+        |> repo().all()
+        |> Map.new()
+    end
+  end
+
+  defp other_parent_uuid(%Folder{parent_uuid: nil}, _target_parent_uuid), do: nil
+  defp other_parent_uuid(%Folder{parent_uuid: parent_uuid}, parent_uuid), do: nil
+  defp other_parent_uuid(%Folder{parent_uuid: parent_uuid}, _target_parent_uuid), do: parent_uuid
 
   # A legacy folder that is live but neither at root nor under the
   # resolved parent — the owner moved it elsewhere, or it predates a
   # parent-hook change. Left alone, never adopted or moved. E6: staff's
   # hook receives the acting user, so the report names that dependency
   # instead of implying the folder is unconditionally misplaced.
-  defp build_relocated_action(%{record: person, relocated: folder}) do
+  defp build_relocated_action(%{record: person, relocated: folder} = ctx) do
     %{
       source: "staff",
       kind: :relocated,
@@ -395,19 +462,52 @@ defmodule PhoenixKitStaff.MediaReorganizer do
       label: label_for(person),
       folder: folder,
       counts: nil,
-      reason: relocated_reason(folder)
+      reason:
+        relocated_reason(
+          folder,
+          Map.get(ctx, :target_parent_uuid),
+          Map.get(ctx, :parent_names, %{})
+        )
     }
   end
 
-  defp relocated_reason(folder) do
-    "legacy folder #{folder.uuid} is live under a different parent — left alone, never " <>
-      "adopted; whether it belongs there may depend on the acting user (the parent hook " <>
-      "receives the actor and can resolve differently for someone else)"
+  # U3: the reason names the copy's actual place — at the media root,
+  # already live as a twin under the very parent the record is headed to,
+  # or by name under a genuine third-party parent — instead of a blanket
+  # "under a different parent" that reads wrong for all three cases. Only
+  # the third branch is reachable for staff today: `resolve_entry/2` above
+  # always special-cases root and the resolved parent as the two possible
+  # "chosen" spots (a live match at either becomes the adopted folder, or
+  # — if both are live at once — the whole record is `:duplicate` instead
+  # of one adopted + a stray), so a genuine stray never lands at root or
+  # at the target parent. Kept for parity with the other reorganizer
+  # modules and in case that changes.
+  defp relocated_reason(%Folder{parent_uuid: nil} = folder, _target_parent_uuid, _names) do
+    "legacy folder #{folder.uuid} is live at the media root — left alone, never adopted; " <>
+      acting_user_note()
   end
 
-  defp hook_error_action(0), do: []
+  defp relocated_reason(%Folder{parent_uuid: parent_uuid} = folder, parent_uuid, _names) do
+    "legacy folder #{folder.uuid} is already live as a twin under the target parent — left " <>
+      "alone; an eventual move there will collide, landing as \"name (N)\"; " <>
+      acting_user_note()
+  end
 
-  defp hook_error_action(count) do
+  defp relocated_reason(%Folder{parent_uuid: parent_uuid} = folder, _target_parent_uuid, names) do
+    parent_label = Map.get(names, parent_uuid, parent_uuid)
+
+    "legacy folder #{folder.uuid} is live under #{parent_label} — left alone, never adopted; " <>
+      acting_user_note()
+  end
+
+  defp acting_user_note do
+    "whether it belongs there may depend on the acting user (the parent hook receives the " <>
+      "actor and can resolve differently for someone else)"
+  end
+
+  defp hook_error_action([]), do: []
+
+  defp hook_error_action(records) do
     [
       %{
         source: "staff",
@@ -416,16 +516,19 @@ defmodule PhoenixKitStaff.MediaReorganizer do
         label: "attachments parent hook",
         counts: nil,
         reason:
-          "#{count} record(s) skipped: the configured parent hook raised, exited, or " <>
-            "returned neither {:ok, uuid} nor nil"
+          "#{length(records)} record(s) skipped: the configured parent hook raised, exited, " <>
+            "or returned neither {:ok, uuid} nor nil (#{labels_summary(records)})"
       }
     ]
   end
 
-  # F1: a plain count, not one report per record — mirrors hook_error_action.
-  defp hook_nil_action(0), do: []
+  # F1/U8: one report for the whole plan, naming the records it applied to
+  # (up to 10, then a count of the rest) — not a bare counter.
+  defp hook_nil_action([]), do: []
 
-  defp hook_nil_action(count) do
+  defp hook_nil_action(entries) do
+    records = Enum.map(entries, & &1.record)
+
     [
       %{
         source: "staff",
@@ -434,10 +537,21 @@ defmodule PhoenixKitStaff.MediaReorganizer do
         label: "attachments parent hook",
         counts: nil,
         reason:
-          "#{count} record(s): the parent hook answered root for a folder living under a " <>
-            "parent — left in place"
+          "#{length(records)} record(s): the parent hook answered root for a folder living " <>
+            "under a parent — left in place (#{labels_summary(records)})"
       }
     ]
+  end
+
+  # U8: `:hook_error`/`:hook_nil` reports name up to 10 records so the owner
+  # knows where to look, then just a count of the rest — never a bare total.
+  defp labels_summary(records) do
+    {shown, rest} = records |> Enum.map(&label_for/1) |> Enum.split(10)
+
+    case rest do
+      [] -> Enum.join(shown, ", ")
+      more -> Enum.join(shown, ", ") <> ", … and #{length(more)} more"
+    end
   end
 
   defp label_for(%{name: name, uuid: uuid}) do

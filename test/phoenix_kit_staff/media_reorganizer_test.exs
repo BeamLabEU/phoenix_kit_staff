@@ -285,6 +285,8 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
       # E6: staff's hook is actor-dependent — the report says so instead of
       # implying the folder is unconditionally misplaced.
       assert relocated.reason =~ "acting user"
+      # U3: the reason names the actual place, not a blanket "different parent".
+      assert relocated.reason =~ "Some other container"
     end
   end
 
@@ -361,6 +363,45 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
         :attachments_parent_folder,
         {NoSuchHookModule, :parent}
       )
+
+      actions = MediaReorganizer.plan(nil, [])
+
+      refute Enum.any?(actions, &(&1.kind == :person))
+      error = Enum.find(actions, &(&1.kind == :hook_error))
+      refute is_nil(error)
+      assert error.reason =~ "not callable"
+    end
+
+    test "raising hook logs the module, function and kind (U6)" do
+      person = fixture_person()
+      {:ok, _folder} = Storage.create_folder(%{name: "staff-person-#{person.uuid}"})
+
+      Application.put_env(:phoenix_kit_staff, :attachments_parent_folder, {RaisingHook, :parent})
+
+      log = capture_log(fn -> MediaReorganizer.plan(nil, []) end)
+
+      assert log =~ inspect(RaisingHook)
+      assert log =~ "parent"
+      assert log =~ "person"
+    end
+
+    test "a bad hook return value (not {:ok, uuid} or nil) is logged, not silently counted (U6)" do
+      person = fixture_person()
+      {:ok, _folder} = Storage.create_folder(%{name: "staff-person-#{person.uuid}"})
+
+      Application.put_env(:phoenix_kit_staff, :attachments_parent_folder, {ErrorHook, :parent})
+
+      log = capture_log(fn -> MediaReorganizer.plan(nil, []) end)
+
+      assert log =~ inspect(ErrorHook)
+      assert log =~ "{:error, :timeout}"
+    end
+
+    test "an invalid (non-{mod, fun}) hook config is a hook_error, never silently no-hook (U7/V3)" do
+      person = fixture_person()
+      {:ok, _folder} = Storage.create_folder(%{name: "staff-person-#{person.uuid}"})
+
+      Application.put_env(:phoenix_kit_staff, :attachments_parent_folder, :not_a_tuple)
 
       actions = MediaReorganizer.plan(nil, [])
 
@@ -677,6 +718,38 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
       refute is_nil(orphan)
     end
 
+    test "orphan under a parent reached only via F1 adoption is not found — the hook never returned that parent (U4)" do
+      person = fixture_person(%{"name" => "RootedAgain"})
+      {:ok, old_parent} = Storage.create_folder(%{name: "Old container"})
+
+      {:ok, _folder} =
+        Storage.create_folder(%{
+          name: "staff-person-#{person.uuid}",
+          parent_uuid: old_parent.uuid
+        })
+
+      orphan_uuid = Ecto.UUID.generate()
+
+      {:ok, orphan_folder} =
+        Storage.create_folder(%{
+          name: "staff-person-#{orphan_uuid}",
+          parent_uuid: old_parent.uuid
+        })
+
+      # The hook answers root (nil) for the only candidate — F1 adopts its
+      # folder in place under `old_parent`, but the hook itself never
+      # returned `old_parent` as an answer, so it must not enter orphan
+      # scope: only root is scanned, the orphan under `old_parent` is not
+      # found.
+      Process.put(:target_folder, nil)
+      hook_on()
+
+      actions = MediaReorganizer.plan(nil, [])
+
+      assert Enum.any?(actions, &(&1.kind == :hook_nil))
+      refute Enum.any?(actions, &(&1.kind == :orphan and &1.folder.uuid == orphan_folder.uuid))
+    end
+
     test "trashed folder is skipped, never reported as orphan" do
       uuid = Ecto.UUID.generate()
       {:ok, folder} = Storage.create_folder(%{name: "staff-person-#{uuid}"})
@@ -691,6 +764,73 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
 
       actions = MediaReorganizer.plan(nil, [])
       refute Enum.any?(actions, &(&1.kind == :orphan and &1.label == "staff-person-not-a-uuid"))
+    end
+  end
+
+  describe "hook_error / hook_nil reports list record labels (U8)" do
+    test "hook_error report lists the failed records' labels" do
+      person_a = fixture_person(%{"name" => "Errored Alpha"})
+      person_b = fixture_person(%{"name" => "Errored Beta"})
+      {:ok, _a} = Storage.create_folder(%{name: "staff-person-#{person_a.uuid}"})
+      {:ok, _b} = Storage.create_folder(%{name: "staff-person-#{person_b.uuid}"})
+
+      Application.put_env(:phoenix_kit_staff, :attachments_parent_folder, {ErrorHook, :parent})
+
+      actions = MediaReorganizer.plan(nil, [])
+
+      error = Enum.find(actions, &(&1.kind == :hook_error))
+      refute is_nil(error)
+      assert error.reason =~ "2 record"
+      assert error.reason =~ "Errored Alpha"
+      assert error.reason =~ "Errored Beta"
+    end
+
+    test "hook_error report caps the label list at 10 and counts the rest" do
+      people =
+        for n <- 1..11 do
+          person = fixture_person(%{"name" => "Bulk #{n}"})
+          {:ok, _folder} = Storage.create_folder(%{name: "staff-person-#{person.uuid}"})
+          person
+        end
+
+      Application.put_env(:phoenix_kit_staff, :attachments_parent_folder, {ErrorHook, :parent})
+
+      actions = MediaReorganizer.plan(nil, [])
+
+      error = Enum.find(actions, &(&1.kind == :hook_error))
+      refute is_nil(error)
+      assert error.reason =~ "11 record"
+      assert error.reason =~ "… and 1 more"
+      assert length(people) == 11
+    end
+
+    test "hook_nil report lists the adopted records' labels" do
+      person_a = fixture_person(%{"name" => "NilAdopted A"})
+      person_b = fixture_person(%{"name" => "NilAdopted B"})
+      {:ok, old_parent} = Storage.create_folder(%{name: "Old container"})
+
+      {:ok, _a} =
+        Storage.create_folder(%{
+          name: "staff-person-#{person_a.uuid}",
+          parent_uuid: old_parent.uuid
+        })
+
+      {:ok, _b} =
+        Storage.create_folder(%{
+          name: "staff-person-#{person_b.uuid}",
+          parent_uuid: old_parent.uuid
+        })
+
+      Process.put(:target_folder, nil)
+      hook_on()
+
+      actions = MediaReorganizer.plan(nil, [])
+
+      hook_nil = Enum.find(actions, &(&1.kind == :hook_nil))
+      refute is_nil(hook_nil)
+      assert hook_nil.reason =~ "2 record"
+      assert hook_nil.reason =~ "NilAdopted A"
+      assert hook_nil.reason =~ "NilAdopted B"
     end
   end
 
