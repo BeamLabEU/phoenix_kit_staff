@@ -95,8 +95,8 @@ defmodule PhoenixKitStaff.MediaReorganizer do
   def plan(actor_uuid, _opts \\ []) do
     {resource_actions, resolved_parents} =
       case hook_status() do
-        :ok ->
-          build_resource_plan(light_people(), actor_uuid)
+        {:ok, mod, fun} ->
+          build_resource_plan(light_people(), actor_uuid, mod, fun)
 
         {:not_callable, mod, fun} ->
           {[not_callable_hook_action(mod, fun)], []}
@@ -117,7 +117,7 @@ defmodule PhoenixKitStaff.MediaReorganizer do
   defp hook_status do
     case Application.get_env(:phoenix_kit_staff, :attachments_parent_folder) do
       {mod, fun} when is_atom(mod) and is_atom(fun) ->
-        if callable?(mod, fun), do: :ok, else: {:not_callable, mod, fun}
+        if callable?(mod, fun), do: {:ok, mod, fun}, else: {:not_callable, mod, fun}
 
       _ ->
         :none
@@ -147,9 +147,7 @@ defmodule PhoenixKitStaff.MediaReorganizer do
   # subject-less call to resolve a parent for orphans in the absence of any
   # candidate (R8) — a host with zero candidate people is left untouched
   # beyond root-level orphan detection.
-  defp build_resource_plan(people, actor_uuid) do
-    {mod, fun} = Application.get_env(:phoenix_kit_staff, :attachments_parent_folder)
-
+  defp build_resource_plan(people, actor_uuid, mod, fun) do
     prelim =
       Enum.map(people, fn person ->
         %{record: person, name: Attachments.root_folder_name(person.uuid)}
@@ -214,7 +212,7 @@ defmodule PhoenixKitStaff.MediaReorganizer do
     {Enum.reverse(entries), hook_error_count}
   end
 
-  # T3: `build_resource_plan/2` is only reached once `hook_status/0` has
+  # T3: `build_resource_plan/4` is only reached once `hook_status/0` has
   # already confirmed one of the two arities is exported on a loaded
   # module — there is no third "not callable" outcome left to handle here.
   defp resolve_parent(mod, fun, actor_uuid, person_uuid) do

@@ -23,6 +23,13 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
     def parent(_, _, _), do: nil
   end
 
+  defmodule UppercaseHook do
+    def parent(:person, _actor, _subject),
+      do: {:ok, Process.get(:target_folder) |> String.upcase()}
+
+    def parent(_, _, _), do: nil
+  end
+
   defmodule TwoArityHook do
     def parent(:person, _actor), do: {:ok, Process.get(:target_folder)}
     def parent(_, _), do: nil
@@ -362,6 +369,27 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
       refute is_nil(error)
       assert error.reason =~ "not callable"
     end
+
+    test "hook parent answer is upper-cased but a valid uuid → cast+downcased, resolved normally (T1)" do
+      person = fixture_person()
+      {:ok, target} = Storage.create_folder(%{name: "Staff"})
+      {:ok, folder} = Storage.create_folder(%{name: "staff-person-#{person.uuid}"})
+
+      Process.put(:target_folder, target.uuid)
+
+      Application.put_env(
+        :phoenix_kit_staff,
+        :attachments_parent_folder,
+        {UppercaseHook, :parent}
+      )
+
+      actions = MediaReorganizer.plan(nil, [])
+      action = Enum.find(actions, &(&1.kind == :person and &1.folder.uuid == folder.uuid))
+
+      refute is_nil(action)
+      assert action.parent_uuid == target.uuid
+      refute Enum.any?(actions, &(&1.kind == :hook_error))
+    end
   end
 
   describe "nil hook answer never moves a parented folder (F1)" do
@@ -477,7 +505,11 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
       {:ok, target} = Storage.create_folder(%{name: "Staff"})
 
       Process.put(:target_folder, target.uuid)
-      {:ok, _} = Agent.start_link(fn -> [] end, name: CallCountingHook.Counter)
+
+      start_supervised!(%{
+        id: CallCountingHook.Counter,
+        start: {Agent, :start_link, [fn -> [] end, [name: CallCountingHook.Counter]]}
+      })
 
       Application.put_env(
         :phoenix_kit_staff,
@@ -488,7 +520,6 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
       MediaReorganizer.plan(nil, [])
 
       calls = Agent.get(CallCountingHook.Counter, & &1)
-      Agent.stop(CallCountingHook.Counter)
 
       # No candidate at all → no hook call whatsoever: not for the person
       # (no folder to move), and not a subject-less per-plan call either
@@ -503,7 +534,11 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
       {:ok, _folder} = Storage.create_folder(%{name: "staff-person-#{person.uuid}"})
 
       Process.put(:target_folder, target.uuid)
-      {:ok, _} = Agent.start_link(fn -> [] end, name: CallCountingHook.Counter)
+
+      start_supervised!(%{
+        id: CallCountingHook.Counter,
+        start: {Agent, :start_link, [fn -> [] end, [name: CallCountingHook.Counter]]}
+      })
 
       Application.put_env(
         :phoenix_kit_staff,
@@ -514,7 +549,6 @@ defmodule PhoenixKitStaff.MediaReorganizerTest do
       MediaReorganizer.plan(nil, [])
 
       calls = Agent.get(CallCountingHook.Counter, & &1)
-      Agent.stop(CallCountingHook.Counter)
 
       assert calls == [person.uuid]
     end
