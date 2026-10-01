@@ -814,7 +814,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
               options={[{Gettext.gettext(PhoenixKitWeb.Gettext, "Active"), "active"}, {Gettext.gettext(PhoenixKitWeb.Gettext, "Inactive"), "inactive"}]}
             />
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Organization")}</div>
+            <.section_header icon="hero-building-office-2" title={gettext("Organization")} />
 
             <%= if @team_options != [] do %>
               <.select
@@ -826,14 +826,14 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
               />
             <% end %>
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Contact")}</div>
+            <.section_header icon="hero-phone" title={gettext("Contact")} />
 
             <div class="grid grid-cols-2 gap-2">
               <.input field={@form[:work_phone]} label={gettext("Work phone")} placeholder={gettext("+372 ...")} />
               <.input field={@form[:personal_phone]} label={gettext("Personal phone")} placeholder={gettext("+372 ...")} />
             </div>
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Personal")}</div>
+            <.section_header icon="hero-cake" title={gettext("Personal")} />
 
             <.input field={@form[:date_of_birth]} label={gettext("Date of birth")} type="date" />
             <.input
@@ -843,7 +843,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
               placeholder={gettext("non-work email")}
             />
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Emergency contact")}</div>
+            <.section_header icon="hero-shield-exclamation" title={gettext("Emergency contact")} />
 
             <div class="grid grid-cols-2 gap-2">
               <.input field={@form[:emergency_contact_name]} label={Gettext.gettext(PhoenixKitWeb.Gettext, "Name")} placeholder={gettext("Contact's full name")} />
@@ -855,7 +855,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             </div>
             <.input field={@form[:emergency_contact_phone]} label={gettext("Phone")} placeholder={gettext("+372 ...")} />
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Skills")}</div>
+            <.section_header icon="hero-academic-cap" title={gettext("Skills")} />
 
             <%!-- Skills are staged on the form and written to the database
                  only when Save is pressed (below). The staged rows carry NO
