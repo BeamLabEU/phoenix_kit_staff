@@ -48,7 +48,8 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
         page_action: %{
           icon: "hero-pencil",
           label: Gettext.gettext(PhoenixKitWeb.Gettext, "Edit"),
-          navigate: Paths.edit_team(team.uuid)
+          navigate: Paths.edit_team(team.uuid),
+          show_label: true
         }
       ]
   end
@@ -178,7 +179,12 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
               {gettext("Everyone is already on this team (or there are no staff yet —")} <.link navigate={Paths.new_person()} class="link link-primary">{gettext("create one")}</.link>).
             </p>
           <% else %>
-            <.form for={@add_form} phx-submit="add_person" class="flex flex-wrap gap-2 items-end">
+            <.form
+              for={@add_form}
+              id={"team-add-person-#{@team.uuid}"}
+              phx-submit="add_person"
+              class="flex flex-wrap gap-2 items-end"
+            >
               <.select
                 field={@add_form[:staff_person_uuid]}
                 label={Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}

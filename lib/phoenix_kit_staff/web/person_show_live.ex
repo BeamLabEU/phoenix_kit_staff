@@ -448,36 +448,41 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         </div>
         <:actions>
           <%= if Person.trashed?(@person) do %>
-            <button
+            <.button
               type="button"
+              size="sm"
+              variant="success"
               phx-click="restore"
               phx-disable-with={gettext("Restoring…")}
-              class="btn btn-success btn-sm"
             >
               <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> {gettext("Restore")}
-            </button>
-            <button
+            </.button>
+            <.button
               type="button"
+              size="sm"
+              variant="error"
+              class="btn-outline"
               phx-click="permanent_delete"
               phx-disable-with={gettext("Deleting…")}
               data-confirm={gettext("Permanently delete this staff? This cannot be undone and will clear their project-assignment links.")}
-              class="btn btn-error btn-outline btn-sm"
             >
               <.icon name="hero-x-circle" class="w-4 h-4" /> {gettext("Delete permanently")}
-            </button>
+            </.button>
           <% else %>
-            <.link navigate={Paths.edit_person(@person.uuid)} class="btn btn-ghost btn-sm">
+            <.button size="sm" variant="ghost" navigate={Paths.edit_person(@person.uuid)}>
               <.icon name="hero-pencil" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
-            </.link>
-            <button
+            </.button>
+            <.button
               type="button"
+              size="sm"
+              variant="ghost"
+              class="text-error"
               phx-click="trash"
               phx-disable-with={gettext("Moving…")}
               data-confirm={gettext("Move this staff to the trash? The user account stays; restore anytime from the Trash filter.")}
-              class="btn btn-ghost btn-sm text-error"
             >
               <.icon name="hero-trash" class="w-4 h-4" /> {gettext("Move to trash")}
-            </button>
+            </.button>
           <% end %>
         </:actions>
       </.admin_page_header>
@@ -522,9 +527,11 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         <div class="card bg-base-100 shadow">
         <div class="card-body">
           <div class="flex flex-wrap items-center gap-2 text-xs text-base-content/60">
-            <span class={"badge badge-sm #{if @person.status == "active", do: "badge-success", else: "badge-ghost"}"}>
-              {Person.status_label(@person.status)}
-            </span>
+            <.status_badge
+              status={if @person.status == "trashed", do: "deleted", else: @person.status}
+              label={Person.status_label(@person.status)}
+              size={:sm}
+            />
             <%= if @person.employment_type do %>
               <span class="badge badge-sm badge-ghost">
                 {Person.employment_type_label(@person.employment_type)}
@@ -556,12 +563,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
              the hero badges above show the current type/department/location. --%>
 
         <%!-- Contact --%>
-        <div class="card bg-base-100 shadow">
-          <div class="card-body">
-            <h2 class="card-title text-lg">
-              <.icon name="hero-phone" class="w-5 h-5" /> {gettext("Contact")}
-            </h2>
-            <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-2">
+        <.form_section title={gettext("Contact")} icon="hero-phone">
+    <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-2">
               <dt class="text-base-content/60">{gettext("Work email")}</dt>
               <dd class="font-mono text-xs">{@person.user && @person.user.email || "—"}</dd>
               <%= if @person.personal_email do %>
@@ -581,32 +584,22 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
                 <dd><a href={"tel:#{@person.personal_phone}"} class="link link-hover">{@person.personal_phone}</a></dd>
               <% end %>
             </dl>
-          </div>
-        </div>
+    </.form_section>
 
         <%!-- Personal --%>
         <%= if @person.date_of_birth do %>
-          <div class="card bg-base-100 shadow">
-            <div class="card-body">
-              <h2 class="card-title text-lg">
-                <.icon name="hero-cake" class="w-5 h-5" /> {gettext("Personal")}
-              </h2>
-              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-2">
+          <.form_section title={gettext("Personal")} icon="hero-cake">
+    <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-2">
                 <dt class="text-base-content/60">{gettext("Birthday")}</dt>
                 <dd>{format_birthday(@person.date_of_birth)}</dd>
               </dl>
-            </div>
-          </div>
+    </.form_section>
         <% end %>
 
         <%!-- Emergency contact --%>
         <%= if has_any?(@person, [:emergency_contact_name, :emergency_contact_phone, :emergency_contact_relationship]) do %>
-          <div class="card bg-base-100 shadow">
-            <div class="card-body">
-              <h2 class="card-title text-lg">
-                <.icon name="hero-shield-exclamation" class="w-5 h-5 text-warning" /> {gettext("Emergency contact")}
-              </h2>
-              <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-2">
+          <.form_section title={gettext("Emergency contact")} icon="hero-shield-exclamation">
+    <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-2">
                 <%= if @person.emergency_contact_name do %>
                   <dt class="text-base-content/60">{Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}</dt>
                   <dd>{@person.emergency_contact_name}</dd>
@@ -624,17 +617,12 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
                   </dd>
                 <% end %>
               </dl>
-            </div>
-          </div>
+    </.form_section>
         <% end %>
       </div>
 
       <%!-- Teams --%>
-      <div class="card bg-base-100 shadow">
-        <div class="card-body">
-          <h2 class="card-title text-lg">
-            <.icon name="hero-user-group" class="w-5 h-5" /> {gettext("Teams")} ({length(@memberships)})
-          </h2>
+      <.form_section title={"#{gettext("Teams")} (#{length(@memberships)})"} icon="hero-user-group">
           <%= if @memberships == [] do %>
             <.empty_state
               icon="hero-user-group"
@@ -661,20 +649,18 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
               </tbody>
             </table>
           <% end %>
-        </div>
-      </div>
+      </.form_section>
 
       <%!-- Skills — read-only display; assignment is managed on the edit page. --%>
-      <div class="card bg-base-100 shadow">
-        <div class="card-body">
-          <div class="flex items-center justify-between">
-            <h2 class="card-title text-lg">
-              <.icon name="hero-academic-cap" class="w-5 h-5" /> {gettext("Skills")} ({length(@person_skills)})
-            </h2>
-            <.link navigate={Paths.edit_person(@person.uuid)} class="btn btn-ghost btn-xs">
-              <.icon name="hero-pencil" class="w-3.5 h-3.5" /> {gettext("Manage")}
-            </.link>
-          </div>
+      <.form_section
+        title={"#{gettext("Skills")} (#{length(@person_skills)})"}
+        icon="hero-academic-cap"
+      >
+        <:actions>
+          <.button size="xs" variant="ghost" navigate={Paths.edit_person(@person.uuid)}>
+            <.icon name="hero-pencil" class="w-3.5 h-3.5" /> {gettext("Manage")}
+          </.button>
+        </:actions>
 
           <%= if @person_skills == [] do %>
             <.empty_state icon="hero-academic-cap" title={gettext("No skills assigned yet.")} class="py-6">
@@ -698,8 +684,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
               </.link>
             </div>
           <% end %>
-        </div>
-      </div>
+      </.form_section>
 
         <%!-- Admin notes — legacy, read-only (the editable field moved
              to the Comments tab). Self-hides when the person has none. --%>

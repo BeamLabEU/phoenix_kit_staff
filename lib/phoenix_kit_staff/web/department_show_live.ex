@@ -47,7 +47,8 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
         page_action: %{
           icon: "hero-pencil",
           label: Gettext.gettext(PhoenixKitWeb.Gettext, "Edit"),
-          navigate: Paths.edit_department(dept.uuid)
+          navigate: Paths.edit_department(dept.uuid),
+          show_label: true
         }
       ]
   end

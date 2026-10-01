@@ -55,7 +55,8 @@ defmodule PhoenixKitStaff.Web.SkillShowLive do
         page_action: %{
           icon: "hero-pencil",
           label: Gettext.gettext(PhoenixKitWeb.Gettext, "Edit"),
-          navigate: Paths.edit_skill(skill.uuid)
+          navigate: Paths.edit_skill(skill.uuid),
+          show_label: true
         }
       ]
   end
