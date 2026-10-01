@@ -277,11 +277,12 @@ defmodule PhoenixKitStaff.Web.PersonMediaComponent do
             </button>
           </div>
 
-          <p :if={@files == []} class="text-sm text-base-content/60 py-2">
-            {if @kind == :images,
-              do: gettext("No images yet."),
-              else: gettext("No files yet.")}
-          </p>
+          <.empty_state
+            :if={@files == []}
+            icon={if @kind == :images, do: "hero-photo", else: "hero-document"}
+            title={if @kind == :images, do: gettext("No images yet."), else: gettext("No files yet.")}
+            class="py-6"
+          />
 
           <%!-- Images: thumbnail grid --%>
           <div

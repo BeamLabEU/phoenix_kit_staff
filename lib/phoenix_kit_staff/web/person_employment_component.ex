@@ -327,25 +327,18 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
 
             <.textarea field={@form[:notes]} label={gettext("Notes")} />
 
-            <div class="flex justify-end gap-2">
-              <button
-                type="button"
-                phx-target={@myself}
-                phx-click="cancel_edit"
-                class="btn btn-ghost btn-sm"
-              >
-                {Gettext.gettext(PhoenixKitWeb.Gettext, "Cancel")}
-              </button>
-              <button
-                type="submit"
-                phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Saving…")}
-                class="btn btn-primary btn-sm"
-              >
-                <%= if @editing_uuid,
+            <.form_actions
+              class="gap-2"
+              cancel_click="cancel_edit"
+              cancel_target={@myself}
+              submit_label={
+                if @editing_uuid,
                   do: Gettext.gettext(PhoenixKitWeb.Gettext, "Save"),
-                  else: Gettext.gettext(PhoenixKitWeb.Gettext, "Add") %>
-              </button>
-            </div>
+                  else: Gettext.gettext(PhoenixKitWeb.Gettext, "Add")
+              }
+              submitting_label={Gettext.gettext(PhoenixKitWeb.Gettext, "Saving…")}
+              submit_class="btn btn-primary btn-sm"
+            />
           </.form>
         </div>
       </div>
@@ -368,9 +361,12 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
             </button>
           </div>
 
-          <p :if={@employments == []} class="text-sm text-base-content/60 py-2">
-            {gettext("No employment recorded yet.")}
-          </p>
+          <.empty_state
+            :if={@employments == []}
+            icon="hero-briefcase"
+            title={gettext("No employment recorded yet.")}
+            class="py-6"
+          />
 
           <div :if={@employments != []} class="flex flex-col gap-2">
             <div
