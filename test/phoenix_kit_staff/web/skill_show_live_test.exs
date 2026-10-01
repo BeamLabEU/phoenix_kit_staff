@@ -43,7 +43,7 @@ defmodule PhoenixKitStaff.Web.SkillShowLiveTest do
     render_click(view, "toggle_add_level", %{"id" => ids["Expert"]})
 
     view
-    |> form("#skill-add-person-form", assign: %{staff_person_uuid: person.uuid})
+    |> form("form[id^=skill-add-person-]", assign: %{staff_person_uuid: person.uuid})
     |> render_submit()
 
     assert_activity_logged("staff.person_skill_added",

@@ -38,6 +38,12 @@ defmodule PhoenixKitStaff.Paths do
   @doc "New-team form."
   @spec new_team() :: String.t()
   def new_team, do: Routes.path("#{@base}/teams/new")
+
+  @doc "New-team form with `department_uuid` preselected."
+  @spec new_team(UUIDv7.t() | String.t()) :: String.t()
+  def new_team(department_uuid),
+    do: Routes.path("#{@base}/teams/new?" <> URI.encode_query(department: department_uuid))
+
   @doc "Show page for a single team."
   @spec team(UUIDv7.t() | String.t()) :: String.t()
   def team(id), do: Routes.path("#{@base}/teams/#{id}")

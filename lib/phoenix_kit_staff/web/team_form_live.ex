@@ -25,8 +25,15 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
     {:ok, socket}
   end
 
-  defp apply_action(socket, :new, _params) do
-    team = %Team{}
+  defp apply_action(socket, :new, params) do
+    # `?department=<uuid>` (the department page's "New team") preselects it;
+    # anything that is not one of the options is ignored.
+    preselected =
+      Enum.find_value(socket.assigns.dept_options, fn {_name, uuid} ->
+        if uuid == params["department"], do: uuid
+      end)
+
+    team = %Team{department_uuid: preselected}
 
     socket
     |> assign(Helpers.section_assigns())

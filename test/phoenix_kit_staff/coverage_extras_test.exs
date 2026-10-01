@@ -443,6 +443,18 @@ defmodule PhoenixKitStaff.CoverageExtrasTest do
       refute_activity_logged("staff.team_person_removed", resource_uuid: bogus)
     end
 
+    test "a team with nobody to add and nobody on it says there is no staff yet", %{
+      conn: conn
+    } do
+      team = fixture_team()
+
+      {:ok, _view, html} = live(conn, "/en/admin/staff/teams/#{team.uuid}")
+
+      assert html =~ "No staff yet."
+      assert html =~ "Create your first staff member"
+      refute html =~ "Everyone on staff is already on this team."
+    end
+
     test "renders 'Everyone is already on this team' when available_people is empty", %{
       conn: conn
     } do
@@ -452,7 +464,8 @@ defmodule PhoenixKitStaff.CoverageExtrasTest do
 
       {:ok, _view, html} = live(conn, "/en/admin/staff/teams/#{team.uuid}")
 
-      assert html =~ "Everyone is already on this team"
+      assert html =~ "Everyone on staff is already on this team."
+      refute html =~ "Create your first staff member"
     end
   end
 
