@@ -48,7 +48,8 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
         page_action: %{
           icon: "hero-pencil",
           label: Gettext.gettext(PhoenixKitWeb.Gettext, "Edit"),
-          navigate: Paths.edit_team(team.uuid)
+          navigate: Paths.edit_team(team.uuid),
+          show_label: true
         }
       ]
   end
@@ -170,32 +171,49 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
         </.link>
       </p>
 
-      <div class="card bg-base-100 shadow">
-        <div class="card-body">
-          <h2 class="card-title text-lg">{gettext("Add staff")}</h2>
-          <%= if @available_people == [] do %>
-            <p class="text-sm text-base-content/60">
-              {gettext("Everyone is already on this team (or there are no staff yet —")} <.link navigate={Paths.new_person()} class="link link-primary">{gettext("create one")}</.link>).
-            </p>
-          <% else %>
-            <.form for={@add_form} phx-submit="add_person" class="flex flex-wrap gap-2 items-end">
+      <.form_section title={gettext("Add staff")}>
+          <%!-- Nobody left to add: either the team already has everyone, or
+               there is nobody on staff at all (an empty team with no one
+               available to add). One sentence each, so each translates. --%>
+          <.empty_state
+            :if={@available_people == [] and @memberships != []}
+            icon="hero-check-circle"
+            title={gettext("Everyone on staff is already on this team.")}
+            class="py-4"
+          />
+          <.empty_state
+            :if={@available_people == [] and @memberships == []}
+            icon="hero-identification"
+            title={gettext("No staff yet.")}
+            class="py-4"
+          >
+            <:cta>
+              <.button size="sm" navigate={Paths.new_person()}>
+                {gettext("Create your first staff member")}
+              </.button>
+            </:cta>
+          </.empty_state>
+          <%= if @available_people != [] do %>
+            <.form
+              for={@add_form}
+              id={"team-add-person-#{@team.uuid}"}
+              phx-submit="add_person"
+              class="flex flex-wrap gap-2 items-end"
+            >
               <.select
                 field={@add_form[:staff_person_uuid]}
                 label={Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}
                 options={Enum.map(@available_people, &{person_label(&1), &1.uuid})}
                 prompt={gettext("Select staff")}
               />
-              <button type="submit" phx-disable-with={gettext("Adding…")} class="btn btn-primary btn-sm">
+              <.button type="submit" size="sm" phx-disable-with={gettext("Adding…")}>
                 <.icon name="hero-plus" class="w-4 h-4" /> {Gettext.gettext(PhoenixKitWeb.Gettext, "Add")}
-              </button>
+              </.button>
             </.form>
           <% end %>
-        </div>
-      </div>
+      </.form_section>
 
-      <div class="card bg-base-100 shadow">
-        <div class="card-body">
-          <h2 class="card-title text-lg">{Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")} ({length(@memberships)})</h2>
+      <.form_section title={"#{Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")} (#{length(@memberships)})"}>
           <%= if @memberships == [] do %>
             <.empty_state
               icon="hero-identification"
@@ -203,21 +221,23 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
               class="py-6"
             />
           <% else %>
-            <table class="table table-sm">
-              <thead>
-                <tr>
-                  <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}</th>
-                  <th class="text-right w-px whitespace-nowrap">{Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr :for={tm <- @memberships}>
-                  <td>
+            <.table_default id={"team-members-#{@team.uuid}"} size="sm">
+              <.table_default_header>
+                <.table_default_row>
+                  <.table_default_header_cell>{Gettext.gettext(PhoenixKitWeb.Gettext, "Staff")}</.table_default_header_cell>
+                  <.table_default_header_cell class="text-right w-px whitespace-nowrap">
+                    {Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}
+                  </.table_default_header_cell>
+                </.table_default_row>
+              </.table_default_header>
+              <.table_default_body>
+                <.table_default_row :for={tm <- @memberships}>
+                  <.table_default_cell>
                     <.link navigate={Paths.person(tm.staff_person.uuid)} class="link link-hover">
                       {person_label(tm.staff_person)}
                     </.link>
-                  </td>
-                  <td class="text-right w-px whitespace-nowrap">
+                  </.table_default_cell>
+                  <.table_default_cell class="text-right w-px whitespace-nowrap">
                     <.table_row_menu id={"membership-menu-#{tm.uuid}"}>
                       <.table_row_menu_link
                         navigate={Paths.person(tm.staff_person.uuid)}
@@ -235,13 +255,12 @@ defmodule PhoenixKitStaff.Web.TeamShowLive do
                         variant="error"
                       />
                     </.table_row_menu>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  </.table_default_cell>
+                </.table_default_row>
+              </.table_default_body>
+            </.table_default>
           <% end %>
-        </div>
-      </div>
+      </.form_section>
     </div>
     """
   end

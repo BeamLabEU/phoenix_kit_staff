@@ -9,6 +9,7 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
   alias PhoenixKitStaff.{Departments, L10n, Paths, Staff, Teams}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
   alias PhoenixKitStaff.Schemas.{Department, Person, Team}
+  alias PhoenixKitStaff.Web.Helpers
 
   @impl true
   def mount(_params, _session, socket) do
@@ -19,8 +20,10 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
     end
 
     {:ok,
-     assign(socket,
-       page_title: gettext("Staff"),
+     socket
+     |> assign(Helpers.section_assigns())
+     |> assign(
+       page_title: gettext("Overview"),
        page_subtitle: gettext("Departments, teams, and the people in them.")
      )
      |> reload()}

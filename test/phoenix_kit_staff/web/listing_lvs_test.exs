@@ -27,13 +27,13 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
     test "mounts and renders org overview", %{conn: conn} do
       _dept = fixture_department(%{"name" => "Eng-#{System.unique_integer([:positive])}"})
 
-      {:ok, _view, html} = live(conn, "/en/admin/staff/")
+      {:ok, _view, html} = live(conn, "/en/admin/staff/overview")
 
       assert html =~ "Departments, teams, and the people in them"
     end
 
     test "reloads on PubSub broadcast", %{conn: conn} do
-      {:ok, view, _initial} = live(conn, "/en/admin/staff/")
+      {:ok, view, _initial} = live(conn, "/en/admin/staff/overview")
 
       # Create a dept and broadcast — the LV's `{:staff, _, _}` handler
       # should re-fetch and reflect the new dept.
@@ -239,7 +239,7 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
     test "clear returns to the bare, unfiltered path", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/en/admin/staff/people?q=ann&status=active")
 
-      view |> element("button[phx-click='clear']") |> render_click()
+      view |> element("#people-filter-clear") |> render_click()
 
       path = assert_patch(view)
       assert path == "/en/admin/staff/people"

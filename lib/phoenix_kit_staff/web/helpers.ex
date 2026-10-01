@@ -32,12 +32,16 @@ defmodule PhoenixKitStaff.Web.Helpers do
 
   use Gettext, backend: PhoenixKitStaff.Gettext
 
+  require Logger
+
   alias PhoenixKitStaff.{Activity, Paths}
 
   @doc """
-  The header-trail assigns every page under the Overview shares: the module
-  as `page_section`, linking to its landing page. The Overview itself sets
-  none — there the module is the title. A page adds its own levels through
+  The header-trail assigns every page of the module shares: the module as
+  `page_section`, linking to its landing page (the people list). The people
+  list itself sets none — there the module is the title — and person pages
+  add no list crumb, since the section already leads to it. A page adds its
+  own levels through
   `page_crumbs` (the list it belongs to, then the record) and names only
   itself in `page_title`; core's admin header draws the rest.
   """
@@ -277,4 +281,37 @@ defmodule PhoenixKitStaff.Web.Helpers do
   end
 
   def maybe_switch_to_primary_on_error(socket, _other, _fields), do: socket
+
+  @doc """
+  What to show for a person's `work_location`: the employment form stores a
+  location's uuid (picked from the Locations module), and printing that raw
+  showed a uuid on the profile. Resolves it to the location's name; an older
+  free-text value, or a location that is gone, shows as stored.
+  """
+  @spec work_location_labels([String.t() | nil]) :: %{String.t() => String.t()}
+  def work_location_labels(values) do
+    values
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+    |> Map.new(&{&1, work_location_label(&1)})
+  end
+
+  @doc "One work location's label; see `work_location_labels/1` for a list."
+  @spec work_location_label(String.t() | nil) :: String.t() | nil
+  def work_location_label(nil), do: nil
+
+  def work_location_label(value) when is_binary(value) do
+    with {:ok, _} <- Ecto.UUID.cast(value),
+         {:module, mod} <- Code.ensure_loaded(PhoenixKitLocations.Locations),
+         true <- function_exported?(mod, :get_location, 1),
+         %{name: name} when is_binary(name) <- mod.get_location(value) do
+      name
+    else
+      _ -> value
+    end
+  rescue
+    error ->
+      Logger.warning("[Staff] work location lookup failed: #{Exception.message(error)}")
+      value
+  end
 end

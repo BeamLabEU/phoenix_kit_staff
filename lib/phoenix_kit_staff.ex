@@ -106,7 +106,11 @@ defmodule PhoenixKitStaff do
         group: :admin_modules,
         subtab_display: :when_active,
         highlight_with_subtabs: false,
-        live_view: {PhoenixKitStaff.Web.OverviewLive, :index}
+        # Clicking Staff opens the people list, not the overview: the sidebar
+        # sends the parent to the first subtab by priority (Staff). A bare
+        # /staff renders the same list, so an old link lands there too.
+        redirect_to_first_subtab: true,
+        live_view: {PhoenixKitStaff.Web.PeopleLive, :index}
       }
     ]
 
@@ -116,8 +120,8 @@ defmodule PhoenixKitStaff do
         label: "Overview",
         gettext_backend: PhoenixKitStaff.Gettext,
         icon: "hero-home",
-        path: "staff",
-        priority: 651,
+        path: "staff/overview",
+        priority: 652,
         level: :admin,
         permission: module_key(),
         match: :exact,
@@ -130,7 +134,7 @@ defmodule PhoenixKitStaff do
         gettext_backend: PhoenixKitStaff.Gettext,
         icon: "hero-building-office-2",
         path: "staff/departments",
-        priority: 652,
+        priority: 653,
         level: :admin,
         permission: module_key(),
         match: :prefix,
@@ -143,7 +147,7 @@ defmodule PhoenixKitStaff do
         gettext_backend: PhoenixKitStaff.Gettext,
         icon: "hero-user-group",
         path: "staff/teams",
-        priority: 653,
+        priority: 654,
         level: :admin,
         permission: module_key(),
         match: :prefix,
@@ -156,10 +160,12 @@ defmodule PhoenixKitStaff do
         gettext_backend: PhoenixKitStaff.Gettext,
         icon: "hero-identification",
         path: "staff/people",
-        priority: 654,
+        priority: 651,
         level: :admin,
         permission: module_key(),
-        match: :prefix,
+        # The list's own pages and the bare module root, which renders the
+        # same list.
+        match: {:regex, ~r{(?:^|/)staff(?:/people(?:/.*)?)?$}},
         parent: :admin_staff,
         live_view: {PhoenixKitStaff.Web.PeopleLive, :index}
       },

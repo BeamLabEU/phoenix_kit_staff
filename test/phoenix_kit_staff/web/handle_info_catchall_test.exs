@@ -27,7 +27,7 @@ defmodule PhoenixKitStaff.Web.HandleInfoCatchallTest do
   end
 
   test "OverviewLive logs Logger.debug on unexpected handle_info", %{conn: conn} do
-    {:ok, view, _html} = live(conn, "/en/admin/staff/")
+    {:ok, view, _html} = live(conn, "/en/admin/staff/overview")
 
     log =
       capture_log([level: :debug], fn ->

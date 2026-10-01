@@ -121,9 +121,12 @@ defmodule PhoenixKitStaff.Web.PersonEventsComponent do
           </.link>
         </div>
 
-        <p :if={@events == []} class="text-sm text-base-content/60 py-2">
-          {gettext("No activity recorded for this person yet.")}
-        </p>
+        <.empty_state
+          :if={@events == []}
+          icon="hero-clock"
+          title={gettext("No activity recorded for this person yet.")}
+          class="py-6"
+        />
 
         <ul :if={@events != []} class="flex flex-col divide-y divide-base-200">
           <li :for={e <- @events} class="flex items-start gap-3 py-2.5">

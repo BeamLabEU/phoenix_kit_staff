@@ -50,19 +50,23 @@ defmodule PhoenixKitStaff.Web.HeaderTrailTest do
 
   defp staff, do: {"Staff", Paths.index()}
 
-  test "the Overview is the landing page: the module is the title, no section", %{conn: conn} do
-    {:ok, view, _} = live(conn, Paths.index())
-    assert title(view) == "Staff"
-    assert section(view) == nil
-    refute has_element?(view, "#test-page-crumbs a")
+  # Clicking Staff in the sidebar lands on the people list (the boss's
+  # call), and a bare /staff renders the same page.
+  test "the Staff list is the landing page: the module is the title, no section", %{conn: conn} do
+    for path <- [Paths.index(), Paths.people()] do
+      {:ok, view, _} = live(conn, path)
+      assert title(view) == "Staff"
+      assert section(view) == nil, path
+      refute has_element?(view, "#test-page-crumbs a")
+    end
   end
 
   test "list pages carry the module as their section", %{conn: conn} do
     for {path, expected} <- [
           {Paths.departments(), "Departments"},
           {Paths.teams(), "Teams"},
-          {Paths.people(), "Staff"},
-          {Paths.skills(), "Skills"}
+          {Paths.skills(), "Skills"},
+          {Paths.overview(), "Overview"}
         ] do
       {:ok, view, _} = live(conn, path)
       assert section(view) == staff()
@@ -80,12 +84,14 @@ defmodule PhoenixKitStaff.Web.HeaderTrailTest do
     for {path, list, expected} <- [
           {Paths.department(dept.uuid), {"Departments", Paths.departments()}, dept.name},
           {Paths.team(team.uuid), {"Teams", Paths.teams()}, team.name},
-          {Paths.person(person.uuid), {"Staff", Paths.people()}, "Trail Person"},
+          # The people list is the module's landing page: the section link
+          # already leads there, so person pages carry no list crumb.
+          {Paths.person(person.uuid), nil, "Trail Person"},
           {Paths.skill(skill.uuid), {"Skills", Paths.skills()}, skill.name}
         ] do
       {:ok, view, _} = live(conn, path)
       assert section(view) == staff()
-      assert crumbs(view) == [list]
+      assert crumbs(view) == List.wrap(list)
       assert title(view) == expected
     end
   end
@@ -94,12 +100,12 @@ defmodule PhoenixKitStaff.Web.HeaderTrailTest do
     for {path, list, expected} <- [
           {Paths.new_department(), {"Departments", Paths.departments()}, "New department"},
           {Paths.new_team(), {"Teams", Paths.teams()}, "New team"},
-          {Paths.new_person(), {"Staff", Paths.people()}, "New staff"},
+          {Paths.new_person(), nil, "New staff"},
           {Paths.new_skill(), {"Skills", Paths.skills()}, "New skill"}
         ] do
       {:ok, view, _} = live(conn, path)
       assert section(view) == staff()
-      assert crumbs(view) == [list]
+      assert crumbs(view) == List.wrap(list)
       assert title(view) == expected
     end
   end
@@ -115,14 +121,13 @@ defmodule PhoenixKitStaff.Web.HeaderTrailTest do
            {dept.name, Paths.department(dept.uuid)}},
           {Paths.edit_team(team.uuid), {"Teams", Paths.teams()},
            {team.name, Paths.team(team.uuid)}},
-          {Paths.edit_person(person.uuid), {"Staff", Paths.people()},
-           {"Trail Person", Paths.person(person.uuid)}},
+          {Paths.edit_person(person.uuid), nil, {"Trail Person", Paths.person(person.uuid)}},
           {Paths.edit_skill(skill.uuid), {"Skills", Paths.skills()},
            {skill.name, Paths.skill(skill.uuid)}}
         ] do
       {:ok, view, _} = live(conn, path)
       assert section(view) == staff()
-      assert crumbs(view) == [list, record]
+      assert crumbs(view) == List.wrap(list) ++ [record]
       assert title(view) == "Edit"
     end
   end

@@ -47,7 +47,8 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
         page_action: %{
           icon: "hero-pencil",
           label: Gettext.gettext(PhoenixKitWeb.Gettext, "Edit"),
-          navigate: Paths.edit_department(dept.uuid)
+          navigate: Paths.edit_department(dept.uuid),
+          show_label: true
         }
       ]
   end
@@ -84,43 +85,46 @@ defmodule PhoenixKitStaff.Web.DepartmentShowLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <div class="card bg-base-100 shadow">
-        <div class="card-body">
-          <div class="flex items-center justify-between">
-            <h2 class="card-title text-lg">{gettext("Teams")} ({length(@teams)})</h2>
-            <.link navigate={Paths.new_team()} class="btn btn-primary btn-xs">
-              <.icon name="hero-plus" class="w-3.5 h-3.5" /> {gettext("New team")}
-            </.link>
-          </div>
+      <.form_section title={"#{gettext("Teams")} (#{length(@teams)})"}>
+        <:actions>
+          <.button size="xs" navigate={Paths.new_team(@dept.uuid)}>
+            <.icon name="hero-plus" class="w-3.5 h-3.5" /> {gettext("New team")}
+          </.button>
+        </:actions>
 
-          <%= if @teams == [] do %>
-            <.empty_state
-              icon="hero-user-group"
-              title={gettext("No teams in this department yet.")}
-              class="py-6"
-            />
-          <% else %>
-            <div class="overflow-x-auto">
-              <table class="table table-sm">
-                <thead>
-                  <tr>
-                    <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr :for={team <- @teams}>
-                    <td>
-                      <.link navigate={Paths.team(team.uuid)} class="link link-hover font-medium">
-                        {Team.localized_name(team, @lang)}
-                      </.link>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          <% end %>
-        </div>
-      </div>
+        <%= if @teams == [] do %>
+          <.empty_state
+            icon="hero-user-group"
+            title={gettext("No teams in this department yet.")}
+            class="py-6"
+          >
+            <:cta>
+              <.button size="sm" navigate={Paths.new_team(@dept.uuid)}>
+                {gettext("Create your first team")}
+              </.button>
+            </:cta>
+          </.empty_state>
+        <% else %>
+          <.table_default id={"department-teams-#{@dept.uuid}"} size="sm">
+            <.table_default_header>
+              <.table_default_row>
+                <.table_default_header_cell>
+                  {Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}
+                </.table_default_header_cell>
+              </.table_default_row>
+            </.table_default_header>
+            <.table_default_body>
+              <.table_default_row :for={team <- @teams}>
+                <.table_default_cell>
+                  <.link navigate={Paths.team(team.uuid)} class="link link-hover font-medium">
+                    {Team.localized_name(team, @lang)}
+                  </.link>
+                </.table_default_cell>
+              </.table_default_row>
+            </.table_default_body>
+          </.table_default>
+        <% end %>
+      </.form_section>
     </div>
     """
   end

@@ -9,9 +9,13 @@ defmodule PhoenixKitStaff.Paths do
 
   @base "/admin/staff"
 
-  @doc "Staff dashboard root."
+  @doc "The module root — it lands on the people list."
   @spec index() :: String.t()
   def index, do: Routes.path(@base)
+
+  @doc "The overview dashboard."
+  @spec overview() :: String.t()
+  def overview, do: Routes.path("#{@base}/overview")
 
   # Departments
   @doc "Departments index."
@@ -34,6 +38,12 @@ defmodule PhoenixKitStaff.Paths do
   @doc "New-team form."
   @spec new_team() :: String.t()
   def new_team, do: Routes.path("#{@base}/teams/new")
+
+  @doc "New-team form with `department_uuid` preselected."
+  @spec new_team(UUIDv7.t() | String.t()) :: String.t()
+  def new_team(department_uuid),
+    do: Routes.path("#{@base}/teams/new?" <> URI.encode_query(department: department_uuid))
+
   @doc "Show page for a single team."
   @spec team(UUIDv7.t() | String.t()) :: String.t()
   def team(id), do: Routes.path("#{@base}/teams/#{id}")

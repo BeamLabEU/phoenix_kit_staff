@@ -37,7 +37,9 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     socket
     |> assign(Helpers.section_assigns())
     |> assign(
-      page_crumbs: [%{label: gettext("Staff"), path: Paths.people()}],
+      # The section link already leads to the people list (the module's
+      # landing page); no "Staff" crumb to repeat it.
+      page_crumbs: [],
       page_title: gettext("New staff"),
       page_subtitle: gettext("Add a new person on staff."),
       person: person,
@@ -80,7 +82,6 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
         |> assign(Helpers.section_assigns())
         |> assign(
           page_crumbs: [
-            %{label: gettext("Staff"), path: Paths.people()},
             %{label: Person.display_name(person), path: Paths.person(person.uuid)}
           ],
           page_title: Gettext.gettext(PhoenixKitWeb.Gettext, "Edit"),
@@ -813,7 +814,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
               options={[{Gettext.gettext(PhoenixKitWeb.Gettext, "Active"), "active"}, {Gettext.gettext(PhoenixKitWeb.Gettext, "Inactive"), "inactive"}]}
             />
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Organization")}</div>
+            <.section_header icon="hero-building-office-2" title={gettext("Organization")} />
 
             <%= if @team_options != [] do %>
               <.select
@@ -825,14 +826,14 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
               />
             <% end %>
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Contact")}</div>
+            <.section_header icon="hero-phone" title={gettext("Contact")} />
 
             <div class="grid grid-cols-2 gap-2">
               <.input field={@form[:work_phone]} label={gettext("Work phone")} placeholder={gettext("+372 ...")} />
               <.input field={@form[:personal_phone]} label={gettext("Personal phone")} placeholder={gettext("+372 ...")} />
             </div>
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Personal")}</div>
+            <.section_header icon="hero-cake" title={gettext("Personal")} />
 
             <.input field={@form[:date_of_birth]} label={gettext("Date of birth")} type="date" />
             <.input
@@ -842,7 +843,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
               placeholder={gettext("non-work email")}
             />
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Emergency contact")}</div>
+            <.section_header icon="hero-shield-exclamation" title={gettext("Emergency contact")} />
 
             <div class="grid grid-cols-2 gap-2">
               <.input field={@form[:emergency_contact_name]} label={Gettext.gettext(PhoenixKitWeb.Gettext, "Name")} placeholder={gettext("Contact's full name")} />
@@ -854,7 +855,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
             </div>
             <.input field={@form[:emergency_contact_phone]} label={gettext("Phone")} placeholder={gettext("+372 ...")} />
 
-            <div class="divider text-xs text-base-content/50 my-0">{gettext("Skills")}</div>
+            <.section_header icon="hero-academic-cap" title={gettext("Skills")} />
 
             <%!-- Skills are staged on the form and written to the database
                  only when Save is pressed (below). The staged rows carry NO
@@ -1008,12 +1009,17 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
               </div>
             </div>
 
-            <div class="flex justify-end gap-2 mt-4">
-              <.link navigate={Paths.people()} class="btn btn-ghost btn-sm">{Gettext.gettext(PhoenixKitWeb.Gettext, "Cancel")}</.link>
-              <button type="submit" phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Saving…")} class="btn btn-primary btn-sm">
-                <%= if @live_action == :new, do: gettext("Create"), else: Gettext.gettext(PhoenixKitWeb.Gettext, "Save") %>
-              </button>
-            </div>
+            <.form_actions
+              class="gap-2 mt-4"
+              cancel_to={Paths.people()}
+              submit_label={
+                if @live_action == :new,
+                  do: gettext("Create"),
+                  else: Gettext.gettext(PhoenixKitWeb.Gettext, "Save")
+              }
+              submitting_label={Gettext.gettext(PhoenixKitWeb.Gettext, "Saving…")}
+              submit_class="btn btn-primary btn-sm"
+            />
           </div>
         </.form>
       </div>

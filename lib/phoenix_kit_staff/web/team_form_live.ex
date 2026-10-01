@@ -25,8 +25,15 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
     {:ok, socket}
   end
 
-  defp apply_action(socket, :new, _params) do
-    team = %Team{}
+  defp apply_action(socket, :new, params) do
+    # `?department=<uuid>` (the department page's "New team") preselects it;
+    # anything that is not one of the options is ignored.
+    preselected =
+      Enum.find_value(socket.assigns.dept_options, fn {_name, uuid} ->
+        if uuid == params["department"], do: uuid
+      end)
+
+    team = %Team{department_uuid: preselected}
 
     socket
     |> assign(Helpers.section_assigns())
@@ -233,18 +240,17 @@ defmodule PhoenixKitStaff.Web.TeamFormLive do
             </.multilang_fields_wrapper>
 
             <div class="card-body pt-0">
-              <div class="flex justify-end gap-2 mt-2">
-                <.link navigate={Paths.teams()} class="btn btn-ghost btn-sm">
-                  {Gettext.gettext(PhoenixKitWeb.Gettext, "Cancel")}
-                </.link>
-                <button
-                  type="submit"
-                  phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Saving…")}
-                  class="btn btn-primary btn-sm"
-                >
-                  <%= if @live_action == :new, do: gettext("Create"), else: Gettext.gettext(PhoenixKitWeb.Gettext, "Save") %>
-                </button>
-              </div>
+              <.form_actions
+              class="gap-2 mt-2"
+              cancel_to={Paths.teams()}
+              submit_label={
+                if @live_action == :new,
+                  do: gettext("Create"),
+                  else: Gettext.gettext(PhoenixKitWeb.Gettext, "Save")
+              }
+              submitting_label={Gettext.gettext(PhoenixKitWeb.Gettext, "Saving…")}
+              submit_class="btn btn-primary btn-sm"
+            />
             </div>
           </.form>
         </div>

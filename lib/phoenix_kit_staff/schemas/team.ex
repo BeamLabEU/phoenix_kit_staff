@@ -8,7 +8,7 @@ defmodule PhoenixKitStaff.Schemas.Team do
 
   use Ecto.Schema
   use PhoenixKit.SchemaPrefix
-  use Gettext, backend: PhoenixKitWeb.Gettext
+  use Gettext, backend: PhoenixKitStaff.Gettext
 
   import Ecto.Changeset
 

@@ -205,18 +205,17 @@ defmodule PhoenixKitStaff.Web.DepartmentFormLive do
                 type="textarea"
               />
 
-              <div class="flex justify-end gap-2 mt-2">
-                <.link navigate={Paths.departments()} class="btn btn-ghost btn-sm">
-                  {Gettext.gettext(PhoenixKitWeb.Gettext, "Cancel")}
-                </.link>
-                <button
-                  type="submit"
-                  phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Saving…")}
-                  class="btn btn-primary btn-sm"
-                >
-                  <%= if @live_action == :new, do: gettext("Create"), else: Gettext.gettext(PhoenixKitWeb.Gettext, "Save") %>
-                </button>
-              </div>
+              <.form_actions
+              class="gap-2 mt-2"
+              cancel_to={Paths.departments()}
+              submit_label={
+                if @live_action == :new,
+                  do: gettext("Create"),
+                  else: Gettext.gettext(PhoenixKitWeb.Gettext, "Save")
+              }
+              submitting_label={Gettext.gettext(PhoenixKitWeb.Gettext, "Saving…")}
+              submit_class="btn btn-primary btn-sm"
+            />
             </.form>
           </div>
         </.multilang_fields_wrapper>

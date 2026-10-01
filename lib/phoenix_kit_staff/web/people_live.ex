@@ -32,15 +32,10 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
     # state with the defaults.
     {:ok,
      socket
-     |> assign(Helpers.section_assigns())
+     # The module's landing page: its title is the module, so no section.
      |> assign(
        page_title: gettext("Staff"),
        page_subtitle: gettext("Everyone on staff, linked to their PhoenixKit user."),
-       page_action: %{
-         icon: "hero-plus",
-         label: gettext("New staff"),
-         navigate: Paths.new_person()
-       },
        captured_uuids: [],
        show_bulk_delete_modal: false
      )}
@@ -287,85 +282,97 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
     assigns =
       assigns
       |> assign(viewing_trash: assigns.status == Person.soft_delete_status())
+      |> assign(filtered?: assigns.search != "" or assigns.status != "")
       |> assign(:lang, L10n.current_content_lang())
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <div class="bg-base-200 rounded-lg p-3">
-        <%!-- The id is required: `for={%{}}` supplies none of its own, and
-        without one LiveView silently disables form recovery for this form. --%>
-        <.form
-          for={%{}}
-          id="staff-people-filter-form"
-          phx-change="filter"
-          class="flex flex-wrap gap-3 items-end"
-        >
-          <.input
-            name="search"
-            label={Gettext.gettext(PhoenixKitWeb.Gettext, "Search")}
-            type="search"
-            value={@search}
-            phx-debounce="300"
-            placeholder={gettext("search by name or email")}
-          />
-          <.select
-            name="status"
-            label={Gettext.gettext(PhoenixKitWeb.Gettext, "Status")}
-            value={@status}
-            options={[
-              {Gettext.gettext(PhoenixKitWeb.Gettext, "All"), ""},
-              {Gettext.gettext(PhoenixKitWeb.Gettext, "Active"), "active"},
-              {Gettext.gettext(PhoenixKitWeb.Gettext, "Inactive"), "inactive"},
-              {trash_option_label(@trashed_count), "trashed"}
-            ]}
-          />
-          <button type="button" phx-click="clear" class="btn btn-ghost btn-sm">
-            {Gettext.gettext(PhoenixKitWeb.Gettext, "Clear")}
-          </button>
-        </.form>
-      </div>
-
-      <%= if @people == [] do %>
-        <.empty_state
-          icon="hero-identification"
-          title={if @viewing_trash, do: gettext("Trash is empty."), else: gettext("No staff match.")}
-        />
-      <% else %>
-        <.bulk_select_scope
-          id="people-bulk"
-          total_count={length(@people)}
-          class="card bg-base-100 shadow"
-        >
-          <%!-- Bulk action bar — shown only when rows are selected. --%>
-          <div
-            class="flex items-center gap-2 px-4 pt-3 flex-wrap"
-            data-bulk-show="has-selection"
-          >
-            <span class="text-sm text-base-content/70">
-              <span data-bulk-count>0</span> {gettext("selected")}
-            </span>
-            <%= if @viewing_trash do %>
-              <button type="button" data-bulk-action="bulk_restore" class="btn btn-success btn-xs">
-                <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> {gettext("Restore")}
-              </button>
-              <button
-                type="button"
-                data-bulk-action="request_bulk_delete"
-                class="btn btn-error btn-xs"
+      <.bulk_select_scope id="people-bulk" total_count={length(@people)}>
+        <.table_default id="people-list" size="sm">
+          <:toolbar_title>
+            <%!-- The id is required: `for={%{}}` supplies none of its own, and
+            without one LiveView silently disables form recovery for this form. --%>
+            <.form
+              for={%{}}
+              id="staff-people-filter-form"
+              phx-change="filter"
+              class="flex flex-wrap gap-2 items-center"
+            >
+              <input
+                type="search"
+                name="search"
+                value={@search}
+                phx-debounce="300"
+                placeholder={gettext("search by name or email")}
+                aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Search")}
+                class="input input-sm w-56"
+              />
+              <select
+                name="status"
+                aria-label={Gettext.gettext(PhoenixKitWeb.Gettext, "Status")}
+                class="select select-sm w-auto"
               >
-                <.icon name="hero-x-circle" class="w-4 h-4" /> {gettext("Delete permanently")}
+                {Phoenix.HTML.Form.options_for_select(
+                  [
+                    {Gettext.gettext(PhoenixKitWeb.Gettext, "All"), ""},
+                    {Gettext.gettext(PhoenixKitWeb.Gettext, "Active"), "active"},
+                    {Gettext.gettext(PhoenixKitWeb.Gettext, "Inactive"), "inactive"},
+                    {trash_option_label(@trashed_count), "trashed"}
+                  ],
+                  @status
+                )}
+              </select>
+              <button :if={@filtered?} id="people-filter-clear" type="button" phx-click="clear" class="btn btn-ghost btn-sm">
+                {Gettext.gettext(PhoenixKitWeb.Gettext, "Clear")}
               </button>
-            <% else %>
-              <button type="button" data-bulk-action="bulk_trash" class="btn btn-error btn-xs">
-                <.icon name="hero-trash" class="w-4 h-4" /> {gettext("Move to trash")}
-              </button>
-            <% end %>
-            <button type="button" data-bulk-clear class="btn btn-ghost btn-xs">
-              {Gettext.gettext(PhoenixKitWeb.Gettext, "Clear")}
-            </button>
-          </div>
-
-          <.table_default id="people-list" size="sm">
+            </.form>
+          </:toolbar_title>
+          <:toolbar_actions>
+            <%!-- Selection actions, shown only while rows are ticked. --%>
+            <div class="flex items-center gap-2" data-bulk-show="has-selection" style="display: none;">
+              <span class="text-sm text-base-content/70">
+                <span data-bulk-count>0</span> {gettext("selected")}
+              </span>
+              <%= if @viewing_trash do %>
+                <.button type="button" size="sm" variant="ghost" data-bulk-action="bulk_restore">
+                  <.icon name="hero-arrow-uturn-left" class="w-4 h-4" /> {gettext("Restore")}
+                </.button>
+                <.button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  class="text-error"
+                  data-bulk-action="request_bulk_delete"
+                >
+                  <.icon name="hero-x-circle" class="w-4 h-4" /> {gettext("Delete permanently")}
+                </.button>
+              <% else %>
+                <.button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  class="text-error"
+                  data-bulk-action="bulk_trash"
+                >
+                  <.icon name="hero-trash" class="w-4 h-4" /> {gettext("Move to trash")}
+                </.button>
+              <% end %>
+              <.button type="button" size="sm" variant="ghost" data-bulk-clear>
+                {Gettext.gettext(PhoenixKitWeb.Gettext, "Clear")}
+              </.button>
+            </div>
+          </:toolbar_actions>
+          <:toolbar_primary>
+            <.button
+              size="sm"
+              navigate={Paths.new_person()}
+              title={gettext("New staff")}
+              aria-label={gettext("New staff")}
+            >
+              <.icon name="hero-plus" class="h-4 w-4" />
+              <span class="hidden sm:inline">{gettext("New staff")}</span>
+            </.button>
+          </:toolbar_primary>
             <.table_default_header>
               <.table_default_row>
                 <.bulk_select_header_cell
@@ -379,7 +386,12 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
                 <.table_default_header_cell class="text-right whitespace-nowrap">{Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}</.table_default_header_cell>
               </.table_default_row>
             </.table_default_header>
-            <tbody>
+          <.table_default_body>
+            <.table_default_row :if={@people == []}>
+              <.table_default_cell colspan={6}>
+                <.people_empty viewing_trash={@viewing_trash} filtered?={@filtered?} />
+              </.table_default_cell>
+            </.table_default_row>
               <.table_default_row :for={p <- @people}>
                 <.bulk_select_cell value={p.uuid} />
                 <.table_default_cell>
@@ -393,9 +405,11 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
                 <.table_default_cell class="text-sm">{Person.localized_job_title(p, @lang) || "—"}</.table_default_cell>
                 <.table_default_cell>{(p.primary_department && Department.localized_name(p.primary_department, @lang)) || "—"}</.table_default_cell>
                 <.table_default_cell>
-                  <span class={"badge badge-sm #{status_badge_class(p.status)}"}>
-                    {Person.status_label(p.status)}
-                  </span>
+                  <.status_badge
+                    status={badge_status(p.status)}
+                    label={Person.status_label(p.status)}
+                    size={:sm}
+                  />
                 </.table_default_cell>
                 <.table_default_cell class="text-right whitespace-nowrap">
                   <.table_row_menu id={"person-menu-#{p.uuid}"}>
@@ -444,10 +458,9 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
                   </.table_row_menu>
                 </.table_default_cell>
               </.table_default_row>
-            </tbody>
-          </.table_default>
-        </.bulk_select_scope>
-      <% end %>
+          </.table_default_body>
+        </.table_default>
+      </.bulk_select_scope>
 
       <.confirm_modal
         :if={@show_bulk_delete_modal}
@@ -472,8 +485,40 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
   defp trash_option_label(0), do: gettext("Trashed")
   defp trash_option_label(count), do: gettext("Trashed (%{count})", count: count)
 
-  defp status_badge_class("active"), do: "badge-success"
-  defp status_badge_class("inactive"), do: "badge-ghost"
-  defp status_badge_class("trashed"), do: "badge-error badge-outline"
-  defp status_badge_class(_), do: "badge-ghost"
+  # core's status_badge colours "deleted" as an error; a trashed person is one.
+  defp badge_status("trashed"), do: "deleted"
+  defp badge_status(status), do: status
+
+  # Every empty list says why and offers the way out: the trash is just
+  # empty, a filter can be cleared, an empty roster gets its first person.
+  attr(:viewing_trash, :boolean, required: true)
+  attr(:filtered?, :boolean, required: true)
+
+  defp people_empty(assigns) do
+    ~H"""
+    <.empty_state :if={@viewing_trash} icon="hero-trash" title={gettext("Trash is empty.")} />
+    <.empty_state
+      :if={!@viewing_trash and @filtered?}
+      icon="hero-identification"
+      title={gettext("No staff match.")}
+    >
+      <:cta>
+        <.button type="button" size="sm" variant="ghost" phx-click="clear">
+          {gettext("Clear filter")}
+        </.button>
+      </:cta>
+    </.empty_state>
+    <.empty_state
+      :if={!@viewing_trash and !@filtered?}
+      icon="hero-identification"
+      title={gettext("No staff yet.")}
+    >
+      <:cta>
+        <.button size="sm" navigate={Paths.new_person()}>
+          {gettext("Create your first staff member")}
+        </.button>
+      </:cta>
+    </.empty_state>
+    """
+  end
 end

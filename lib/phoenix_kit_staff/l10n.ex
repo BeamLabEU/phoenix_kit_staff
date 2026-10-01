@@ -13,7 +13,11 @@ defmodule PhoenixKitStaff.L10n do
   into the .pot file. Don't collapse them into a map-based lookup.
   """
 
+  # Month names and date templates are core's (translated once for the whole
+  # workspace); the two strings core does not carry go through this module's
+  # own backend explicitly (`gettext_with_backend/3`, still extractable).
   use Gettext, backend: PhoenixKitWeb.Gettext
+  require Gettext.Macros
 
   @doc "Formats a `Date`/`DateTime` as `Mon DD, YYYY`. Returns `nil` for nil."
   @spec format_date(Date.t() | DateTime.t() | NaiveDateTime.t() | nil) :: String.t() | nil
@@ -36,7 +40,11 @@ defmodule PhoenixKitStaff.L10n do
     do: dt |> DateTime.to_date() |> format_month_day()
 
   def format_month_day(%Date{} = d),
-    do: gettext("%{month} %{day}", month: short_month(d.month), day: d.day)
+    do:
+      Gettext.Macros.gettext_with_backend(PhoenixKitStaff.Gettext, "%{month} %{day}",
+        month: short_month(d.month),
+        day: d.day
+      )
 
   @doc """
   The active content language for multilang reads — the current Gettext
@@ -106,7 +114,10 @@ defmodule PhoenixKitStaff.L10n do
           Ecto.Changeset.add_error(
             changeset,
             :translations,
-            gettext("is not a valid translations map")
+            Gettext.Macros.gettext_with_backend(
+              PhoenixKitStaff.Gettext,
+              "is not a valid translations map"
+            )
           )
         end
     end
