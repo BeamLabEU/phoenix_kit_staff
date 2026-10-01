@@ -39,7 +39,9 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
          socket
          |> assign(Helpers.section_assigns())
          |> assign(
-           page_crumbs: [%{label: gettext("Staff"), path: Paths.people()}],
+           # The people list is the module's landing page, so the section
+           # link already leads there; a "Staff" crumb would repeat it.
+           page_crumbs: [],
            page_title: Person.display_name(person),
            person: person,
            memberships: Staff.list_memberships_for_person(person.uuid),
@@ -546,7 +548,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
             <%= if @person.work_location do %>
               <span>
                 <.icon name="hero-map-pin" class="w-3 h-3 inline" />
-                {@person.work_location}
+                {Helpers.work_location_label(@person.work_location)}
               </span>
             <% end %>
           </div>

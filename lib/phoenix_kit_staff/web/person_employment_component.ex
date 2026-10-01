@@ -391,7 +391,7 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
                 <div class="text-xs text-base-content/60 mt-0.5">
                   {date_range(e)}<span :if={e.department}> · {e.department.name}</span><span :if={
                     e.team
-                  }> · {e.team.name}</span><span :if={e.work_location}> · {e.work_location}</span>
+                  }> · {e.team.name}</span><span :if={e.work_location}> · {Helpers.work_location_label(e.work_location)}</span>
                 </div>
                 <p :if={e.notes} class="text-sm mt-1 whitespace-pre-line">{e.notes}</p>
               </div>

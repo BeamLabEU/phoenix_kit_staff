@@ -37,7 +37,9 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     socket
     |> assign(Helpers.section_assigns())
     |> assign(
-      page_crumbs: [%{label: gettext("Staff"), path: Paths.people()}],
+      # The section link already leads to the people list (the module's
+      # landing page); no "Staff" crumb to repeat it.
+      page_crumbs: [],
       page_title: gettext("New staff"),
       page_subtitle: gettext("Add a new person on staff."),
       person: person,
@@ -80,7 +82,6 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
         |> assign(Helpers.section_assigns())
         |> assign(
           page_crumbs: [
-            %{label: gettext("Staff"), path: Paths.people()},
             %{label: Person.display_name(person), path: Paths.person(person.uuid)}
           ],
           page_title: Gettext.gettext(PhoenixKitWeb.Gettext, "Edit"),

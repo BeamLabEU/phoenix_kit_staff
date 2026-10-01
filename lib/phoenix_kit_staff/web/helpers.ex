@@ -277,4 +277,26 @@ defmodule PhoenixKitStaff.Web.Helpers do
   end
 
   def maybe_switch_to_primary_on_error(socket, _other, _fields), do: socket
+
+  @doc """
+  What to show for a person's `work_location`: the employment form stores a
+  location's uuid (picked from the Locations module), and printing that raw
+  showed a uuid on the profile. Resolves it to the location's name; an older
+  free-text value, or a location that is gone, shows as stored.
+  """
+  @spec work_location_label(String.t() | nil) :: String.t() | nil
+  def work_location_label(nil), do: nil
+
+  def work_location_label(value) when is_binary(value) do
+    with {:ok, _} <- Ecto.UUID.cast(value),
+         {:module, mod} <- Code.ensure_loaded(PhoenixKitLocations.Locations),
+         true <- function_exported?(mod, :get_location, 1),
+         %{name: name} when is_binary(name) <- mod.get_location(value) do
+      name
+    else
+      _ -> value
+    end
+  rescue
+    _ -> value
+  end
 end

@@ -84,12 +84,14 @@ defmodule PhoenixKitStaff.Web.HeaderTrailTest do
     for {path, list, expected} <- [
           {Paths.department(dept.uuid), {"Departments", Paths.departments()}, dept.name},
           {Paths.team(team.uuid), {"Teams", Paths.teams()}, team.name},
-          {Paths.person(person.uuid), {"Staff", Paths.people()}, "Trail Person"},
+          # The people list is the module's landing page: the section link
+          # already leads there, so person pages carry no list crumb.
+          {Paths.person(person.uuid), nil, "Trail Person"},
           {Paths.skill(skill.uuid), {"Skills", Paths.skills()}, skill.name}
         ] do
       {:ok, view, _} = live(conn, path)
       assert section(view) == staff()
-      assert crumbs(view) == [list]
+      assert crumbs(view) == List.wrap(list)
       assert title(view) == expected
     end
   end
@@ -98,12 +100,12 @@ defmodule PhoenixKitStaff.Web.HeaderTrailTest do
     for {path, list, expected} <- [
           {Paths.new_department(), {"Departments", Paths.departments()}, "New department"},
           {Paths.new_team(), {"Teams", Paths.teams()}, "New team"},
-          {Paths.new_person(), {"Staff", Paths.people()}, "New staff"},
+          {Paths.new_person(), nil, "New staff"},
           {Paths.new_skill(), {"Skills", Paths.skills()}, "New skill"}
         ] do
       {:ok, view, _} = live(conn, path)
       assert section(view) == staff()
-      assert crumbs(view) == [list]
+      assert crumbs(view) == List.wrap(list)
       assert title(view) == expected
     end
   end
@@ -119,14 +121,13 @@ defmodule PhoenixKitStaff.Web.HeaderTrailTest do
            {dept.name, Paths.department(dept.uuid)}},
           {Paths.edit_team(team.uuid), {"Teams", Paths.teams()},
            {team.name, Paths.team(team.uuid)}},
-          {Paths.edit_person(person.uuid), {"Staff", Paths.people()},
-           {"Trail Person", Paths.person(person.uuid)}},
+          {Paths.edit_person(person.uuid), nil, {"Trail Person", Paths.person(person.uuid)}},
           {Paths.edit_skill(skill.uuid), {"Skills", Paths.skills()},
            {skill.name, Paths.skill(skill.uuid)}}
         ] do
       {:ok, view, _} = live(conn, path)
       assert section(view) == staff()
-      assert crumbs(view) == [list, record]
+      assert crumbs(view) == List.wrap(list) ++ [record]
       assert title(view) == "Edit"
     end
   end
