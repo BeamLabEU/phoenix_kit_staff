@@ -79,7 +79,7 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.table_default id="departments-list" items={@departments} variant="zebra" size="sm">
+      <.table_default id="departments-list" variant="zebra" size="sm">
         <:toolbar_primary>
           <.button
             size="sm"

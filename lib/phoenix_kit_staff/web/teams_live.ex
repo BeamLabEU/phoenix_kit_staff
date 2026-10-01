@@ -77,7 +77,7 @@ defmodule PhoenixKitStaff.Web.TeamsLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.table_default id="teams-list" items={@teams} variant="zebra" size="sm">
+      <.table_default id="teams-list" variant="zebra" size="sm">
         <:toolbar_primary>
           <.button
             size="sm"

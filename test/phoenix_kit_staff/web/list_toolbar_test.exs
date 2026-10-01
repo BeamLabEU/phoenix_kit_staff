@@ -40,4 +40,35 @@ defmodule PhoenixKitStaff.Web.ListToolbarTest do
     assert render(view) =~ "Trash is empty."
     refute render(view) =~ "Clear filter"
   end
+
+  # Passing `items=` sends table_default down its card-view path, whose
+  # cards need card slots these pages do not have: on a phone every row
+  # came out as an empty card.
+  test "a list with rows renders a plain table, not an empty card grid", %{conn: conn} do
+    dept = fixture_department()
+    _team = fixture_team(%{"department_uuid" => dept.uuid})
+    _skill = fixture_skill()
+
+    for path <- [Paths.departments(), Paths.teams(), Paths.skills()] do
+      {:ok, _view, html} = live(conn, path)
+      refute html =~ "hidden md:block", path
+      refute html =~ "grid md:hidden", path
+    end
+  end
+
+  test "a skill page says why nobody can be added: no staff yet, or everyone has it",
+       %{conn: conn} do
+    skill = fixture_skill()
+
+    {:ok, _view, html} = live(conn, Paths.skill(skill.uuid))
+    assert html =~ "No staff yet."
+    assert html =~ "Create your first staff member"
+
+    person = fixture_person()
+    {:ok, _} = PhoenixKitStaff.Skills.assign_skill(person.uuid, skill.uuid)
+
+    {:ok, _view, html} = live(conn, Paths.skill(skill.uuid))
+    assert html =~ "Everyone on staff already has this skill."
+    refute html =~ "Create your first staff member"
+  end
 end

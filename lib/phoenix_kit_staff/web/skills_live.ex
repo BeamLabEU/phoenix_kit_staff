@@ -76,7 +76,7 @@ defmodule PhoenixKitStaff.Web.SkillsLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <.table_default id="skills-list" items={@skills} variant="zebra" size="sm">
+      <.table_default id="skills-list" variant="zebra" size="sm">
         <:toolbar_primary>
           <.button
             size="sm"

@@ -32,12 +32,16 @@ defmodule PhoenixKitStaff.Web.Helpers do
 
   use Gettext, backend: PhoenixKitStaff.Gettext
 
+  require Logger
+
   alias PhoenixKitStaff.{Activity, Paths}
 
   @doc """
-  The header-trail assigns every page under the Overview shares: the module
-  as `page_section`, linking to its landing page. The Overview itself sets
-  none — there the module is the title. A page adds its own levels through
+  The header-trail assigns every page of the module shares: the module as
+  `page_section`, linking to its landing page (the people list). The people
+  list itself sets none — there the module is the title — and person pages
+  add no list crumb, since the section already leads to it. A page adds its
+  own levels through
   `page_crumbs` (the list it belongs to, then the record) and names only
   itself in `page_title`; core's admin header draws the rest.
   """
@@ -306,6 +310,8 @@ defmodule PhoenixKitStaff.Web.Helpers do
       _ -> value
     end
   rescue
-    _ -> value
+    error ->
+      Logger.warning("[Staff] work location lookup failed: #{Exception.message(error)}")
+      value
   end
 end

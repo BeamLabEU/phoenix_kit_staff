@@ -44,6 +44,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
            page_crumbs: [],
            page_title: Person.display_name(person),
            person: person,
+           # Resolved once per person load, not on every render.
+           work_location_label: Helpers.work_location_label(person.work_location),
            memberships: Staff.list_memberships_for_person(person.uuid),
            active_tab: "overview",
            comments_enabled: comments_enabled?(),
@@ -93,8 +95,16 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   # Reload the full (preloaded) person + refresh the avatar after a mutation.
   defp reload_person(socket) do
     case Staff.get_person(socket.assigns.person.uuid) do
-      nil -> socket
-      person -> socket |> assign(:person, person) |> load_avatar()
+      nil ->
+        socket
+
+      person ->
+        socket
+        |> assign(
+          person: person,
+          work_location_label: Helpers.work_location_label(person.work_location)
+        )
+        |> load_avatar()
     end
   end
 
@@ -153,6 +163,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
          |> assign(
            page_title: Person.display_name(person),
            person: person,
+           # Resolved once per person load, not on every render.
+           work_location_label: Helpers.work_location_label(person.work_location),
            memberships: Staff.list_memberships_for_person(person.uuid)
          )
          |> load_skills()
@@ -548,7 +560,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
             <%= if @person.work_location do %>
               <span>
                 <.icon name="hero-map-pin" class="w-3 h-3 inline" />
-                {Helpers.work_location_label(@person.work_location)}
+                {@work_location_label}
               </span>
             <% end %>
           </div>

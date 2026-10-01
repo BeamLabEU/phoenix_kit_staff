@@ -9,7 +9,10 @@ defmodule PhoenixKitStaff.Schemas.Person do
 
   use Ecto.Schema
   use PhoenixKit.SchemaPrefix
-  use Gettext, backend: PhoenixKitWeb.Gettext
+  use Gettext, backend: PhoenixKitStaff.Gettext
+  # Generic words core already translates in every language stay on core's
+  # backend (`gettext_with_backend/3`); the rest are this module's.
+  require Gettext.Macros
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
@@ -215,9 +218,15 @@ defmodule PhoenixKitStaff.Schemas.Person do
   end
 
   @doc "Translated label for a status value (for UI display)."
-  def status_label("active"), do: gettext("Active")
-  def status_label("inactive"), do: gettext("Inactive")
-  def status_label("trashed"), do: gettext("Trashed")
+  def status_label("active"),
+    do: Gettext.Macros.gettext_with_backend(PhoenixKitWeb.Gettext, "Active")
+
+  def status_label("inactive"),
+    do: Gettext.Macros.gettext_with_backend(PhoenixKitWeb.Gettext, "Inactive")
+
+  def status_label("trashed"),
+    do: Gettext.Macros.gettext_with_backend(PhoenixKitWeb.Gettext, "Trashed")
+
   def status_label(other), do: other
 
   def employment_type_label("full_time"), do: gettext("Full-time")
