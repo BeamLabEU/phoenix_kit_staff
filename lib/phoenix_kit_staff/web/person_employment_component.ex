@@ -31,7 +31,7 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
 
     {:ok,
      socket
-     |> assign(:employments, Employments.list_for_person(person.uuid))
+     |> assign_employments(Employments.list_for_person(person.uuid))
      |> assign_new(:editing_uuid, fn -> nil end)
      |> assign_new(:form_open?, fn -> false end)
      |> assign_new(:prefill_source, fn -> nil end)
@@ -164,7 +164,18 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
   defp editing_meta(uuid), do: %{"employment_uuid" => uuid}
 
   defp reload(socket),
-    do: assign(socket, :employments, Employments.list_for_person(socket.assigns.person.uuid))
+    do: assign_employments(socket, Employments.list_for_person(socket.assigns.person.uuid))
+
+  # Location names are resolved once per distinct location for the whole
+  # history, never once per row.
+  defp assign_employments(socket, employments) do
+    socket
+    |> assign(:employments, employments)
+    |> assign(
+      :location_labels,
+      Helpers.work_location_labels(Enum.map(employments, & &1.work_location))
+    )
+  end
 
   defp reset_form(socket),
     do:
@@ -387,7 +398,7 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
                 <div class="text-xs text-base-content/60 mt-0.5">
                   {date_range(e)}<span :if={e.department}> · {e.department.name}</span><span :if={
                     e.team
-                  }> · {e.team.name}</span><span :if={e.work_location}> · {Helpers.work_location_label(e.work_location)}</span>
+                  }> · {e.team.name}</span><span :if={e.work_location}> · {Map.get(@location_labels, e.work_location, e.work_location)}</span>
                 </div>
                 <p :if={e.notes} class="text-sm mt-1 whitespace-pre-line">{e.notes}</p>
               </div>

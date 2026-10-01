@@ -284,6 +284,15 @@ defmodule PhoenixKitStaff.Web.Helpers do
   showed a uuid on the profile. Resolves it to the location's name; an older
   free-text value, or a location that is gone, shows as stored.
   """
+  @spec work_location_labels([String.t() | nil]) :: %{String.t() => String.t()}
+  def work_location_labels(values) do
+    values
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+    |> Map.new(&{&1, work_location_label(&1)})
+  end
+
+  @doc "One work location's label; see `work_location_labels/1` for a list."
   @spec work_location_label(String.t() | nil) :: String.t() | nil
   def work_location_label(nil), do: nil
 

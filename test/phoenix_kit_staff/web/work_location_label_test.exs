@@ -15,4 +15,11 @@ defmodule PhoenixKitStaff.Web.WorkLocationLabelTest do
     gone = Ecto.UUID.generate()
     assert Helpers.work_location_label(gone) == gone
   end
+
+  test "a history resolves each distinct location once, keyed by the stored value" do
+    gone = Ecto.UUID.generate()
+
+    assert Helpers.work_location_labels([nil, "HQ", gone, "HQ", gone]) ==
+             %{"HQ" => "HQ", gone => gone}
+  end
 end
