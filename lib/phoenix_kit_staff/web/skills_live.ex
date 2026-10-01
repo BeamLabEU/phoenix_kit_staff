@@ -20,12 +20,7 @@ defmodule PhoenixKitStaff.Web.SkillsLive do
      |> assign(Helpers.section_assigns())
      |> assign(
        page_title: gettext("Skills"),
-       page_subtitle: gettext("Skills you can assign to staff."),
-       page_action: %{
-         icon: "hero-plus",
-         label: gettext("New skill"),
-         navigate: Paths.new_skill()
-       }
+       page_subtitle: gettext("Skills you can assign to staff.")
      )
      |> load_skills()}
   end
@@ -81,69 +76,81 @@ defmodule PhoenixKitStaff.Web.SkillsLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <%= if @skills == [] do %>
-        <.empty_state icon="hero-academic-cap" title={gettext("No skills yet.")}>
-          <:cta>
-            <.link navigate={Paths.new_skill()} class="link link-primary text-sm">
-              {gettext("Create your first")}
-            </.link>
-          </:cta>
-        </.empty_state>
-      <% else %>
-        <div class="card bg-base-100 shadow">
-          <div class="card-body p-0">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}</th>
-                  <th>{gettext("People")}</th>
-                  <th class="text-right w-px whitespace-nowrap">{Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr :for={skill <- @skills} class="hover">
-                  <td>
-                    <.link navigate={Paths.skill(skill.uuid)} class="link link-hover font-medium">
-                      {Skill.localized_name(skill, @lang)}
-                    </.link>
-                  </td>
-                  <td>{Map.get(@person_counts, skill.uuid, 0)}</td>
-                  <td class="text-right w-px whitespace-nowrap">
-                    <.table_row_menu id={"skill-menu-#{skill.uuid}"}>
-                      <.table_row_menu_link
-                        navigate={Paths.skill(skill.uuid)}
-                        icon="hero-eye"
-                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "View")}
-                      />
-                      <.table_row_menu_link
-                        navigate={Paths.edit_skill(skill.uuid)}
-                        icon="hero-pencil"
-                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
-                        variant="secondary"
-                      />
-                      <.table_row_menu_divider />
-                      <.table_row_menu_button
-                        phx-click="delete"
-                        phx-value-uuid={skill.uuid}
-                        phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
-                        data-confirm={
-                          gettext("Delete skill %{name}? It will be removed from %{count} people.",
-                            name: Skill.localized_name(skill, @lang),
-                            count: Map.get(@person_counts, skill.uuid, 0)
-                          )
-                        }
-                        icon="hero-trash"
-                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "Delete")}
-                        variant="error"
-                      />
-                    </.table_row_menu>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      <% end %>
+      <.table_default id="skills-list" items={@skills} variant="zebra" size="sm">
+        <:toolbar_primary>
+          <.button
+            size="sm"
+            navigate={Paths.new_skill()}
+            title={gettext("New skill")}
+            aria-label={gettext("New skill")}
+          >
+            <.icon name="hero-plus" class="h-4 w-4" />
+            <span class="hidden sm:inline">{gettext("New skill")}</span>
+          </.button>
+        </:toolbar_primary>
+        <.table_default_header>
+          <.table_default_row>
+          <.table_default_header_cell>{Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}</.table_default_header_cell>
+          <.table_default_header_cell>{gettext("People")}</.table_default_header_cell>
+          <.table_default_header_cell class="text-right w-px whitespace-nowrap">
+            {Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}
+          </.table_default_header_cell>
+          </.table_default_row>
+        </.table_default_header>
+        <.table_default_body>
+          <.table_default_row :if={@skills == []}>
+            <.table_default_cell colspan={3}>
+              <.empty_state icon="hero-academic-cap" title={gettext("No skills yet.")}>
+                <:cta>
+                  <.button size="sm" navigate={Paths.new_skill()}>
+                    {gettext("Create your first skill")}
+                  </.button>
+                </:cta>
+              </.empty_state>
+            </.table_default_cell>
+          </.table_default_row>
+          <.table_default_row :for={skill <- @skills}>
+          <.table_default_cell>
+              <.link navigate={Paths.skill(skill.uuid)} class="link link-hover font-medium">
+                {Skill.localized_name(skill, @lang)}
+              </.link>
+          </.table_default_cell>
+          <.table_default_cell>
+            {Map.get(@person_counts, skill.uuid, 0)}
+          </.table_default_cell>
+          <.table_default_cell class="text-right w-px whitespace-nowrap">
+              <.table_row_menu id={"skill-menu-#{skill.uuid}"}>
+                <.table_row_menu_link
+                  navigate={Paths.skill(skill.uuid)}
+                  icon="hero-eye"
+                  label={Gettext.gettext(PhoenixKitWeb.Gettext, "View")}
+                />
+                <.table_row_menu_link
+                  navigate={Paths.edit_skill(skill.uuid)}
+                  icon="hero-pencil"
+                  label={Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
+                  variant="secondary"
+                />
+                <.table_row_menu_divider />
+                <.table_row_menu_button
+                  phx-click="delete"
+                  phx-value-uuid={skill.uuid}
+                  phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
+                  data-confirm={
+                    gettext("Delete skill %{name}? It will be removed from %{count} people.",
+                    name: Skill.localized_name(skill, @lang),
+                    count: Map.get(@person_counts, skill.uuid, 0)
+                  )
+                  }
+                  icon="hero-trash"
+                  label={Gettext.gettext(PhoenixKitWeb.Gettext, "Delete")}
+                  variant="error"
+                />
+              </.table_row_menu>
+          </.table_default_cell>
+          </.table_default_row>
+        </.table_default_body>
+      </.table_default>
     </div>
     """
   end

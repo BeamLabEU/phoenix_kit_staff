@@ -239,7 +239,7 @@ defmodule PhoenixKitStaff.Web.ListingLvsTest do
     test "clear returns to the bare, unfiltered path", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/en/admin/staff/people?q=ann&status=active")
 
-      view |> element("button[phx-click='clear']") |> render_click()
+      view |> element("#people-filter-clear") |> render_click()
 
       path = assert_patch(view)
       assert path == "/en/admin/staff/people"

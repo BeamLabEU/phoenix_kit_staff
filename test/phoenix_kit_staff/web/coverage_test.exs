@@ -530,7 +530,7 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
       # Then click Clear.
       html =
         view
-        |> element("button[phx-click='clear']")
+        |> element("#people-filter-clear")
         |> render_click()
 
       refute html =~ "specific-search-term"

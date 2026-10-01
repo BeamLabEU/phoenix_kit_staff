@@ -20,12 +20,7 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
      |> assign(Helpers.section_assigns())
      |> assign(
        page_title: gettext("Departments"),
-       page_subtitle: gettext("Top-level organizational units."),
-       page_action: %{
-         icon: "hero-plus",
-         label: gettext("New department"),
-         navigate: Paths.new_department()
-       }
+       page_subtitle: gettext("Top-level organizational units.")
      )
      |> load_departments()}
   end
@@ -84,67 +79,81 @@ defmodule PhoenixKitStaff.Web.DepartmentsLive do
 
     ~H"""
     <div class="flex flex-col w-full px-4 py-6 gap-4">
-      <%= if @departments == [] do %>
-        <.empty_state icon="hero-building-office-2" title={gettext("No departments yet.")}>
-          <:cta>
-            <.link navigate={Paths.new_department()} class="link link-primary text-sm">
-              {gettext("Create your first")}
-            </.link>
-          </:cta>
-        </.empty_state>
-      <% else %>
-        <div class="card bg-base-100 shadow">
-          <div class="card-body p-0">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>{Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}</th>
-                  <th>{gettext("Teams")}</th>
-                  <th class="text-right w-px whitespace-nowrap">{Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr :for={dept <- @departments} class="hover">
-                  <td>
-                    <.link navigate={Paths.department(dept.uuid)} class="link link-hover font-medium">
-                      {Department.localized_name(dept, @lang)}
-                    </.link>
-                    <div :if={dept.description} class="text-xs text-base-content/60 truncate max-w-md">
-                      {Department.localized_description(dept, @lang)}
-                    </div>
-                  </td>
-                  <td>{length(dept.teams)}</td>
-                  <td class="text-right w-px whitespace-nowrap">
-                    <.table_row_menu id={"dept-menu-#{dept.uuid}"}>
-                      <.table_row_menu_link
-                        navigate={Paths.department(dept.uuid)}
-                        icon="hero-eye"
-                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "View")}
-                      />
-                      <.table_row_menu_link
-                        navigate={Paths.edit_department(dept.uuid)}
-                        icon="hero-pencil"
-                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
-                        variant="secondary"
-                      />
-                      <.table_row_menu_divider />
-                      <.table_row_menu_button
-                        phx-click="delete"
-                        phx-value-uuid={dept.uuid}
-                        phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
-                        data-confirm={gettext("Delete department %{name}? This will also delete its teams and memberships.", name: Department.localized_name(dept, @lang))}
-                        icon="hero-trash"
-                        label={Gettext.gettext(PhoenixKitWeb.Gettext, "Delete")}
-                        variant="error"
-                      />
-                    </.table_row_menu>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      <% end %>
+      <.table_default id="departments-list" items={@departments} variant="zebra" size="sm">
+        <:toolbar_primary>
+          <.button
+            size="sm"
+            navigate={Paths.new_department()}
+            title={gettext("New department")}
+            aria-label={gettext("New department")}
+          >
+            <.icon name="hero-plus" class="h-4 w-4" />
+            <span class="hidden sm:inline">{gettext("New department")}</span>
+          </.button>
+        </:toolbar_primary>
+        <.table_default_header>
+          <.table_default_row>
+          <.table_default_header_cell>{Gettext.gettext(PhoenixKitWeb.Gettext, "Name")}</.table_default_header_cell>
+          <.table_default_header_cell>{gettext("Teams")}</.table_default_header_cell>
+          <.table_default_header_cell class="text-right w-px whitespace-nowrap">
+            {Gettext.gettext(PhoenixKitWeb.Gettext, "Actions")}
+          </.table_default_header_cell>
+          </.table_default_row>
+        </.table_default_header>
+        <.table_default_body>
+          <.table_default_row :if={@departments == []}>
+            <.table_default_cell colspan={3}>
+              <.empty_state icon="hero-building-office-2" title={gettext("No departments yet.")}>
+                <:cta>
+                  <.button size="sm" navigate={Paths.new_department()}>
+                    {gettext("Create your first department")}
+                  </.button>
+                </:cta>
+              </.empty_state>
+            </.table_default_cell>
+          </.table_default_row>
+          <.table_default_row :for={dept <- @departments}>
+          <.table_default_cell>
+              <.link navigate={Paths.department(dept.uuid)} class="link link-hover font-medium">
+                {Department.localized_name(dept, @lang)}
+              </.link>
+              <div :if={dept.description} class="text-xs text-base-content/60 truncate max-w-md">
+                {Department.localized_description(dept, @lang)}
+              </div>
+          </.table_default_cell>
+          <.table_default_cell>
+            {length(dept.teams)}
+          </.table_default_cell>
+          <.table_default_cell class="text-right w-px whitespace-nowrap">
+              <.table_row_menu id={"dept-menu-#{dept.uuid}"}>
+                <.table_row_menu_link
+                  navigate={Paths.department(dept.uuid)}
+                  icon="hero-eye"
+                  label={Gettext.gettext(PhoenixKitWeb.Gettext, "View")}
+                />
+                <.table_row_menu_link
+                  navigate={Paths.edit_department(dept.uuid)}
+                  icon="hero-pencil"
+                  label={Gettext.gettext(PhoenixKitWeb.Gettext, "Edit")}
+                  variant="secondary"
+                />
+                <.table_row_menu_divider />
+                <.table_row_menu_button
+                  phx-click="delete"
+                  phx-value-uuid={dept.uuid}
+                  phx-disable-with={Gettext.gettext(PhoenixKitWeb.Gettext, "Deleting…")}
+                  data-confirm={
+                    gettext("Delete department %{name}? This will also delete its teams and memberships.", name: Department.localized_name(dept, @lang))
+                  }
+                  icon="hero-trash"
+                  label={Gettext.gettext(PhoenixKitWeb.Gettext, "Delete")}
+                  variant="error"
+                />
+              </.table_row_menu>
+          </.table_default_cell>
+          </.table_default_row>
+        </.table_default_body>
+      </.table_default>
     </div>
     """
   end
