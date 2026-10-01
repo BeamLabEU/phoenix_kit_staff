@@ -90,7 +90,7 @@ defmodule PhoenixKitStaff.LiveCase do
   ## Example
 
       conn = put_test_scope(conn, fake_scope())
-      {:ok, view, _} = live(conn, "/en/admin/staff/")
+      {:ok, view, _} = live(conn, "/en/admin/staff/overview")
   """
   def fake_scope(opts \\ []) do
     user_uuid = Keyword.get(opts, :user_uuid, Ecto.UUID.generate())

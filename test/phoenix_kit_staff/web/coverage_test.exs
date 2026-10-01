@@ -362,7 +362,7 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
 
       _unassigned = fixture_person()
 
-      {:ok, _view, html} = live(conn, "/en/admin/staff/")
+      {:ok, _view, html} = live(conn, "/en/admin/staff/overview")
 
       # Tree contains both depts, the team, and the people categories.
       assert html =~ "Engineering"
@@ -377,7 +377,7 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
 
       _person = fixture_person(%{"date_of_birth" => Date.to_string(dob)})
 
-      {:ok, _view, html} = live(conn, "/en/admin/staff/")
+      {:ok, _view, html} = live(conn, "/en/admin/staff/overview")
 
       # The section only renders when `upcoming_birthdays/1` returns rows, so
       # its heading is the assertion — not the page subtitle, which is always
@@ -386,7 +386,7 @@ defmodule PhoenixKitStaff.Web.CoverageTest do
     end
 
     test "PubSub broadcast triggers reload (handle_info {:staff, _, _} branch)", %{conn: conn} do
-      {:ok, view, _initial} = live(conn, "/en/admin/staff/")
+      {:ok, view, _initial} = live(conn, "/en/admin/staff/overview")
 
       _new_dept =
         fixture_department(%{"name" => "Marketing-#{System.unique_integer([:positive])}"})

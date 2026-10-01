@@ -28,7 +28,9 @@ defmodule PhoenixKitStaff.Test.Router do
     live_session :staff_test,
       layout: {PhoenixKitStaff.Test.Layouts, :app},
       on_mount: {PhoenixKitStaff.Test.Hooks, :assign_scope} do
-      live("/", OverviewLive, :index)
+      # Mirrors admin_tabs/0: the module root is the people list.
+      live("/", PeopleLive, :index)
+      live("/overview", OverviewLive, :index)
 
       live("/departments", DepartmentsLive, :index)
       live("/departments/new", DepartmentFormLive, :new)

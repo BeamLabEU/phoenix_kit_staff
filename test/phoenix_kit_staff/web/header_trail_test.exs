@@ -50,19 +50,23 @@ defmodule PhoenixKitStaff.Web.HeaderTrailTest do
 
   defp staff, do: {"Staff", Paths.index()}
 
-  test "the Overview is the landing page: the module is the title, no section", %{conn: conn} do
-    {:ok, view, _} = live(conn, Paths.index())
-    assert title(view) == "Staff"
-    assert section(view) == nil
-    refute has_element?(view, "#test-page-crumbs a")
+  # Clicking Staff in the sidebar lands on the people list (the boss's
+  # call), and a bare /staff renders the same page.
+  test "the Staff list is the landing page: the module is the title, no section", %{conn: conn} do
+    for path <- [Paths.index(), Paths.people()] do
+      {:ok, view, _} = live(conn, path)
+      assert title(view) == "Staff"
+      assert section(view) == nil, path
+      refute has_element?(view, "#test-page-crumbs a")
+    end
   end
 
   test "list pages carry the module as their section", %{conn: conn} do
     for {path, expected} <- [
           {Paths.departments(), "Departments"},
           {Paths.teams(), "Teams"},
-          {Paths.people(), "Staff"},
-          {Paths.skills(), "Skills"}
+          {Paths.skills(), "Skills"},
+          {Paths.overview(), "Overview"}
         ] do
       {:ok, view, _} = live(conn, path)
       assert section(view) == staff()

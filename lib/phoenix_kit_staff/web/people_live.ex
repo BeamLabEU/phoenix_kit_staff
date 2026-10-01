@@ -32,7 +32,7 @@ defmodule PhoenixKitStaff.Web.PeopleLive do
     # state with the defaults.
     {:ok,
      socket
-     |> assign(Helpers.section_assigns())
+     # The module's landing page: its title is the module, so no section.
      |> assign(
        page_title: gettext("Staff"),
        page_subtitle: gettext("Everyone on staff, linked to their PhoenixKit user."),

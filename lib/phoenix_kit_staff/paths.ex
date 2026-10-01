@@ -9,9 +9,13 @@ defmodule PhoenixKitStaff.Paths do
 
   @base "/admin/staff"
 
-  @doc "Staff dashboard root."
+  @doc "The module root — it lands on the people list."
   @spec index() :: String.t()
   def index, do: Routes.path(@base)
+
+  @doc "The overview dashboard."
+  @spec overview() :: String.t()
+  def overview, do: Routes.path("#{@base}/overview")
 
   # Departments
   @doc "Departments index."
