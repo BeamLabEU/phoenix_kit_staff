@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.10.0 - 2026-10-01
+
+### Changed
+
+- Requires `phoenix_kit` `>= 2.43.0 and < 3.0.0` (the pages fill core's `table_default` `:toolbar_primary` and `form_section` `:actions` slots, first shipped in 2.43.0).
+- Clicking Staff in the sidebar lands on the people list (a bare `/admin/staff` renders it too); the Overview moved to `/admin/staff/overview`, and person pages no longer repeat a "Staff" crumb.
+- Every list's create button sits in its table's toolbar. Lists, forms and detail pages (people, teams, departments, skills, person tabs) are rebuilt on core's table, form-section, form-actions, status-badge and empty-state components; empty lists render inside the table with a call to action.
+- Schema validation messages and status labels moved onto the module's own gettext backend, keeping core's backend for the strings core already translates.
+
+### Added
+
+- A department page's "New team" opens the team form with that department preselected (`?department=<uuid>`; unknown values are ignored).
+- A person's work location shows its name, not its uuid, on the person page and the employment timeline (one lookup per distinct location).
+- `Paths.overview/0` and `Paths.new_team/1`.
+- `test/core_slots_conformance_test.exs`: fails with a clear message when the resolved core lacks a slot the pages fill.
+
 ## 0.9.0 - 2026-09-26
 
 ### Changed

@@ -12,18 +12,20 @@ defmodule PhoenixKitStaff.CorePinConformanceTest do
   outright, with no degraded mode. Nothing else in this repo's own test run
   would notice, which is why the check is a test rather than a convention.
 
-  The floor is `>= 2.38.0 and < 3.0.0`: the module runs on core's shared
-  toolkits (`PhoenixKitWeb.Actor`, `Activity.log/3`, `Storage.ResourceFolders`,
-  the reorganizer's `ResourceSource`, `Utils.Format`), all first shipped in
-  core 2.38.0, and does not compile without them. Before that it was `~> 2.0`:
-  core 2.0.0 squashed the migration chain to a V135 floor and the module was
-  verified only against that baseline.
+  The floor is `>= 2.43.0 and < 3.0.0`: the pages fill core's `table_default`
+  `:toolbar_primary` and `form_section` `:actions` slots, first shipped in core
+  2.43.0 (a lower core warns at compile time and crashes at render), and the
+  module runs on the shared toolkits from 2.38.0 (`PhoenixKitWeb.Actor`,
+  `Activity.log/3`, `Storage.ResourceFolders`, the reorganizer's
+  `ResourceSource`, `Utils.Format`). Before 2.38 it was `~> 2.0`: core 2.0.0
+  squashed the migration chain to a V135 floor and the module was verified only
+  against that baseline.
   """
 
-  @must_admit ["2.38.0", "2.38.1", "2.39.0", "2.99.4"]
-  @must_reject ["1.7.236", "2.0.0", "2.9.4", "2.24.0", "2.37.5", "3.0.0"]
+  @must_admit ["2.43.0", "2.43.1", "2.44.0", "2.99.4"]
+  @must_reject ["1.7.236", "2.0.0", "2.9.4", "2.24.0", "2.38.0", "2.42.1", "3.0.0"]
 
-  test "the :phoenix_kit requirement admits every core >= 2.38.0 minor and nothing else" do
+  test "the :phoenix_kit requirement admits every core >= 2.43.0 minor and nothing else" do
     requirement = core_requirement()
 
     assert match?({:ok, _parsed}, Version.parse_requirement(requirement)),
@@ -34,7 +36,7 @@ defmodule PhoenixKitStaff.CorePinConformanceTest do
              "`:phoenix_kit` requirement #{inspect(requirement)} rejects core #{version}. " <>
                "A pin that excludes a core minor breaks `mix deps.get` for every host " <>
                "running this module alongside that core. Keep the floor patch-precise " <>
-               "and the ceiling open (`>= 2.38.0 and < 3.0.0`), never a three-segment `~>`."
+               "and the ceiling open (`>= 2.43.0 and < 3.0.0`), never a three-segment `~>`."
     end
 
     for version <- @must_reject do

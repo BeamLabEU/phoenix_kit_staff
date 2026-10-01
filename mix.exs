@@ -1,7 +1,7 @@
 defmodule PhoenixKitStaff.MixProject do
   use Mix.Project
 
-  @version "0.9.0"
+  @version "0.10.0"
   @source_url "https://github.com/BeamLabEU/phoenix_kit_staff"
 
   def project do
@@ -84,15 +84,17 @@ defmodule PhoenixKitStaff.MixProject do
 
   defp deps do
     [
-      # The floor is 2.38.0: the module runs on core's shared toolkits —
-      # `PhoenixKitWeb.Actor`, `PhoenixKit.Activity.log/3`,
-      # `Storage.ResourceFolders`, the reorganizer's `ResourceSource`,
-      # `Utils.Format` and `mount_multilang(open_on:)` — all first shipped
-      # there, and none is feature-detected, so a lower core fails to compile.
+      # The floor is 2.43.0: the pages fill core's `table_default`
+      # `:toolbar_primary` and `form_section` `:actions` slots, first shipped
+      # there (a lower core warns at compile time and crashes at render), on
+      # top of the shared toolkits from 2.38.0 — `PhoenixKitWeb.Actor`,
+      # `PhoenixKit.Activity.log/3`, `Storage.ResourceFolders`, the
+      # reorganizer's `ResourceSource`, `Utils.Format` and
+      # `mount_multilang(open_on:)`. None is feature-detected.
       # Patch-precise floor in the compound form, so the ceiling stays open
-      # through every later 2.x minor (a three-segment `~> 2.38.0` would pin
+      # through every later 2.x minor (a three-segment `~> 2.43.0` would pin
       # one minor; see test/core_pin_conformance_test.exs).
-      pk_dep(:phoenix_kit, ">= 2.38.0 and < 3.0.0"),
+      pk_dep(:phoenix_kit, ">= 2.43.0 and < 3.0.0"),
       # Hard dep: PersonShowLive embeds the comment thread (Comments tab) and
       # `use PhoenixKitComments.Embed` for the composer's Leaf-event forwarding,
       # both compile-time. `Embed` arrived *mid*-0.2.x — in 0.2.6 — so `~> 0.2`
