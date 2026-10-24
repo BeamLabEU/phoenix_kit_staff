@@ -247,7 +247,7 @@ publish has succeeded.
 
 ## Pull requests & commits
 
-- Commit messages start with an action verb (`Add`, `Update`, `Fix`, `Remove`, `Merge`). No AI attribution and no `Co-Authored-By` trailers.
+- Commit messages start with an action verb (`Add`, `Update`, `Fix`, `Remove`, `Merge`).
 - Version bumps and CHANGELOG entries land with the release commit on upstream, not in feature PRs.
 - Review files live in `dev_docs/pull_requests/{year}/{pr_number}-{slug}/{AGENT}_REVIEW.md`, one file per reviewing agent, never edited by another agent; `FOLLOW_UP.md` records how each finding was resolved. Severities: `BUG - CRITICAL/HIGH/MEDIUM`, `IMPROVEMENT - HIGH/MEDIUM`, `NITPICK`.
 - Every review leaves a paper trail: if feedback was applied before the review file was written, backfill `{AGENT}_REVIEW.md` from the review-fix commits; an "apply review fixes" commit message is not a substitute.
