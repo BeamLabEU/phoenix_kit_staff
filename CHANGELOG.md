@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+### Added
+
+- The module's own migration chain, `PhoenixKitStaff.Migrations`
+  (`migration_module/0`). V1 adopts the seven staff tables core's chain creates,
+  exactly as a fresh core install builds them, and stamps a `pkstf_schema:1`
+  marker. Nothing changes on an existing install but the marker; from now on a
+  change to these tables ships here instead of in core. A test proves the chain
+  builds the tables without core (core's `PhoenixKit.TestSupport.ModuleChainCheck`).
+
 ## 0.10.0 - 2026-10-01
 
 ### Changed

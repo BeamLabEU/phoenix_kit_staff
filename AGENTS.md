@@ -20,7 +20,7 @@ Org-structure backbone for a PhoenixKit host: departments, teams, people (each l
 - No audit history beyond the `PhoenixKit.Activity` feed.
 - No skill categories or grouping (deliberate v1 cut). A span's team is a history snapshot, not membership management. Span `job_title` is edited in the primary language only.
 - No `deleted_at` column: soft-delete is the `status = "trashed"` sentinel (see Conventions).
-- No migrations and no DDL of its own: every table is core-owned (see Database & migrations).
+- Does not change its tables through core. Core's chain still creates them, but their shape is this module's: `PhoenixKitStaff.Migrations` (V1 adopts them) is where every change goes (see Database & migrations).
 - No module-owned media table: Files/Images ride on core Storage folders.
 
 ## Commands
@@ -156,6 +156,7 @@ lib/phoenix_kit_staff/
 ├── departments.ex / teams.ex           # CRUD contexts (list/1, get/1, create/1, update/2, delete/1)
 ├── skills.ex                           # Skill CRUD + person↔skill assignment (sole write path)
 ├── employments.ex                      # Employment spans + sync_current/1 (sole write path)
+├── migrations.ex                       # Own migration chain (V1 adopts the seven core-created tables)
 ├── staff.ex                            # People CRUD, soft-delete, placeholder users, delegators
 ├── staff/memberships.ex                # Team ↔ person join (delegated from Staff)
 ├── staff/org.ex                        # org_tree/0, upcoming_birthdays/1 (delegated from Staff)
@@ -211,13 +212,21 @@ lib/phoenix_kit_staff/
 
 ## Database & migrations
 
-None. Tables `phoenix_kit_staff_{departments, teams, people, team_memberships, skills, person_skills}` ship in core's V135 baseline and `phoenix_kit_staff_employments` in core's V136; `migration_module/0` is unset. A schema change is a core migration first, then schema edits here (run against `PHOENIX_KIT_PATH` until that core release is published). UUIDv7 PKs, `use PhoenixKit.SchemaPrefix` on every table-backed schema.
+Owns a versioned chain: `PhoenixKitStaff.Migrations` via `migration_module/0`, marker `pkstf_schema:<N>` as a `COMMENT ON TABLE` on `phoenix_kit_staff_people` (none reads as 0), currently **V1**. The SQL is data (`up_statements/2`, `down_statements/2`); `up/1` / `down/1` `execute/1` it, so they only work inside an `Ecto.Migration` run. `mix phoenix_kit.update` runs core's chain, then a generated wrapper calling `up(prefix:, version:)`.
+
+- **V1 adopts the seven tables core's chain creates** (`phoenix_kit_staff_{departments, teams, people, team_memberships, skills, person_skills}` from V135, `phoenix_kit_staff_employments` from V136), exactly as a fresh core install builds them, with core's names: `CREATE TABLE IF NOT EXISTS`, guarded `DO $$` constraint blocks, `CREATE INDEX IF NOT EXISTS`. On existing installs only the marker is new; where core no longer creates the tables, the same statements create them.
+- **A change to these tables is a new version here, never a core migration** — core refuses one since V223 (its `PhoenixKit.Migrations.ModuleOwnedTables`; plan: core's `dev_docs/plans/2026-10-25-module-table-ownership.md`). Until core's `ExpectedSchema` hands the tables over, a version that reshapes an object the manifest declares must take it out of the manifest first, or `mix phoenix_kit.repair` restores the old shape; one that only adds objects the manifest never names needs no core step.
+- **Other modules' tables reference these:** `phoenix_kit_projects`' tables carry nine foreign keys to departments, teams and people, so this chain must run before projects' wherever core no longer creates the staff tables.
+- **Never edit a shipped version's statements**: append behind `target >= N` in `up_statements/2` and bump `@current_version`. **`down/1` never drops a table** (`migrations_test.exs` asserts no emitted statement matches `DROP|TRUNCATE|DELETE`).
+- **Proof the chain stands alone:** `test/phoenix_kit_staff/integration/migrations_build_alone_test.exs` runs core's `PhoenixKit.TestSupport.ModuleChainCheck` (core after 2.64.1). `migrations_test.exs` pins every table, index and constraint name, each FK's delete action and prefix threading, and checks the statements against core's manifest.
+
+UUIDv7 PKs, `use PhoenixKit.SchemaPrefix` on every table-backed schema.
 
 ## Testing
 
 Test DB `phoenix_kit_staff_test`. Three levels: unit (`test/phoenix_kit_staff/`, schemas, pure functions, module callbacks; always run), integration (`test/phoenix_kit_staff/integration/`, real PostgreSQL through the Ecto sandbox via `PhoenixKitStaff.DataCase`, tagged `:integration`), LiveView (`test/phoenix_kit_staff/web/`, `PhoenixKitStaff.LiveCase` against the test Endpoint + Router, also `:integration`).
 
-- `test/test_helper.exs` starts the test Repo and builds the schema with `PhoenixKit.Migration.ensure_current/2` on every boot, so newly shipped core migrations apply without a setup step; then starts `PhoenixKit.PubSub.Manager`, `PhoenixKit.Users.RateLimiter.Backend`, pins the URL prefix to `/` and starts the test Endpoint (`server: false`). When `psql` reports no database or the Repo cannot start, `:integration` is excluded and `mix test` still passes. `mix test --exclude integration` runs unit only.
+- `test/test_helper.exs` starts the test Repo and builds the schema with `PhoenixKit.Migration.ensure_current/2` on every boot, so newly shipped core migrations apply without a setup step, and replays `PhoenixKitStaff.Migrations.up_statements/1` when the marker is behind; then starts `PhoenixKit.PubSub.Manager`, `PhoenixKit.Users.RateLimiter.Backend`, pins the URL prefix to `/` and starts the test Endpoint (`server: false`). When `psql` reports no database or the Repo cannot start, `:integration` is excluded and `mix test` still passes. `mix test --exclude integration` runs unit only.
 - Support (`test/support/`): `data_case.ex` (sandbox; `fixture_department/team/person/skill/skill_with_levels/skill_with_selectors/employment`; `errors_on/1`), `live_case.ex` (`fake_scope/1`, `put_test_scope/2`; reuses the fixtures), `activity_log_assertions.ex` (`assert_activity_logged/2`, `refute_activity_logged/2`, imported into both cases), a minimal `Test.Repo`, `Test.Endpoint`, `Test.Router` (scope `/en/admin/staff`, live_session `:staff_test`), `Test.Layouts`, and `Test.Hooks` (`:assign_scope` on_mount).
 - Rules kept as tests: `test/core_pin_conformance_test.exs` (the `:phoenix_kit` pin keeps the compound `>= 2.43.0 and < 3.0.0` form — patch-precise floor, open ceiling; a three-segment pin excludes the next core minor and breaks hosts' `mix deps.get`; a committed `path:` dep fails it too), `test/core_slots_conformance_test.exs` (the resolved core declares the slots the pages fill) and `test/schema_prefix_conformance_test.exs` (every table-backed schema uses `PhoenixKit.SchemaPrefix`).
 - Env honoured (`config/test.exs`): `PGUSER` / `PGPASSWORD` (default `postgres` / `postgres`), `PGHOST`, `PGDATABASE` (overrides the DB name), `PGPOOL` (pool size), `MIX_TEST_PARTITION`. On a brew Postgres without a `postgres` role, run `PGUSER=<your role> mix test`.

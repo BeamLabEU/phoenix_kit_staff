@@ -88,6 +88,14 @@ repo_available =
       # `dev_docs/migration_cleanup.md` for the staleness story.
       PhoenixKit.Migration.ensure_current(TestRepo, log: false)
 
+      # Then this module's own chain (V1 adopts the staff tables core
+      # creates), as `mix phoenix_kit.update` runs it. `up/1` needs an
+      # `Ecto.Migration` run; the SQL is data, so replay it.
+      if PhoenixKitStaff.Migrations.migrated_version_runtime() <
+           PhoenixKitStaff.Migrations.current_version() do
+        Enum.each(PhoenixKitStaff.Migrations.up_statements("public"), &TestRepo.query!/1)
+      end
+
       Ecto.Adapters.SQL.Sandbox.mode(TestRepo, :manual)
       true
     rescue
@@ -137,5 +145,13 @@ if repo_available do
   {:ok, _} = PhoenixKitStaff.Test.Endpoint.start_link()
 end
 
-exclude = if repo_available, do: [], else: [:integration]
+# `migrations_build_alone_test.exs` uses core's
+# `PhoenixKit.TestSupport.ModuleChainCheck`, which the first core release after
+# 2.64.1 ships; against an older core in `deps/` it is excluded.
+chain_check =
+  if Code.ensure_loaded?(PhoenixKit.TestSupport.ModuleChainCheck),
+    do: [],
+    else: [:requires_module_chain_check]
+
+exclude = if repo_available, do: chain_check, else: [:integration | chain_check]
 ExUnit.start(exclude: exclude)

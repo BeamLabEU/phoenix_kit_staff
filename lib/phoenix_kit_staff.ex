@@ -75,6 +75,9 @@ defmodule PhoenixKitStaff do
   def version, do: @version
 
   @impl PhoenixKit.Module
+  def migration_module, do: PhoenixKitStaff.Migrations
+
+  @impl PhoenixKit.Module
   def permission_metadata do
     %{
       key: module_key(),
