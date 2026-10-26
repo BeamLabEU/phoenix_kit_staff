@@ -13,6 +13,8 @@ defmodule PhoenixKitStaff do
   use PhoenixKit.Module
   use Gettext, backend: PhoenixKitStaff.Gettext
 
+  require Logger
+
   @version Mix.Project.config()[:version]
 
   # Tab labels are translated at render time via each `%Tab{}`'s
@@ -83,8 +85,78 @@ defmodule PhoenixKitStaff do
       key: module_key(),
       label: "Staff",
       icon: "hero-users",
-      description: "Manage departments, teams, and staff"
+      description: "Manage departments, teams, and staff",
+      sub_permissions: [
+        # Date of birth, personal email and phone, emergency contact and
+        # private notes are more than the staff directory should show to
+        # everyone who can open it. `migrate_legacy/0` grants this once to
+        # every role that held the base key before it existed.
+        %{
+          key: "view_personal",
+          label: "See and edit personal details",
+          description:
+            "Date of birth, personal email and phone, emergency contact and private notes of staff"
+        }
+      ]
     }
+  end
+
+  @doc """
+  The composed key of the personal-details sub-permission, for
+  `Scope.can?/2`. Without it the people pages hide `Person.personal_fields/0`
+  and a save never writes them.
+  """
+  @spec view_personal_permission() :: String.t()
+  def view_personal_permission, do: module_key() <> ".view_personal"
+
+  # Set once `staff.view_personal` has been carried to the roles that held
+  # the base key before it existed, so it never runs again and an Owner's
+  # revoke sticks.
+  @view_personal_backfill_key "staff_view_personal_backfilled"
+
+  @impl PhoenixKit.Module
+  @doc """
+  One-time data repairs core runs at boot. Grants `staff.view_personal`
+  once to every role that already holds `staff`, so nobody loses the
+  personal details they could see before the key was split out; a role
+  created or granted `staff` later gets the narrow meaning. The flag is set
+  only after every grant succeeded, so a failed pass retries next boot.
+  """
+  def migrate_legacy do
+    if Settings.get_setting(@view_personal_backfill_key) == "true" do
+      {:ok, %{view_personal_backfill: :already_backfilled}}
+    else
+      backfill_view_personal()
+    end
+  rescue
+    e ->
+      Logger.warning("[Staff] view_personal backfill raised: exception=#{inspect(e.__struct__)}")
+
+      {:error, :backfill_failed}
+  end
+
+  defp backfill_view_personal do
+    alias PhoenixKit.Users.{Permissions, Roles}
+
+    key = view_personal_permission()
+
+    results =
+      for role <- Roles.list_roles(),
+          granted = Permissions.get_permissions_for_role(role.uuid),
+          module_key() in granted,
+          key not in granted do
+        Permissions.grant_permission(role.uuid, key, nil)
+      end
+
+    with true <- Enum.all?(results, &match?({:ok, _}, &1)),
+         {:ok, _} <-
+           Settings.update_setting_with_module(@view_personal_backfill_key, "true", module_key()) do
+      {:ok, %{view_personal_backfill: :backfilled}}
+    else
+      _ ->
+        Logger.warning("[Staff] view_personal backfill incomplete; retrying next boot")
+        {:error, :grant_failed}
+    end
   end
 
   @impl PhoenixKit.Module

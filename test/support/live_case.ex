@@ -75,6 +75,19 @@ defmodule PhoenixKitStaff.LiveCase do
   end
 
   @doc """
+  A `fake_scope/1` that also holds `staff.view_personal`, for pages that
+  show or edit personal details. `Scope.can?/2` honours a sub-key only
+  while the module is enabled, so this switches the module on for the test.
+  """
+  def personal_scope(opts \\ []) do
+    {:ok, _} = PhoenixKit.Settings.update_boolean_setting("staff_enabled", true)
+
+    fake_scope(
+      Keyword.put_new(opts, :permissions, ["staff", PhoenixKitStaff.view_personal_permission()])
+    )
+  end
+
+  @doc """
   Returns a real `PhoenixKit.Users.Auth.Scope` struct for testing, wrapping a
   `PhoenixKit.Users.Auth.User` struct that exists only in memory (no DB row).
 

@@ -17,7 +17,9 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
   alias PhoenixKitStaff.{Errors, Staff}
 
   setup %{conn: conn} do
-    scope = fake_scope()
+    # The form renders and saves personal details with this grant; the
+    # narrower case is in view_personal_test.exs.
+    scope = personal_scope()
     conn = put_test_scope(conn, scope)
     {:ok, conn: conn, actor_uuid: scope.user.uuid}
   end

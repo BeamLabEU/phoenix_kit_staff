@@ -21,7 +21,8 @@ defmodule PhoenixKitStaff.CoverageExtrasTest do
   alias PhoenixKitStaff.Web.Helpers
 
   setup %{conn: conn} do
-    scope = fake_scope()
+    # Full renders: the personal-details cards are part of what is covered.
+    scope = personal_scope()
     conn = put_test_scope(conn, scope)
     {:ok, conn: conn, actor_uuid: scope.user.uuid}
   end

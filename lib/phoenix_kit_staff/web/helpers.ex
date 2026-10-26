@@ -34,7 +34,50 @@ defmodule PhoenixKitStaff.Web.Helpers do
 
   require Logger
 
+  alias PhoenixKit.Users.Auth.Scope
   alias PhoenixKitStaff.{Activity, Paths}
+  alias PhoenixKitStaff.Schemas.Person
+
+  @doc """
+  Whether the viewer may see and edit a person's personal details
+  (`Person.personal_fields/0`) — `staff.view_personal`, through
+  `Scope.can?/2`. Read it from the live scope at every write; an assign
+  decides only what is rendered.
+  """
+  @spec can_view_personal?(Phoenix.LiveView.Socket.t()) :: boolean()
+  def can_view_personal?(socket) do
+    Scope.can?(
+      socket.assigns[:phoenix_kit_current_scope],
+      PhoenixKitStaff.view_personal_permission()
+    )
+  end
+
+  @doc """
+  Drops the personal fields — and the per-language `notes` overrides —
+  from submitted person params, for a viewer without `staff.view_personal`.
+  The changeset only casts keys that are present, so the stored values
+  survive the save untouched.
+  """
+  @spec strip_personal_attrs(map()) :: map()
+  def strip_personal_attrs(attrs) when is_map(attrs) do
+    personal = Enum.map(Person.personal_fields(), &Atom.to_string/1)
+
+    attrs
+    |> Map.drop(personal)
+    |> strip_personal_translations(personal)
+  end
+
+  defp strip_personal_translations(%{"translations" => tr} = attrs, personal) when is_map(tr) do
+    stripped =
+      Map.new(tr, fn
+        {lang, fields} when is_map(fields) -> {lang, Map.drop(fields, personal)}
+        other -> other
+      end)
+
+    Map.put(attrs, "translations", stripped)
+  end
+
+  defp strip_personal_translations(attrs, _personal), do: attrs
 
   @doc """
   The header-trail assigns every page of the module shares: the module as

@@ -130,6 +130,17 @@ defmodule PhoenixKitStaff.Schemas.Person do
                emergency_contact_name emergency_contact_phone
                emergency_contact_relationship translations metadata)a
 
+  # Personal details, behind `staff.view_personal`: hidden from every page
+  # and never written by a save from someone without it. `notes` is also
+  # translatable, so its per-language overrides are personal too.
+  @personal_fields ~w(date_of_birth personal_email personal_phone
+                      emergency_contact_name emergency_contact_phone
+                      emergency_contact_relationship notes)a
+
+  @doc "The fields gated on `staff.view_personal` (`PhoenixKitStaff.view_personal_permission/0`)."
+  @spec personal_fields() :: [atom()]
+  def personal_fields, do: @personal_fields
+
   @spec changeset(t() | Ecto.Changeset.t(t()), map()) :: Ecto.Changeset.t(t())
   def changeset(person, attrs) do
     person

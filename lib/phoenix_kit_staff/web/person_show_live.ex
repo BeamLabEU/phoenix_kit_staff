@@ -44,6 +44,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
            page_crumbs: [],
            page_title: Person.display_name(person),
            person: person,
+           can_view_personal: Helpers.can_view_personal?(socket),
            # Resolved once per person load, not on every render.
            work_location_label: Helpers.work_location_label(person.work_location),
            memberships: Staff.list_memberships_for_person(person.uuid),
@@ -581,7 +582,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-2">
               <dt class="text-base-content/60">{gettext("Work email")}</dt>
               <dd class="font-mono text-xs">{@person.user && @person.user.email || "—"}</dd>
-              <%= if @person.personal_email do %>
+              <%= if @can_view_personal and @person.personal_email do %>
                 <dt class="text-base-content/60">{gettext("Personal email")}</dt>
                 <dd class="font-mono text-xs">
                   <a href={"mailto:#{@person.personal_email}"} class="link link-hover">
@@ -593,7 +594,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
                 <dt class="text-base-content/60">{gettext("Work phone")}</dt>
                 <dd><a href={"tel:#{@person.work_phone}"} class="link link-hover">{@person.work_phone}</a></dd>
               <% end %>
-              <%= if @person.personal_phone do %>
+              <%= if @can_view_personal and @person.personal_phone do %>
                 <dt class="text-base-content/60">{gettext("Personal phone")}</dt>
                 <dd><a href={"tel:#{@person.personal_phone}"} class="link link-hover">{@person.personal_phone}</a></dd>
               <% end %>
@@ -601,7 +602,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
     </.form_section>
 
         <%!-- Personal --%>
-        <%= if @person.date_of_birth do %>
+        <%= if @can_view_personal and @person.date_of_birth do %>
           <.form_section title={gettext("Personal")} icon="hero-cake">
     <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-2">
                 <dt class="text-base-content/60">{gettext("Birthday")}</dt>
@@ -611,7 +612,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
         <% end %>
 
         <%!-- Emergency contact --%>
-        <%= if has_any?(@person, [:emergency_contact_name, :emergency_contact_phone, :emergency_contact_relationship]) do %>
+        <%= if @can_view_personal and has_any?(@person, [:emergency_contact_name, :emergency_contact_phone, :emergency_contact_relationship]) do %>
           <.form_section title={gettext("Emergency contact")} icon="hero-shield-exclamation">
     <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-2">
                 <%= if @person.emergency_contact_name do %>
@@ -702,7 +703,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
         <%!-- Admin notes — legacy, read-only (the editable field moved
              to the Comments tab). Self-hides when the person has none. --%>
-        <%= if @person.notes do %>
+        <%= if @can_view_personal and @person.notes do %>
           <div class="card bg-warning/10 border border-warning/30 shadow-sm">
             <div class="card-body">
               <h2 class="card-title text-base text-warning-content">

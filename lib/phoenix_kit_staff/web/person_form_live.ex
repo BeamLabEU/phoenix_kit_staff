@@ -24,6 +24,9 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   def mount(params, _session, socket) do
     {:ok,
      socket
+     # Decides only whether the personal inputs render; every save re-checks
+     # the live scope (`Helpers.can_view_personal?/1`).
+     |> assign(can_view_personal: Helpers.can_view_personal?(socket))
      |> mount_multilang(
        open_on: if(socket.assigns.live_action == :edit, do: :viewing_language, else: :primary)
      )
@@ -125,11 +128,16 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   # DOM didn't include. Same shape as Department / Team forms.
   # `metadata` is server-owned — the avatar pointer, the trash stash — and
   # the changeset replaces it whole: never from a form.
+  # Personal details are dropped for a viewer without `staff.view_personal`,
+  # so a crafted save can neither write nor wipe them.
   defp merge_attrs(attrs, socket) do
     in_flight = Helpers.in_flight_record(socket, :form, :person)
 
     attrs
     |> Map.delete("metadata")
+    |> then(
+      &if(Helpers.can_view_personal?(socket), do: &1, else: Helpers.strip_personal_attrs(&1))
+    )
     |> Helpers.merge_translations_attrs(in_flight, Person.translatable_fields())
   end
 
@@ -830,9 +838,11 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
 
             <div class="grid grid-cols-2 gap-2">
               <.input field={@form[:work_phone]} label={gettext("Work phone")} placeholder={gettext("+372 ...")} />
-              <.input field={@form[:personal_phone]} label={gettext("Personal phone")} placeholder={gettext("+372 ...")} />
+              <.input :if={@can_view_personal} field={@form[:personal_phone]} label={gettext("Personal phone")} placeholder={gettext("+372 ...")} />
             </div>
 
+            <%!-- Personal details: only with `staff.view_personal`. --%>
+            <%= if @can_view_personal do %>
             <.section_header icon="hero-cake" title={gettext("Personal")} />
 
             <.input field={@form[:date_of_birth]} label={gettext("Date of birth")} type="date" />
@@ -854,6 +864,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
               />
             </div>
             <.input field={@form[:emergency_contact_phone]} label={gettext("Phone")} placeholder={gettext("+372 ...")} />
+            <% end %>
 
             <.section_header icon="hero-academic-cap" title={gettext("Skills")} />
 
