@@ -184,4 +184,38 @@ defmodule PhoenixKitStaff.Web.ViewPersonalTest do
       assert Staff.get_person(person.uuid).personal_email == "changed@example.com"
     end
   end
+
+  describe "grant revoked mid-session" do
+    # A "validate" sent while the viewer held the key stages personal values
+    # in the form's changeset; the merge would otherwise preserve them into a
+    # save made after the grant is gone.
+    test "staged personal values never reach the database", %{conn: conn} do
+      person = fixture_person(@personal)
+
+      {:ok, view, _html} =
+        conn
+        |> put_test_scope(personal_scope())
+        |> live("/en/admin/staff/people/#{person.uuid}/edit")
+
+      render_change(view, "validate", %{
+        "person" => %{
+          "notes" => "staged while held",
+          "personal_email" => "staged@example.com",
+          "translations" => %{"et-EE" => %{"notes" => "lavastatud"}}
+        },
+        "email" => ""
+      })
+
+      swap_scope(view, fake_scope(permissions: ["staff"]))
+
+      render_submit(view, "save", %{
+        "person" => %{"status" => "active", "name" => "Renamed after revoke"},
+        "email" => ""
+      })
+
+      reloaded = assert_personal_intact(person)
+      assert reloaded.name == "Renamed after revoke"
+      refute get_in(reloaded.translations, ["et-EE", "notes"])
+    end
+  end
 end

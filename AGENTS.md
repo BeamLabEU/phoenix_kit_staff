@@ -209,7 +209,8 @@ lib/phoenix_kit_staff/
 
 - Permission key `"staff"` (`permission_metadata/0`: label Staff, icon `hero-users`) on every tab; LiveView events trust the mount-level check.
 - Sub-permission `"staff.view_personal"` (`PhoenixKitStaff.view_personal_permission/0`) gates `Person.personal_fields/0` — date of birth, personal email and phone, emergency contact, `notes` and its translations. Without it `PersonShowLive` hides them, `OverviewLive` drops upcoming birthdays, and `PersonFormLive` renders no personal inputs and strips them from every submitted save (`Web.Helpers.strip_personal_attrs/1`, re-checked against the live scope), so a save neither writes nor wipes them. Check it with `Web.Helpers.can_view_personal?/1`, never by list membership. A new page or API that shows a person must gate those fields too.
-- `migrate_legacy/0` grants `staff.view_personal` once to every role holding `staff`, flagged by `staff_view_personal_backfilled` (set only after every grant succeeded).
+- `migrate_legacy/0` grants `staff.view_personal` once to every role holding `staff`, flagged by `staff_view_personal_backfilled` (set only after every grant succeeded). It reads grants with its own raising query (`roles_lacking/2`), never core's `Permissions.get_permissions_for_role/1`, which rescues to `[]` and would set the flag after a failed lookup.
+- `PersonFormLive.merge_attrs/2` strips personal fields twice for a viewer without the key: before the translations merge and after it (`Web.Helpers.keep_stored_personal/2`), because the merge preserves fields and translations from the in-flight changeset, which an earlier "validate" may have filled while the key was still held.
 - Setting `staff_enabled` (boolean), toggled from Admin → Modules; read by `enabled?/0`.
 
 ## Database & migrations

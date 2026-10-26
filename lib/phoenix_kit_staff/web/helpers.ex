@@ -80,6 +80,45 @@ defmodule PhoenixKitStaff.Web.Helpers do
   defp strip_personal_translations(attrs, _personal), do: attrs
 
   @doc """
+  After the translations merge, for a viewer without `staff.view_personal`:
+  drops the personal fields the merge preserved from the in-flight record
+  and puts each language's `notes` override back to what `person` stores,
+  so nothing staged earlier in the session reaches the database.
+  """
+  @spec keep_stored_personal(map(), Person.t()) :: map()
+  def keep_stored_personal(attrs, %Person{} = person) when is_map(attrs) do
+    personal = Enum.map(Person.personal_fields(), &Atom.to_string/1)
+    stored = person.translations || %{}
+    attrs = Map.drop(attrs, personal)
+
+    case attrs do
+      %{"translations" => tr} when is_map(tr) ->
+        restored =
+          Map.new(tr, fn
+            {lang, fields} when is_map(fields) ->
+              {lang, restore_lang_personal(fields, Map.get(stored, lang) || %{}, personal)}
+
+            other ->
+              other
+          end)
+
+        Map.put(attrs, "translations", restored)
+
+      _ ->
+        attrs
+    end
+  end
+
+  defp restore_lang_personal(fields, stored_fields, personal) do
+    Enum.reduce(personal, fields, fn key, acc ->
+      case Map.fetch(stored_fields, key) do
+        {:ok, value} -> Map.put(acc, key, value)
+        :error -> Map.delete(acc, key)
+      end
+    end)
+  end
+
+  @doc """
   The header-trail assigns every page of the module shares: the module as
   `page_section`, linking to its landing page (the people list). The people
   list itself sets none — there the module is the title — and person pages

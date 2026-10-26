@@ -10,6 +10,7 @@ defmodule PhoenixKitStaff.Integration.ViewPersonalBackfillTest do
   alias PhoenixKit.ModuleRegistry
   alias PhoenixKit.Settings
   alias PhoenixKit.Users.{Permissions, Roles}
+  alias PhoenixKitStaff.Test.Repo, as: TestRepo
 
   @flag "staff_view_personal_backfilled"
   @sub "staff.view_personal"
@@ -75,5 +76,19 @@ defmodule PhoenixKitStaff.Integration.ViewPersonalBackfillTest do
   test "the sub-key is declared on the module" do
     %{sub_permissions: subs} = PhoenixKitStaff.permission_metadata()
     assert Enum.any?(subs, &(&1.key == "view_personal"))
+  end
+
+  # Core's `get_permissions_for_role/1` rescues a query error to `[]`, which
+  # would read as "nobody holds the base key" and set the flag for good.
+  test "a failed grant lookup is an error, and the flag stays unset" do
+    _holder = role_with_base!()
+
+    # DDL inside the test's sandbox transaction, undone with it.
+    TestRepo.query!("ALTER TABLE phoenix_kit_role_permissions RENAME TO pk_rp_hidden")
+    result = PhoenixKitStaff.migrate_legacy()
+    TestRepo.query!("ALTER TABLE pk_rp_hidden RENAME TO phoenix_kit_role_permissions")
+
+    assert result == {:error, :lookup_failed}
+    refute Settings.get_setting(@flag) == "true"
   end
 end

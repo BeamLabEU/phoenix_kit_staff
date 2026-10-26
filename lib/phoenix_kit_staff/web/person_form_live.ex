@@ -129,16 +129,19 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   # `metadata` is server-owned — the avatar pointer, the trash stash — and
   # the changeset replaces it whole: never from a form.
   # Personal details are dropped for a viewer without `staff.view_personal`,
-  # so a crafted save can neither write nor wipe them.
+  # so a crafted save can neither write nor wipe them. Twice: before the
+  # merge (submitted values) and after it, because the merge preserves
+  # primary fields and translations from the in-flight changeset — which a
+  # "validate" sent while the viewer still held the key may have filled.
   defp merge_attrs(attrs, socket) do
     in_flight = Helpers.in_flight_record(socket, :form, :person)
+    personal? = Helpers.can_view_personal?(socket)
 
     attrs
     |> Map.delete("metadata")
-    |> then(
-      &if(Helpers.can_view_personal?(socket), do: &1, else: Helpers.strip_personal_attrs(&1))
-    )
+    |> then(&if(personal?, do: &1, else: Helpers.strip_personal_attrs(&1)))
     |> Helpers.merge_translations_attrs(in_flight, Person.translatable_fields())
+    |> then(&if(personal?, do: &1, else: Helpers.keep_stored_personal(&1, socket.assigns.person)))
   end
 
   @impl true

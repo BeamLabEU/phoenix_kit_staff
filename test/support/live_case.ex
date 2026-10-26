@@ -75,6 +75,19 @@ defmodule PhoenixKitStaff.LiveCase do
   end
 
   @doc """
+  Swaps the scope on a mounted LiveView, as core does when a role's grants
+  change while the page is open — for asserting that an event re-checks
+  the live scope rather than a mount-time decision.
+  """
+  def swap_scope(view, scope) do
+    :sys.replace_state(view.pid, fn state ->
+      %{state | socket: Phoenix.Component.assign(state.socket, :phoenix_kit_current_scope, scope)}
+    end)
+
+    :ok
+  end
+
+  @doc """
   A `fake_scope/1` that also holds `staff.view_personal`, for pages that
   show or edit personal details. `Scope.can?/2` honours a sub-key only
   while the module is enabled, so this switches the module on for the test.
