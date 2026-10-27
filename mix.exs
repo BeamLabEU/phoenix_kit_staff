@@ -1,7 +1,7 @@
 defmodule PhoenixKitStaff.MixProject do
   use Mix.Project
 
-  @version "0.10.0"
+  @version "0.11.0"
   @source_url "https://github.com/BeamLabEU/phoenix_kit_staff"
 
   def project do
@@ -102,7 +102,7 @@ defmodule PhoenixKitStaff.MixProject do
       # both compile-time. `Embed` arrived *mid*-0.2.x — in 0.2.6 — so `~> 0.2`
       # was the same defect the core pin above fixes: it admits 0.2.0–0.2.5,
       # where the module doesn't exist and the `use` site fails to compile.
-      pk_dep(:phoenix_kit_comments, "~> 0.3"),
+      pk_dep(:phoenix_kit_comments, "~> 0.5"),
       {:phoenix_live_view, "~> 1.1"},
       {:ecto_sql, "~> 3.13"},
       # Own Gettext backend for staff-specific (domain) UI strings; generic
