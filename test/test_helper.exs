@@ -88,6 +88,10 @@ repo_available =
       # `dev_docs/migration_cleanup.md` for the staleness story.
       PhoenixKit.Migration.ensure_current(TestRepo, log: false)
 
+      # Comments' chain: the person page embeds a comment thread, and
+      # `phoenix_kit_comments` belongs to that module (core 3.0 creates none).
+      Enum.each(PhoenixKitComments.Migrations.up_statements("public"), &TestRepo.query!/1)
+
       # Then this module's own chain (V1 adopts the staff tables core
       # creates), as `mix phoenix_kit.update` runs it. `up/1` needs an
       # `Ecto.Migration` run; the SQL is data, so replay it.
