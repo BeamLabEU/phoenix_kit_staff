@@ -23,6 +23,8 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
      socket
      |> assign(Helpers.section_assigns())
      |> assign(
+       # Birthdays reveal dates of birth: `staff.view_personal` only.
+       can_view_personal: Helpers.can_view_personal?(socket),
        page_title: gettext("Overview"),
        page_subtitle: gettext("Departments, teams, and the people in them.")
      )
@@ -35,7 +37,8 @@ defmodule PhoenixKitStaff.Web.OverviewLive do
       team_count: Teams.count(),
       person_count: Staff.count_people(),
       org_tree: Staff.org_tree(),
-      upcoming_birthdays: Staff.upcoming_birthdays()
+      upcoming_birthdays:
+        if(socket.assigns.can_view_personal, do: Staff.upcoming_birthdays(), else: [])
     )
   end
 

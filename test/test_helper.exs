@@ -132,6 +132,11 @@ Application.put_env(:phoenix_kit_staff, :test_repo_available, repo_available)
 # Mirrors core's `phoenix_kit/test/test_helper.exs:69`.
 {:ok, _pid} = PhoenixKit.Users.RateLimiter.Backend.start_link([])
 
+# `Scope.can?/2` honours a sub-permission (`staff.view_personal`) only while
+# its module is registered and enabled, and granting one validates the key
+# against the registry's declared sub-permissions.
+{:ok, _pid} = PhoenixKit.ModuleRegistry.start_link([])
+
 # Force PhoenixKit's URL prefix cache to "/" for tests so `Paths.index()`
 # etc. produce paths the test router can match. Admin paths always get
 # the default locale ("en") prefix, so our router scope is `/en/admin/staff`.

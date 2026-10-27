@@ -34,7 +34,89 @@ defmodule PhoenixKitStaff.Web.Helpers do
 
   require Logger
 
+  alias PhoenixKit.Users.Auth.Scope
   alias PhoenixKitStaff.{Activity, Paths}
+  alias PhoenixKitStaff.Schemas.Person
+
+  @doc """
+  Whether the viewer may see and edit a person's personal details
+  (`Person.personal_fields/0`) — `staff.view_personal`, through
+  `Scope.can?/2`. Read it from the live scope at every write; an assign
+  decides only what is rendered.
+  """
+  @spec can_view_personal?(Phoenix.LiveView.Socket.t()) :: boolean()
+  def can_view_personal?(socket) do
+    Scope.can?(
+      socket.assigns[:phoenix_kit_current_scope],
+      PhoenixKitStaff.view_personal_permission()
+    )
+  end
+
+  @doc """
+  Drops the personal fields — and the per-language `notes` overrides —
+  from submitted person params, for a viewer without `staff.view_personal`.
+  The changeset only casts keys that are present, so the stored values
+  survive the save untouched.
+  """
+  @spec strip_personal_attrs(map()) :: map()
+  def strip_personal_attrs(attrs) when is_map(attrs) do
+    personal = Enum.map(Person.personal_fields(), &Atom.to_string/1)
+
+    attrs
+    |> Map.drop(personal)
+    |> strip_personal_translations(personal)
+  end
+
+  defp strip_personal_translations(%{"translations" => tr} = attrs, personal) when is_map(tr) do
+    stripped =
+      Map.new(tr, fn
+        {lang, fields} when is_map(fields) -> {lang, Map.drop(fields, personal)}
+        other -> other
+      end)
+
+    Map.put(attrs, "translations", stripped)
+  end
+
+  defp strip_personal_translations(attrs, _personal), do: attrs
+
+  @doc """
+  After the translations merge, for a viewer without `staff.view_personal`:
+  drops the personal fields the merge preserved from the in-flight record
+  and puts each language's `notes` override back to what `person` stores,
+  so nothing staged earlier in the session reaches the database.
+  """
+  @spec keep_stored_personal(map(), Person.t()) :: map()
+  def keep_stored_personal(attrs, %Person{} = person) when is_map(attrs) do
+    personal = Enum.map(Person.personal_fields(), &Atom.to_string/1)
+    stored = person.translations || %{}
+    attrs = Map.drop(attrs, personal)
+
+    case attrs do
+      %{"translations" => tr} when is_map(tr) ->
+        restored =
+          Map.new(tr, fn
+            {lang, fields} when is_map(fields) ->
+              {lang, restore_lang_personal(fields, Map.get(stored, lang) || %{}, personal)}
+
+            other ->
+              other
+          end)
+
+        Map.put(attrs, "translations", restored)
+
+      _ ->
+        attrs
+    end
+  end
+
+  defp restore_lang_personal(fields, stored_fields, personal) do
+    Enum.reduce(personal, fields, fn key, acc ->
+      case Map.fetch(stored_fields, key) do
+        {:ok, value} -> Map.put(acc, key, value)
+        :error -> Map.delete(acc, key)
+      end
+    end)
+  end
 
   @doc """
   The header-trail assigns every page of the module shares: the module as
