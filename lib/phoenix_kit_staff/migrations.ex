@@ -93,16 +93,34 @@ defmodule PhoenixKitStaff.Migrations do
     :exit, _ -> 0
   end
 
-  @doc "Applies every chain version up to `target` (`:version` in `opts`, default `current_version/0`); idempotent."
+  @doc """
+  Applies every chain version up to `target` (`:version` in `opts`, default
+  `current_version/0`); idempotent.
+
+  A database already past `target` is left exactly as it is: nothing is re-run
+  and the marker is not lowered. Modules whose tables reference staff's (projects)
+  run this chain before their own, so on a fresh install it can run ahead of
+  the host's older staff migration file, and that file must not rewind it.
+  """
   def up(opts \\ []) do
     prefix = validated_prefix(opts)
 
     target =
       if is_list(opts), do: Keyword.get(opts, :version, @current_version), else: @current_version
 
-    prefix
-    |> up_statements(target)
-    |> Enum.each(&execute/1)
+    # Built before the guard, so a target this code has no step for is
+    # refused even on a database already past it.
+    statements = up_statements(prefix, target)
+
+    # A chain run earlier in this same migration has only queued its
+    # statements; apply them so the marker read below sees them.
+    flush()
+
+    if migrated_version(prefix: prefix) <= target do
+      Enum.each(statements, &execute/1)
+    end
+
+    :ok
   end
 
   @doc "Rolls back to `target` (`:version` in `opts`). Never drops a table — see the moduledoc."
