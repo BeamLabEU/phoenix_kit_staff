@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.11.1 - 2026-11-05
+
+### Fixed
+
+- **A save from the primary language tab lost what was typed on the other tabs.** Those tabs' values now survive it.
+- **Translations under a dialect code never reached the read pages.** A translation stored as `es-ES` or `fr-FR` now shows on detail pages: reads use the request's dialect instead of the Gettext locale, which is downgraded to a base code. `L10n.language_entry/2` is the one lookup (exact, then base, then a same-base dialect, the last never for a primary-language viewer).
+- A blanked translated field removes its override, and clearing a primary field is no longer undone by a save from a language tab.
+- **Permanently deleting people from the list left their media behind.** The purge now sits in `Staff.delete_person/1` and `Staff.bulk_delete/1`, for the rows actually deleted, so no caller can skip it.
+- The person form no longer accepts `user_uuid` or the employment columns mirrored from the open span from a submitted event, which could re-link a profile to another user. It also saves `translations` on top of the current row, so a form left open cannot write back an old job title.
+- `Staff.rename_placeholder_email/2` re-reads the user, so it cannot overwrite the email of an account claimed since the form opened, and a failed save no longer locks the form.
+- A rejected user change no longer blanks the person form, and the edit form no longer reports a profile conflict for the person's own email.
+- An unknown `primary_department_uuid` is a changeset error instead of a raise.
+- Editing an employment span keeps an inactive work location, and "Add employment" keeps the carried-over location and title translations.
+- The birthday countdown on the person page counts to the real date (on Dec 31 a Jan 31 birthday showed 28 days, not 31).
+- **`PhoenixKitStaff.Migrations.up/1` never lowers the marker.** Projects runs this chain before its own, so on a fresh install staff can already be current when the host's older staff migration file runs. `up/1` now leaves a database already past its target as it is, including one ahead of this code. It refuses a target it has no step for, and flushes before reading the marker, so a chain run earlier in the same migration file counts. No schema change.
+
+### Changed
+
+- `mix test` stops with an error when the schema build fails on a reachable test database, instead of excluding the integration suite and passing. A test database behind core's floor needs `mix test.reset`.
+
 ## 0.11.0 - 2026-10-27
 
 ### Changed
