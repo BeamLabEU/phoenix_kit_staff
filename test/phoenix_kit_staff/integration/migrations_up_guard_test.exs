@@ -64,6 +64,12 @@ defmodule PhoenixKitStaff.Integration.MigrationsUpGuardTest do
     assert marker() == "pkstf_schema:#{newer}"
   end
 
+  test "a target this code has no step for is refused even on a newer database" do
+    run_up(prefix: @prefix)
+
+    assert_raise FunctionClauseError, fn -> run_up(prefix: @prefix, version: 0) end
+  end
+
   test "the same target still replays" do
     run_up(prefix: @prefix, version: 1)
     run_up(prefix: @prefix, version: 1)
