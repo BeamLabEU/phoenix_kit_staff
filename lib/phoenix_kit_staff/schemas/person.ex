@@ -169,6 +169,9 @@ defmodule PhoenixKitStaff.Schemas.Person do
     |> validate_length(:emergency_contact_relationship, max: 100)
     |> L10n.validate_translations()
     |> assoc_constraint(:user)
+    |> foreign_key_constraint(:primary_department_uuid,
+      name: :phoenix_kit_staff_people_primary_department_uuid_fkey
+    )
     |> unique_constraint(:user_uuid,
       name: :phoenix_kit_staff_people_user_index,
       message: gettext("already linked to a person on staff")

@@ -70,7 +70,7 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
     result =
       case socket.assigns.editing_uuid do
         nil ->
-          Employments.create(person.uuid, attrs)
+          Employments.create(person.uuid, carry_over(attrs, socket.assigns.prefill_source))
 
         uuid ->
           case Employments.get(uuid) do
@@ -200,6 +200,19 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
       notes: span.notes,
       employment_start_date: Date.utc_today()
     }
+  end
+
+  # What "Carried over" promises beyond the rendered inputs: the location where
+  # the picker is hidden, and a kept title's translations, which the form does not
+  # edit. Without them the new open span mirrors onto the person and clears both.
+  defp carry_over(attrs, nil), do: attrs
+
+  defp carry_over(attrs, %Employment{} = source) do
+    attrs = Map.put_new(attrs, "work_location", source.work_location)
+
+    if attrs["job_title"] == source.job_title,
+      do: Map.put_new(attrs, "translations", source.translations),
+      else: attrs
   end
 
   defp type_options do
@@ -332,7 +345,7 @@ defmodule PhoenixKitStaff.Web.PersonEmploymentComponent do
               :if={@location_options != []}
               field={@form[:work_location]}
               label={gettext("Work location")}
-              options={@location_options}
+              options={Helpers.location_choices(@location_options, @form[:work_location].value)}
               prompt={Gettext.gettext(PhoenixKitWeb.Gettext, "—")}
             />
 

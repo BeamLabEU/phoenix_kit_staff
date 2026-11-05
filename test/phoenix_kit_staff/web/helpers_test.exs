@@ -238,4 +238,39 @@ defmodule PhoenixKitStaff.Web.HelpersTest do
       )
     end
   end
+
+  describe "location_choices/2" do
+    @options [{"HQ", "hq-uuid"}]
+
+    test "leaves the list alone when the stored value is in it, or blank" do
+      assert Helpers.location_choices(@options, "hq-uuid") == @options
+      assert Helpers.location_choices(@options, nil) == @options
+      assert Helpers.location_choices(@options, "") == @options
+    end
+
+    test "adds a value the active list does not hold, so saving keeps it" do
+      assert Helpers.location_choices(@options, "Old office") ==
+               [{"Old office", "Old office"} | @options]
+    end
+  end
+
+  describe "rebase_translations/3" do
+    test "takes the edited fields from the form and the rest from the stored row" do
+      form = %{"es-ES" => %{"bio" => "new", "job_title" => "stale"}}
+      stored = %{"es-ES" => %{"bio" => "old", "job_title" => "current", "notes" => "kept"}}
+
+      assert Helpers.rebase_translations(form, stored, ["bio"]) ==
+               %{"es-ES" => %{"bio" => "new", "job_title" => "current", "notes" => "kept"}}
+    end
+
+    test "removes an override the form no longer holds, and a language left empty" do
+      assert Helpers.rebase_translations(%{}, %{"es-ES" => %{"bio" => "old"}}, ["bio"]) == %{}
+    end
+
+    test "keeps a language only the stored row has" do
+      stored = %{"ru" => %{"job_title" => "current"}}
+
+      assert Helpers.rebase_translations(%{}, stored, ["bio"]) == stored
+    end
+  end
 end

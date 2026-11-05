@@ -23,9 +23,26 @@ defmodule PhoenixKitStaff.Integration.MigrationsUpGuardTest do
     def up, do: Migrations.up(Process.get(:pkstf_up_opts))
   end
 
-  defp run_up(opts) do
+  # One migration that queues a marker and then calls `up/1`, the shape of a
+  # chain that ran earlier in the same migration file: nothing it queued has
+  # reached the database when `up/1` reads the marker unless `up/1` flushes.
+  defmodule QueuedThenUp do
+    @moduledoc false
+    use Ecto.Migration
+
+    def up do
+      execute(Process.get(:pkstf_queued_sql))
+      Migrations.up(Process.get(:pkstf_up_opts))
+    end
+  end
+
+  defp run_up(opts, module \\ Up) do
     Process.put(:pkstf_up_opts, opts)
-    Runner.run(Repo, Repo.config(), 1, Up, :forward, :up, :up, log: false)
+    Runner.run(Repo, Repo.config(), 1, module, :forward, :up, :up, log: false)
+  end
+
+  defp marker_sql(version) do
+    "COMMENT ON TABLE #{@prefix}.phoenix_kit_staff_people IS 'pkstf_schema:#{version}'"
   end
 
   defp marker do
@@ -57,9 +74,40 @@ defmodule PhoenixKitStaff.Integration.MigrationsUpGuardTest do
     # A later release's marker: what the database holds when a dependent
     # module brought staff current before the host's old staff file runs.
     newer = Migrations.current_version() + 1
-    Repo.query!("COMMENT ON TABLE #{@prefix}.phoenix_kit_staff_people IS 'pkstf_schema:#{newer}'")
+    Repo.query!(marker_sql(newer))
 
     run_up(prefix: @prefix, version: 1)
+
+    assert marker() == "pkstf_schema:#{newer}"
+  end
+
+  # `up_statements/2` clamps a target past this code's chain down to
+  # `current_version/0`, so the marker it writes is the clamped one. A database
+  # ahead of the code must survive that too, or a downgraded release lowers it.
+  test "a target past this code's chain does not lower a newer database's marker" do
+    run_up(prefix: @prefix)
+
+    newer = Migrations.current_version() + 1
+    Repo.query!(marker_sql(newer))
+
+    run_up(prefix: @prefix, version: newer + 1)
+
+    assert marker() == "pkstf_schema:#{newer}"
+  end
+
+  test "a target past this code's chain still stamps the version the code has" do
+    run_up(prefix: @prefix, version: Migrations.current_version() + 5)
+
+    assert marker() == "pkstf_schema:#{Migrations.current_version()}"
+  end
+
+  test "work queued earlier in the same migration is seen before the marker is read" do
+    run_up(prefix: @prefix)
+
+    newer = Migrations.current_version() + 1
+    Process.put(:pkstf_queued_sql, marker_sql(newer))
+
+    run_up([prefix: @prefix, version: 1], QueuedThenUp)
 
     assert marker() == "pkstf_schema:#{newer}"
   end

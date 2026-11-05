@@ -132,4 +132,28 @@ defmodule PhoenixKitStaff.L10nTest do
       assert L10n.valid_translations_shape?(:not_a_map) == false
     end
   end
+
+  describe "language_entry/2" do
+    test "an exact code wins over a base or a sibling" do
+      entries = %{"es-ES" => "exact", "es" => "base", "es-MX" => "sibling"}
+      assert L10n.language_entry(entries, "es-ES") == "exact"
+    end
+
+    test "a dialect viewer reads an entry stored under the base code" do
+      assert L10n.language_entry(%{"es" => "seeded"}, "es-ES") == "seeded"
+    end
+
+    test "a base-code viewer reads an entry stored under a dialect" do
+      assert L10n.language_entry(%{"es-ES" => "typed"}, "es") == "typed"
+    end
+
+    test "a sibling dialect is picked deterministically" do
+      assert L10n.language_entry(%{"en-US" => "us", "en-GB" => "gb"}, "en-AU") == "gb"
+    end
+
+    test "a language with no entry, and a nil language, read as nothing" do
+      assert L10n.language_entry(%{"ru" => "x"}, "es-ES") == nil
+      assert L10n.language_entry(%{"ru" => "x"}, nil) == nil
+    end
+  end
 end

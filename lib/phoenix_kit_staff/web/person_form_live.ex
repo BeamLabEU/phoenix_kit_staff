@@ -9,6 +9,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   require Logger
 
   alias PhoenixKit.Users.Auth
+  alias PhoenixKit.Users.Auth.User
   alias PhoenixKitStaff.{Activity, Errors, L10n, Paths, Skills, Staff, Teams}
   alias PhoenixKitStaff.Schemas.{Person, PersonSkill, Skill}
   alias PhoenixKitStaff.Web.Helpers
@@ -16,6 +17,13 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   # job_title moved to the Employment tab (per-span); bio is the only
   # form-edited translatable field now.
   @translatable_field_atoms [:bio]
+  @translatable_fields Enum.map(@translatable_field_atoms, &Atom.to_string/1)
+
+  # Never taken from this form: `user_uuid` is the locked 1:1 link, the rest
+  # mirror the open employment span (`Employments.sync_current/1`). No input
+  # renders them, so only a crafted event could carry them.
+  @server_owned ~w(user_uuid primary_department_uuid job_title employment_type
+                   employment_start_date employment_end_date work_location)
 
   # How many skill matches to surface in the type-to-search dropdown.
   @skill_match_limit 8
@@ -138,9 +146,9 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     personal? = Helpers.can_view_personal?(socket)
 
     attrs
-    |> Map.delete("metadata")
+    |> Map.drop(["metadata" | @server_owned])
     |> then(&if(personal?, do: &1, else: Helpers.strip_personal_attrs(&1)))
-    |> Helpers.merge_translations_attrs(in_flight, Person.translatable_fields())
+    |> Helpers.merge_translations_attrs(in_flight, @translatable_fields)
     |> then(&if(personal?, do: &1, else: Helpers.keep_stored_personal(&1, socket.assigns.person)))
   end
 
@@ -170,7 +178,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
      |> assign_form(cs)
      |> assign(
        email: email,
-       email_status: email_status(email, socket.assigns.eligible_users),
+       email_status: form_email_status(socket, email),
        selected_team_uuid: blank_to_nil(team_uuid),
        skill_search: search,
        skill_matches:
@@ -246,6 +254,17 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
     # They persist in `sync_skills/2` after the person upsert succeeds.
     save(socket, socket.assigns.live_action, attrs, email, team_uuid)
   end
+
+  # The person's own unchanged email: the lookup would find their user and
+  # report the profile being edited as a conflict.
+  defp form_email_status(
+         %{assigns: %{live_action: :edit, person: %{user: %{email: email}}}},
+         email
+       ),
+       do: :blank
+
+  defp form_email_status(socket, email),
+    do: email_status(email, socket.assigns.eligible_users)
 
   defp email_status("", _), do: :blank
 
@@ -325,10 +344,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
           metadata: %{}
         )
 
-        {:noreply,
-         socket
-         |> Helpers.maybe_switch_to_primary_on_error(cs, @translatable_field_atoms)
-         |> assign_form(cs)}
+        {:noreply, assign_save_error(socket, cs)}
     end
   end
 
@@ -405,7 +421,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   end
 
   defp do_update_person(socket, current, attrs, team_uuid) do
-    case Staff.update_person(current, attrs) do
+    case Staff.update_person(current, rebase_translations(attrs, current)) do
       {:ok, person} ->
         team_result = maybe_add_to_team(socket, person, team_uuid)
 
@@ -440,6 +456,30 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
          |> assign_form(cs)}
     end
   end
+
+  # Core's registration answers with a `User` changeset: it is the email it
+  # refused, and as the form's source it would blank every person input.
+  defp assign_save_error(socket, %Ecto.Changeset{data: %User{}}) do
+    socket
+    |> put_flash(:error, gettext("Not a valid email."))
+    |> assign(:email_status, :invalid)
+  end
+
+  defp assign_save_error(socket, %Ecto.Changeset{} = cs) do
+    socket
+    |> Helpers.maybe_switch_to_primary_on_error(cs, @translatable_field_atoms)
+    |> assign_form(cs)
+  end
+
+  # Only `bio` is this form's. The rest of the map comes from the row re-fetched
+  # for the save: the open span's `job_title` overrides, `notes`.
+  defp rebase_translations(%{"translations" => form} = attrs, %Person{} = current) do
+    translations = Helpers.rebase_translations(form, current.translations, @translatable_fields)
+
+    Map.put(attrs, "translations", translations)
+  end
+
+  defp rebase_translations(attrs, _current), do: attrs
 
   defp maybe_add_to_team(_socket, _person, nil), do: :ok
 

@@ -245,8 +245,8 @@ defmodule PhoenixKitStaff.Web.Helpers do
   that the current secondary-tab DOM didn't render.
 
   `primary_fields` is the list of DB column names (as strings) that are
-  translatable — e.g. `["name", "description"]` for Department,
-  `["job_title", "bio", "skills", "notes"]` for Person.
+  translatable and edited by the form — e.g. `["name", "description"]` for
+  Department, `["bio"]` for Person.
   """
   @spec merge_translations_attrs(map(), struct(), [String.t()]) :: map()
   def merge_translations_attrs(attrs, record, primary_fields) do
@@ -255,58 +255,72 @@ defmodule PhoenixKitStaff.Web.Helpers do
     |> preserve_primary_fields(record, primary_fields)
   end
 
+  # The primary tab renders no translation inputs, so a save from it submits
+  # none: the in-flight map is what the admin typed on the other tabs. Unchanged,
+  # it casts to no change.
   defp merge_translations_map(attrs, record) do
+    existing = Map.get(record, :translations) || %{}
+
     case Map.get(attrs, "translations") do
       submitted when is_map(submitted) and submitted != %{} ->
-        cleaned = clean_submitted_translations(submitted)
-        existing = Map.get(record, :translations) || %{}
-        merged = deep_merge_translations(existing, cleaned)
-        Map.put(attrs, "translations", merged)
+        Map.put(attrs, "translations", apply_submitted_translations(existing, submitted))
+
+      _ when existing == %{} ->
+        Map.delete(attrs, "translations")
 
       _ ->
-        Map.delete(attrs, "translations")
+        Map.put(attrs, "translations", existing)
     end
   end
 
-  # Strips Phoenix LV's `_unused_*` sentinel keys and drops
-  # empty-string overrides so that clearing a secondary-tab field
-  # falls back cleanly to the primary value at render time, rather
-  # than persisting a `""` that the localized-read helpers would
-  # have to special-case.
-  defp clean_submitted_translations(submitted) when is_map(submitted) do
-    submitted
-    |> Enum.map(fn {lang, fields} -> {lang, clean_lang_fields(fields)} end)
-    |> Enum.reject(fn {_lang, fields} -> fields == %{} end)
-    |> Map.new()
-  end
+  # A submitted value replaces its override and a blank one removes it, so
+  # clearing a secondary-tab field falls back to the primary value at render
+  # time rather than persisting a `""`. A language left with nothing goes too.
+  defp apply_submitted_translations(existing, submitted) do
+    Enum.reduce(submitted, existing, fn {lang, fields}, acc ->
+      lang_map =
+        fields
+        |> submitted_fields()
+        |> Enum.reduce(Map.get(acc, lang) || %{}, fn
+          {field, blank}, lang_map when blank in ["", nil] -> Map.delete(lang_map, field)
+          {field, value}, lang_map -> Map.put(lang_map, field, value)
+        end)
 
-  defp clean_lang_fields(fields) when is_map(fields) do
-    fields
-    |> Enum.reject(fn
-      {"_unused_" <> _, _} -> true
-      {_k, ""} -> true
-      {_k, nil} -> true
-      _ -> false
-    end)
-    |> Map.new()
-  end
-
-  defp clean_lang_fields(_), do: %{}
-
-  defp deep_merge_translations(existing, submitted) do
-    Map.merge(existing, submitted, fn _lang, old_lang_map, new_lang_map ->
-      Map.merge(old_lang_map || %{}, new_lang_map || %{})
+      if lang_map == %{}, do: Map.delete(acc, lang), else: Map.put(acc, lang, lang_map)
     end)
   end
 
+  # Strips Phoenix LV's `_unused_*` sentinel keys.
+  defp submitted_fields(fields) when is_map(fields) do
+    Map.reject(fields, fn {key, _value} -> String.starts_with?(key, "_unused_") end)
+  end
+
+  defp submitted_fields(_), do: %{}
+
+  # `nil` is carried too: a primary field cleared on its tab is in-flight as nil,
+  # and leaving it out would keep the stored value on a save from another tab.
   defp preserve_primary_fields(attrs, record, primary_fields) do
     Enum.reduce(primary_fields, attrs, fn field, acc ->
-      if Map.has_key?(acc, field) do
-        acc
-      else
-        existing = Map.get(record, String.to_existing_atom(field))
-        if is_nil(existing), do: acc, else: Map.put(acc, field, existing)
-      end
+      Map.put_new(acc, field, Map.get(record, String.to_existing_atom(field)))
+    end)
+  end
+
+  @doc """
+  `form` translations reduced to `fields`, on top of `stored`, the row as it is
+  now: every other field of every language keeps its stored value. For a form
+  that edits some of a map other writers own (Person's `job_title` overrides are
+  the open span's), so a stale in-flight copy cannot write those back.
+  """
+  @spec rebase_translations(map(), map(), [String.t()]) :: map()
+  def rebase_translations(form, stored, fields) do
+    (Map.keys(form) ++ Map.keys(stored))
+    |> Enum.uniq()
+    |> Enum.reduce(%{}, fn lang, acc ->
+      kept = stored |> Map.get(lang, %{}) |> Map.drop(fields)
+      edited = form |> Map.get(lang, %{}) |> Map.take(fields)
+      merged = Map.merge(kept, edited)
+
+      if merged == %{}, do: acc, else: Map.put(acc, lang, merged)
     end)
   end
 
@@ -376,6 +390,22 @@ defmodule PhoenixKitStaff.Web.Helpers do
     |> Enum.reject(&is_nil/1)
     |> Enum.uniq()
     |> Map.new(&{&1, work_location_label(&1)})
+  end
+
+  @doc """
+  The work-location picker's options, with `stored` added when it is not among
+  them. The list holds active locations only, so a deactivated location or an
+  older free-text value would otherwise select nothing, and saving the form
+  would clear it.
+  """
+  @spec location_choices([{String.t(), String.t()}], String.t() | nil) ::
+          [{String.t(), String.t()}]
+  def location_choices(options, stored) when stored in [nil, ""], do: options
+
+  def location_choices(options, stored) do
+    if List.keymember?(options, stored, 1),
+      do: options,
+      else: [{work_location_label(stored), stored} | options]
   end
 
   @doc "One work location's label; see `work_location_labels/1` for a list."

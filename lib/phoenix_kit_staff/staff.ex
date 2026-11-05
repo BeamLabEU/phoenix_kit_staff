@@ -12,6 +12,7 @@ defmodule PhoenixKitStaff.Staff do
 
   alias PhoenixKit.Users.Auth
   alias PhoenixKit.Users.Auth.User
+  alias PhoenixKitStaff.Attachments
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
   alias PhoenixKitStaff.Schemas.Person
   alias PhoenixKitStaff.Skills
@@ -48,13 +49,16 @@ defmodule PhoenixKitStaff.Staff do
           | {:error, PhoenixKitStaff.Errors.error_atom() | Ecto.Changeset.t()}
   def rename_placeholder_email(%User{} = user, new_email) do
     new_email = String.trim(new_email)
-    current = user.email
+
+    # Re-read: the caller's struct is as old as the form that holds it, and a
+    # user who has claimed the account since must not lose their login email.
+    user = repo().get(User, user.uuid) || user
 
     cond do
       new_email == "" ->
         {:error, :blank_email}
 
-      new_email == current ->
+      new_email == user.email ->
         :ok
 
       not placeholder?(user) ->
@@ -432,6 +436,7 @@ defmodule PhoenixKitStaff.Staff do
       |> repo().delete_all()
 
     if count == 1 do
+      Attachments.purge_person_media(uuid)
       StaffPubSub.broadcast_person(:person_deleted, %{uuid: uuid})
       {:ok, p}
     else
@@ -526,9 +531,16 @@ defmodule PhoenixKitStaff.Staff do
   def bulk_delete(uuids) when is_list(uuids) do
     # Trash-only, same contract as delete_person/1 — active rows in the
     # selection are left untouched.
-    {count, _} =
-      from(p in Person, where: p.uuid in ^uuids and p.status == ^@soft_delete_status)
+    {count, deleted} =
+      from(p in Person,
+        where: p.uuid in ^uuids and p.status == ^@soft_delete_status,
+        select: p.uuid
+      )
       |> repo().delete_all()
+
+    # The rows actually deleted, not `uuids`: a live person in the selection
+    # keeps their files.
+    Enum.each(deleted, &Attachments.purge_person_media/1)
 
     if count > 0, do: StaffPubSub.broadcast_people_bulk(:person_deleted)
     {:ok, count}

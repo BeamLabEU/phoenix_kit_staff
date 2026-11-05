@@ -9,10 +9,10 @@
 #
 #   mix test.setup          # or: createdb phoenix_kit_staff_test
 #
-# After that, `mix test` boots the repo, runs core's versioned migrations
-# via `PhoenixKit.Migration.ensure_current/2` (the V135 baseline carries the
-# staff tables; V136 adds employments; later versions apply on every boot),
-# and lets the Ecto sandbox handle isolation. No module-owned DDL.
+# After that, `mix test` boots the repo, runs core's versioned migrations via
+# `PhoenixKit.Migration.ensure_current/2` (later versions apply on every boot),
+# replays the comments chain and this module's own chain, which is what builds
+# the staff tables on core 3.x, and lets the Ecto sandbox handle isolation.
 
 # Elixir 1.19's `mix test` no longer auto-loads modules from
 # `:elixirc_paths` test directories at test-helper time — only files
@@ -39,91 +39,66 @@ db_name =
   Application.get_env(:phoenix_kit_staff, TestRepo, [])[:database] ||
     "phoenix_kit_staff_test"
 
-# The preflight ships in core, and this module's core floor (`~> 2.0`)
-# predates it — so it is used when the running core has it, and otherwise
-# this falls through to exactly the previous behaviour.
-db_check =
-  if Code.ensure_loaded?(PhoenixKit.TestSupport.PostgresPreflight) do
-    # One classified connection attempt, with the repo's OWN credentials and
-    # transport, before anything starts the pool.
-    #
-    # This replaces a `psql -lqt` listing. That check asked the wrong question:
-    # it ran as the shell's user over a unix socket, so it reported "the
-    # database is there" and said nothing about whether the CONFIGURED role
-    # could reach it over TCP. When it could not, the answer arrived minutes
-    # later as a pool checkout timeout that reads like a flaky test.
-    case PhoenixKit.TestSupport.PostgresPreflight.check(
-           Application.get_env(:phoenix_kit_staff, TestRepo, [])
-         ) do
-      :ok ->
-        :exists
-
-      {:error, _reason, message} ->
-        IO.puts(:stderr, "\n" <> message)
-        :not_found
-    end
-  else
-    :try_connect
-  end
-
+# One classified connection attempt, with the repo's OWN credentials and
+# transport, before anything starts the pool. A `psql -lqt` listing asked the
+# wrong question here: it ran as the shell's user over a unix socket, so it said
+# nothing about whether the CONFIGURED role could reach the database over TCP.
+# When it could not, the answer arrived minutes later as a pool checkout timeout
+# that reads like a flaky test.
 repo_available =
-  if db_check == :not_found do
-    IO.puts("""
-
-      Cannot reach test database "#{db_name}" — integration tests excluded.
-      The reason is printed above. Once fixed, run: mix test.setup
-    """)
-
-    false
+  with :ok <-
+         PhoenixKit.TestSupport.PostgresPreflight.check(
+           Application.get_env(:phoenix_kit_staff, TestRepo, [])
+         ),
+       {:ok, _} <- TestRepo.start_link() do
+    true
   else
-    try do
-      {:ok, _} = TestRepo.start_link()
+    {:error, _reason, message} ->
+      IO.puts(:stderr, "\n" <> message)
 
-      # Build the schema directly from core's versioned migrations — same
-      # call the host app makes in production. Replaces the hand-rolled
-      # `test/support/postgres/migrations/` shim which was a transition
-      # state from when V100 wasn't yet in core's published Hex release.
-      # `ensure_current/2` (core 1.7.105+ / phoenix_kit#515) re-applies
-      # any newly-shipped Vxxx migrations on every boot. See
-      # `dev_docs/migration_cleanup.md` for the staleness story.
-      PhoenixKit.Migration.ensure_current(TestRepo, log: false)
+      IO.puts("""
 
-      # Comments' chain: the person page embeds a comment thread, and
-      # `phoenix_kit_comments` belongs to that module (core 3.0 creates none).
-      Enum.each(PhoenixKitComments.Migrations.up_statements("public"), &TestRepo.query!/1)
+        Cannot reach test database "#{db_name}" — integration tests excluded.
+        The reason is printed above. Once fixed, run: mix test.setup
+      """)
 
-      # Then this module's own chain (V1 adopts the staff tables core
-      # creates), as `mix phoenix_kit.update` runs it. `up/1` needs an
-      # `Ecto.Migration` run; the SQL is data, so replay it.
-      if PhoenixKitStaff.Migrations.migrated_version_runtime() <
-           PhoenixKitStaff.Migrations.current_version() do
-        Enum.each(PhoenixKitStaff.Migrations.up_statements("public"), &TestRepo.query!/1)
-      end
+      false
 
-      Ecto.Adapters.SQL.Sandbox.mode(TestRepo, :manual)
-      true
-    rescue
-      e ->
-        IO.puts("""
+    {:error, reason} ->
+      IO.puts("""
 
-          Could not connect to test database — integration tests excluded.
-          Run: createdb #{db_name} && mix test.setup
-          Error: #{Exception.message(e)}
-        """)
+        Could not start the test repo — integration tests excluded.
+        Run: createdb #{db_name} && mix test.setup
+        Error: #{inspect(reason)}
+      """)
 
-        false
-    catch
-      :exit, reason ->
-        IO.puts("""
-
-          Could not connect to test database — integration tests excluded.
-          Run: createdb #{db_name} && mix test.setup
-          Error: #{inspect(reason)}
-        """)
-
-        false
-    end
+      false
   end
+
+# Past this point the database is there, so a failure building the schema is a
+# real one and must stop the run. Rescuing it into "integration tests excluded"
+# turned a broken migration, or a database behind core's floor, into a green
+# `mix test` with most of the suite silently gone. A test database behind the
+# floor needs `mix test.reset`; core's error says so.
+if repo_available do
+  # Build the schema directly from core's versioned migrations — same call the
+  # host app makes in production. `ensure_current/2` re-applies any newly
+  # shipped Vxxx migrations on every boot.
+  PhoenixKit.Migration.ensure_current(TestRepo, log: false)
+
+  # Comments' chain: the person page embeds a comment thread, and
+  # `phoenix_kit_comments` belongs to that module (core 3.0 creates none).
+  Enum.each(PhoenixKitComments.Migrations.up_statements("public"), &TestRepo.query!/1)
+
+  # Then this module's own chain, as `mix phoenix_kit.update` runs it. `up/1`
+  # needs an `Ecto.Migration` run; the SQL is data, so replay it.
+  if PhoenixKitStaff.Migrations.migrated_version_runtime() <
+       PhoenixKitStaff.Migrations.current_version() do
+    Enum.each(PhoenixKitStaff.Migrations.up_statements("public"), &TestRepo.query!/1)
+  end
+
+  Ecto.Adapters.SQL.Sandbox.mode(TestRepo, :manual)
+end
 
 Application.put_env(:phoenix_kit_staff, :test_repo_available, repo_available)
 

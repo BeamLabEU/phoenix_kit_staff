@@ -100,7 +100,10 @@ defmodule PhoenixKitStaff.Migrations do
   A database already past `target` is left exactly as it is: nothing is re-run
   and the marker is not lowered. Modules whose tables reference staff's (projects)
   run this chain before their own, so on a fresh install it can run ahead of
-  the host's older staff migration file, and that file must not rewind it.
+  the host's older staff migration file, and that file must not rewind it. The
+  same holds for a database ahead of this code, whatever `target` a wrapper asks
+  for: `up_statements/2` clamps a target past `current_version/0`, so such a
+  database is past the version it would stamp.
   """
   def up(opts \\ []) do
     prefix = validated_prefix(opts)
@@ -116,7 +119,10 @@ defmodule PhoenixKitStaff.Migrations do
     # statements; apply them so the marker read below sees them.
     flush()
 
-    if migrated_version(prefix: prefix) <= target do
+    # Compared with what `up_statements/2` stamps, not the raw target: it clamps
+    # to `@current_version`, so a raw comparison lets a database ahead of this
+    # code through and the stamp then lowers it.
+    if migrated_version(prefix: prefix) <= min(target, @current_version) do
       Enum.each(statements, &execute/1)
     end
 

@@ -17,6 +17,9 @@ defmodule PhoenixKitStaff.L10n do
   # workspace); the two strings core does not carry go through this module's
   # own backend explicitly (`gettext_with_backend/3`, still extractable).
   use Gettext, backend: PhoenixKitWeb.Gettext
+
+  alias PhoenixKit.Modules.Languages.DialectMapper
+  alias PhoenixKit.Utils.Multilang
   require Gettext.Macros
 
   @doc "Formats a `Date`/`DateTime` as `Mon DD, YYYY`. Returns `nil` for nil."
@@ -47,19 +50,59 @@ defmodule PhoenixKitStaff.L10n do
       )
 
   @doc """
-  The active content language for multilang reads — the current Gettext
-  locale, or `nil` when it can't be resolved. Pass it to the schema
-  `localized_<field>/2` helpers; a `nil` lang returns the primary column,
-  so a missing/unset locale degrades to the denormalized value.
+  The active content language for multilang reads: the full dialect the request
+  resolved to (`Multilang.current_locale/0`), or `nil` when it can't be resolved.
+  Pass it to the schema `localized_<field>/2` helpers; a `nil` lang returns the
+  primary column, so a missing/unset locale degrades to the denormalized value.
 
-  Mirrors `PhoenixKitProjects.L10n.current_content_lang/0`
-  (`Gettext.get_locale/1`, rescued to `nil`).
+  Not the Gettext locale: that is downgraded to a catalogue's base code (`es` for
+  `es-ES`), while a form stores under the language tab's code.
   """
   @spec current_content_lang() :: String.t() | nil
   def current_content_lang do
-    Gettext.get_locale(PhoenixKitWeb.Gettext)
+    Multilang.current_locale()
   rescue
     _ -> nil
+  end
+
+  @doc """
+  The entry of `entries` for `lang`: the exact code, else the base code, else
+  the first same-base dialect. Language codes differ per host and per language
+  (core registers `et` but `es-ES`) and the skill seeds are stored under bare
+  `et`/`ru`, so an exact lookup alone misses.
+
+  A viewer on the primary language gets no sibling: their text is the primary
+  column, which another dialect's override must not replace.
+  """
+  @spec language_entry(map(), String.t() | nil) :: term()
+  def language_entry(entries, lang) when is_map(entries) and is_binary(lang) do
+    base = DialectMapper.extract_base(lang)
+
+    case entries do
+      %{^lang => entry} -> entry
+      %{^base => entry} -> entry
+      _ -> sibling_entry(entries, lang, base)
+    end
+  end
+
+  def language_entry(_entries, _lang), do: nil
+
+  defp sibling_entry(entries, lang, base) do
+    key =
+      entries
+      |> Map.keys()
+      |> Enum.filter(&(is_binary(&1) and DialectMapper.extract_base(&1) == base))
+      |> Enum.min(fn -> nil end)
+
+    if key && lang != primary_language(), do: Map.get(entries, key)
+  end
+
+  defp primary_language do
+    Multilang.primary_language()
+  rescue
+    _ -> nil
+  catch
+    :exit, _ -> nil
   end
 
   @doc """
@@ -144,7 +187,7 @@ defmodule PhoenixKitStaff.L10n do
 
   defp lookup_translation(translations, lang, field)
        when is_map(translations) and is_binary(lang) do
-    case Map.get(translations, lang) do
+    case language_entry(translations, lang) do
       %{} = lang_map -> Map.get(lang_map, field)
       _ -> nil
     end

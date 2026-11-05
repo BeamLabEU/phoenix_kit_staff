@@ -68,7 +68,9 @@ defmodule PhoenixKitStaff.Staff.Org do
     |> Enum.sort_by(& &1.days_until)
   end
 
-  defp next_birthday_and_days(dob, today) do
+  @doc "The next anniversary of `dob` on or after `today`, and the days until it."
+  @spec next_birthday_and_days(Date.t(), Date.t()) :: {Date.t(), non_neg_integer()}
+  def next_birthday_and_days(dob, today) do
     this_year = anniversary_in_year(dob, today.year)
 
     next =

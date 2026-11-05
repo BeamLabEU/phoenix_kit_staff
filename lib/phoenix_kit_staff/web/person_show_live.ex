@@ -16,6 +16,7 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   alias PhoenixKitStaff.{Activity, Attachments, L10n, Paths, Skills, Staff}
   alias PhoenixKitStaff.PubSub, as: StaffPubSub
   alias PhoenixKitStaff.Schemas.{Department, Person, Skill, Team}
+  alias PhoenixKitStaff.Staff.Org
   alias PhoenixKitStaff.Web.Helpers
 
   @impl true
@@ -307,10 +308,6 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
 
     case Staff.delete_person(person) do
       {:ok, _} ->
-        # Best-effort: purge the person's media folder subtree (files + the
-        # nested images) now that they're permanently gone. Never blocks.
-        Attachments.purge_person_media(person.uuid)
-
         Activity.log("staff.person_deleted",
           actor_uuid: Activity.actor_uuid(socket),
           resource_type: "staff_person",
@@ -392,18 +389,8 @@ defmodule PhoenixKitStaff.Web.PersonShowLive do
   end
 
   defp days_until_birthday(dob, today) do
-    this_year =
-      case Date.new(today.year, dob.month, dob.day) do
-        {:ok, d} -> d
-        {:error, _} -> Date.new!(today.year, dob.month, min(dob.day, 28))
-      end
-
-    if Date.compare(this_year, today) == :lt do
-      next_year = Date.new!(today.year + 1, dob.month, min(dob.day, 28))
-      Date.diff(next_year, today)
-    else
-      Date.diff(this_year, today)
-    end
+    {_next, days} = Org.next_birthday_and_days(dob, today)
+    days
   end
 
   @impl true

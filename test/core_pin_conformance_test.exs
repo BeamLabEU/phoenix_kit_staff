@@ -12,14 +12,15 @@ defmodule PhoenixKitStaff.CorePinConformanceTest do
   outright, with no degraded mode. Nothing else in this repo's own test run
   would notice, which is why the check is a test rather than a convention.
 
-  The floor is `>= 2.43.0 and < 3.0.0`: the pages fill core's `table_default`
+  The pin is `>= 2.65.0 and < 4.0.0`. The floor is the first core with the
+  `file_references/0` and `expected_schema/0` callbacks, which carry
+  `@impl PhoenixKit.Module` here. Below it, the pages fill core's `table_default`
   `:toolbar_primary` and `form_section` `:actions` slots, first shipped in core
   2.43.0 (a lower core warns at compile time and crashes at render), and the
   module runs on the shared toolkits from 2.38.0 (`PhoenixKitWeb.Actor`,
   `Activity.log/3`, `Storage.ResourceFolders`, the reorganizer's
-  `ResourceSource`, `Utils.Format`). Before 2.38 it was `~> 2.0`: core 2.0.0
-  squashed the migration chain to a V135 floor and the module was verified only
-  against that baseline.
+  `ResourceSource`, `Utils.Format`). The ceiling admits core 3.x, which stopped
+  creating the module's tables: its own chain builds them.
   """
 
   @must_admit ["2.65.0", "2.65.1", "2.99.4", "3.0.0", "3.9.9"]
@@ -36,7 +37,7 @@ defmodule PhoenixKitStaff.CorePinConformanceTest do
              "`:phoenix_kit` requirement #{inspect(requirement)} rejects core #{version}. " <>
                "A pin that excludes a core minor breaks `mix deps.get` for every host " <>
                "running this module alongside that core. Keep the floor patch-precise " <>
-               "and the ceiling open (`>= 2.43.0 and < 3.0.0`), never a three-segment `~>`."
+               "and the ceiling open (`>= 2.65.0 and < 4.0.0`), never a three-segment `~>`."
     end
 
     for version <- @must_reject do

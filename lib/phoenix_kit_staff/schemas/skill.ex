@@ -407,7 +407,7 @@ defmodule PhoenixKitStaff.Schemas.Skill do
   end
 
   defp localized_map_name(map, lang) do
-    translated = map |> Map.get("translations", %{}) |> Map.get(to_string(lang))
+    translated = map |> Map.get("translations", %{}) |> L10n.language_entry(lang)
 
     case translated do
       t when is_binary(t) and t != "" -> t

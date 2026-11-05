@@ -499,4 +499,54 @@ defmodule PhoenixKitStaff.Web.PersonFormLiveTest do
       )
     end
   end
+
+  describe "the email field" do
+    # Core confirms the first user of a database as its Owner, so a placeholder
+    # needs someone registered before it.
+    setup %{conn: conn} do
+      fixture_person()
+      {:ok, conn: put_test_scope(conn, personal_scope()), person: fixture_person()}
+    end
+
+    test "does not report a placeholder's own email as a conflict", %{
+      conn: conn,
+      person: person
+    } do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      html = view |> form("#person-form", person: %{bio: "Typing"}) |> render_change()
+
+      refute html =~ "already has a staff profile"
+    end
+
+    test "a failed save after a rename does not lock the form", %{conn: conn, person: person} do
+      email = "renamed-#{System.unique_integer([:positive])}@example.com"
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/#{person.uuid}/edit")
+
+      view
+      |> form("#person-form", person: %{personal_email: "not-an-email"}, email: email)
+      |> render_submit()
+
+      view
+      |> form("#person-form", person: %{personal_email: "ok@example.com"}, email: email)
+      |> render_submit()
+
+      saved = Staff.get_person(person.uuid, preload: [:user])
+      assert saved.user.email == email
+      assert saved.personal_email == "ok@example.com"
+    end
+
+    test "an email core refuses keeps the person form and says why", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/en/admin/staff/people/new")
+
+      html =
+        view
+        |> form("#person-form", person: %{status: "active"}, email: "someone@example.invalid")
+        |> render_submit()
+
+      assert html =~ "Not a valid email."
+      assert html =~ ~s(name="person[status]")
+      refute html =~ ~s(name="user[status]")
+    end
+  end
 end

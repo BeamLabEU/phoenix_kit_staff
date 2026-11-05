@@ -15,9 +15,9 @@ defmodule PhoenixKitStaff.Test.Hooks do
   reads it back and mirrors it onto socket assigns.
   """
 
-  alias PhoenixKit.Modules.Languages
-
   import Phoenix.Component, only: [assign: 3]
+
+  alias PhoenixKitWeb.Users.Auth
 
   @doc """
   `on_mount` callback. Reads `"phoenix_kit_test_scope"` from session and
@@ -46,12 +46,12 @@ defmodule PhoenixKitStaff.Test.Hooks do
     end
   end
 
-  # Both halves of what production's locale hook does for a `/fr/…` URL:
-  # Gettext for the copy, the request locale for the page language
-  # (`mount_multilang(open_on: :viewing_language)` reads only that).
+  # Production's own call for a `/fr-FR/…` URL, so a test sees what a host sees:
+  # Gettext downgraded to the catalogue's base code, the undowngraded dialect on
+  # the request locale. Setting the raw dialect on Gettext hides every reader
+  # that confuses the two.
   defp maybe_put_locale(%{"phoenix_kit_test_locale" => locale}) when is_binary(locale) do
-    Gettext.put_locale(PhoenixKitWeb.Gettext, locale)
-    Languages.put_request_locale(locale)
+    Auth.put_gettext_locale(locale)
   end
 
   defp maybe_put_locale(_session), do: :ok
