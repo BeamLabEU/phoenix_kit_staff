@@ -94,3 +94,21 @@ the PR #3 quality sweep's green suite.
   NOT NULL` would let Postgres combine the index scan with the fragment.
   **Trigger:** add it if/when the org grows large enough that birthday lookups
   show up in slow-query logs.
+
+# Follow-up — `CLAUDE_REVIEW.md` (2026-11-05)
+
+## Fixed
+
+Tests: `integration/person_media_purge_test.exs`, `integration/person_save_edges_test.exs`, `web/person_form_live_test.exs`, `web/multilang_forms_test.exs`.
+
+- **List delete left media behind.** Purge moved into `Staff.delete_person/1` and `bulk_delete/1`, for the rows actually deleted.
+- **Crafted `user_uuid` and mirror columns.** `@server_owned` in `PersonFormLive`.
+- **Rename on a stale user, and the form lock after a failed save.** `rename_placeholder_email/2` re-reads the user.
+- **`User` changeset as the form source.** `assign_save_error/2`.
+- **False profile conflict.** `form_email_status/2`.
+- **Unknown department raised.** `foreign_key_constraint/3` on `Person`.
+- **Birthday countdown.** `Org.next_birthday_and_days/2`, now public.
+
+## Open
+
+Each with its reason in `CLAUDE_REVIEW.md`: Events tab contents, broadcast gaps, failure-side logging sweep, stale-struct raises, `eligible_users/1` scale, `target_uuid` consistency, and the NITPICKs.
