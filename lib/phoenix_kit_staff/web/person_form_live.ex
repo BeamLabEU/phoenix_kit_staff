@@ -421,7 +421,7 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   end
 
   defp do_update_person(socket, current, attrs, team_uuid) do
-    case Staff.update_person(current, rebase_translations(attrs, current)) do
+    case Staff.update_person(current, rebase_translations(attrs, current, socket)) do
       {:ok, person} ->
         team_result = maybe_add_to_team(socket, person, team_uuid)
 
@@ -472,14 +472,20 @@ defmodule PhoenixKitStaff.Web.PersonFormLive do
   end
 
   # Only `bio` is this form's. The rest of the map comes from the row re-fetched
-  # for the save: the open span's `job_title` overrides, `notes`.
-  defp rebase_translations(%{"translations" => form} = attrs, %Person{} = current) do
-    translations = Helpers.rebase_translations(form, current.translations, @translatable_fields)
+  # for the save: the open span's `job_title` overrides, `notes`. A form that
+  # changed no translation writes none, so a `bio` saved since it opened stays.
+  defp rebase_translations(%{"translations" => form} = attrs, %Person{} = current, socket) do
+    if form == socket.assigns.person.translations do
+      Map.delete(attrs, "translations")
+    else
+      translations =
+        Helpers.rebase_translations(form, current.translations, @translatable_fields)
 
-    Map.put(attrs, "translations", translations)
+      Map.put(attrs, "translations", translations)
+    end
   end
 
-  defp rebase_translations(attrs, _current), do: attrs
+  defp rebase_translations(attrs, _current, _socket), do: attrs
 
   defp maybe_add_to_team(_socket, _person, nil), do: :ok
 

@@ -256,17 +256,15 @@ defmodule PhoenixKitStaff.Web.Helpers do
   end
 
   # The primary tab renders no translation inputs, so a save from it submits
-  # none: the in-flight map is what the admin typed on the other tabs. Unchanged,
-  # it casts to no change.
+  # none: the in-flight map is what the admin typed on the other tabs, even when
+  # that is nothing, as after blanking the last override. Unchanged, it casts to
+  # no change.
   defp merge_translations_map(attrs, record) do
     existing = Map.get(record, :translations) || %{}
 
     case Map.get(attrs, "translations") do
       submitted when is_map(submitted) and submitted != %{} ->
         Map.put(attrs, "translations", apply_submitted_translations(existing, submitted))
-
-      _ when existing == %{} ->
-        Map.delete(attrs, "translations")
 
       _ ->
         Map.put(attrs, "translations", existing)

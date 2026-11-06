@@ -98,6 +98,21 @@ defmodule PhoenixKitStaff.Web.MultilangFormsTest do
     end
   end
 
+  describe "a save that changed no translation" do
+    test "leaves one written since the form opened", %{conn: conn, primary: primary} do
+      dept = fixture_department(%{"name" => "Engineering"})
+      view = edit_department(conn, dept)
+      open_tab(view, primary)
+
+      newer = %{"es-ES" => %{"name" => "IngenieriaES"}}
+      {:ok, _dept} = Departments.update(dept, %{"translations" => newer})
+
+      view |> form("#department-form", department: %{name: "Research"}) |> render_submit()
+
+      assert %{name: "Research", translations: ^newer} = Departments.get(dept.uuid)
+    end
+  end
+
   describe "a language sharing the primary's base" do
     setup %{conn: conn} do
       {:ok, _} = Languages.add_language("en-GB")
@@ -170,6 +185,30 @@ defmodule PhoenixKitStaff.Web.MultilangFormsTest do
       assert Departments.get(dept.uuid).translations == %{}
     end
 
+    test "of the last override sticks when the save comes from the primary tab", %{
+      conn: conn,
+      primary: primary
+    } do
+      dept =
+        fixture_department(%{
+          "name" => "Engineering",
+          "translations" => %{"es-ES" => %{"name" => "IngenieriaES"}}
+        })
+
+      view = edit_department(conn, dept)
+      open_tab(view, "es-ES")
+
+      view
+      |> form("#department-form", department: %{translations: %{"es-ES" => %{name: ""}}})
+      |> render_change()
+
+      open_tab(view, primary)
+
+      view |> form("#department-form", department: %{name: "Engineering"}) |> render_submit()
+
+      assert Departments.get(dept.uuid).translations == %{}
+    end
+
     test "on the primary tab sticks when the save comes from a language tab", %{
       conn: conn,
       primary: primary
@@ -236,6 +275,37 @@ defmodule PhoenixKitStaff.Web.MultilangFormsTest do
                "job_title" => "JefeES",
                "bio" => "BiografiaES"
              }
+    end
+
+    test "removes a blanked last bio override on a save from the primary tab", ctx do
+      {:ok, _person} =
+        Staff.update_person(ctx.person, %{
+          "translations" => %{"es-ES" => %{"bio" => "BiografiaES"}}
+        })
+
+      {:ok, view, _html} = live(ctx.conn, "#{@people}/#{ctx.person.uuid}/edit")
+      open_tab(view, "es-ES")
+
+      view
+      |> form("#person-form", person: %{translations: %{"es-ES" => %{bio: ""}}})
+      |> render_change()
+
+      open_tab(view, ctx.primary)
+
+      view |> form("#person-form", person: %{bio: "Original"}) |> render_submit()
+
+      assert Staff.get_person(ctx.person.uuid).translations == %{}
+    end
+
+    test "leaves a bio override written since it opened when it changed none", ctx do
+      open_tab(ctx.view, ctx.primary)
+
+      newer = %{"es-ES" => %{"bio" => "BiografiaES"}}
+      {:ok, _person} = Staff.update_person(ctx.person, %{"translations" => newer})
+
+      ctx.view |> form("#person-form", person: %{bio: "Updated"}) |> render_submit()
+
+      assert %{bio: "Updated", translations: ^newer} = Staff.get_person(ctx.person.uuid)
     end
 
     test "ignores crafted values for the server-owned columns", ctx do
