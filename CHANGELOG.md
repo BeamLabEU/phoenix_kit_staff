@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## 0.11.2 - 2026-11-06
+
+### Fixed
+
+- **A blanked last translation came back after a save from the primary tab.** With a record's only override blanked on its language tab, the save carried no translations and the stored one stayed. The in-flight map now always goes with the save, on the department, team, skill and person forms.
+- The person form writes no translations when it changed none, so a `bio` translation saved since the form opened is no longer overwritten by what the form loaded.
+- The docs build with no warnings: `expected_schema/0` no longer links a module hidden from them.
+
+### Changed
+
+- The README is rewritten for what the module does now: employment history, skill selectors, translations, media, comments, the trash and `staff.view_personal`, plus its own migration chain.
+
 ## 0.11.1 - 2026-11-05
 
 ### Fixed
