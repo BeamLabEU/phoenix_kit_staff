@@ -84,19 +84,10 @@ defmodule PhoenixKitStaff.MixProject do
 
   defp deps do
     [
-      # The floor is 2.43.0: the pages fill core's `table_default`
-      # `:toolbar_primary` and `form_section` `:actions` slots, first shipped
-      # there (a lower core warns at compile time and crashes at render), on
-      # top of the shared toolkits from 2.38.0 — `PhoenixKitWeb.Actor`,
-      # `PhoenixKit.Activity.log/3`, `Storage.ResourceFolders`, the
-      # reorganizer's `ResourceSource`, `Utils.Format` and
-      # `mount_multilang(open_on:)`. None is feature-detected.
-      # Patch-precise floor in the compound form, so the ceiling stays open
-      # through every later 2.x minor (a three-segment `~> 2.43.0` would pin
-      # one minor; see test/core_pin_conformance_test.exs).
-      # Floor 2.65.0: the first core with the `file_references/0` and `expected_schema/0`
-      # callbacks this module implements (`@impl`). The ceiling is open through core 3.x.
-      pk_dep(:phoenix_kit, ">= 2.65.0 and < 4.0.0"),
+      # Floor 3.5.0, ceiling open through every core 3.x. Compound form, never
+      # a three-segment `~>`, which would pin a single core minor (see
+      # test/core_pin_conformance_test.exs).
+      pk_dep(:phoenix_kit, ">= 3.5.0 and < 4.0.0"),
       # Hard dep: PersonShowLive embeds the comment thread (Comments tab) and
       # `use PhoenixKitComments.Embed` for the composer's Leaf-event forwarding,
       # both compile-time. `Embed` arrived *mid*-0.2.x — in 0.2.6 — so `~> 0.2`

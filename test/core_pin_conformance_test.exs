@@ -5,28 +5,22 @@ defmodule PhoenixKitStaff.CorePinConformanceTest do
   Guards the `:phoenix_kit` requirement against being re-narrowed to a single
   core MINOR, and against a local path override reaching a commit.
 
-  The trap is the three-segment form: `~> 2.0.x` expands to
-  `>= 2.0.x and < 2.1.0`, so no 2.1 or later core satisfies it. The breakage
+  The trap is the three-segment form: `~> 3.5.x` expands to
+  `>= 3.5.x and < 3.6.0`, so no 3.6 or later core satisfies it. The breakage
   lands on CONSUMERS, never here — a host depending on both this module and a
   newer core minor gets an unsolvable dependency set and `mix deps.get` fails
   outright, with no degraded mode. Nothing else in this repo's own test run
   would notice, which is why the check is a test rather than a convention.
 
-  The pin is `>= 2.65.0 and < 4.0.0`. The floor is the first core with the
-  `file_references/0` and `expected_schema/0` callbacks, which carry
-  `@impl PhoenixKit.Module` here. Below it, the pages fill core's `table_default`
-  `:toolbar_primary` and `form_section` `:actions` slots, first shipped in core
-  2.43.0 (a lower core warns at compile time and crashes at render), and the
-  module runs on the shared toolkits from 2.38.0 (`PhoenixKitWeb.Actor`,
-  `Activity.log/3`, `Storage.ResourceFolders`, the reorganizer's
-  `ResourceSource`, `Utils.Format`). The ceiling admits core 3.x, which stopped
-  creating the module's tables: its own chain builds them.
+  The requirement is `>= 3.5.0 and < 4.0.0`. The floor is core 3.5.0, the
+  minimum every PhoenixKit module requires, and it carries everything this
+  module compiles against. The ceiling is open through every core 3.x.
   """
 
-  @must_admit ["2.65.0", "2.65.1", "2.99.4", "3.0.0", "3.9.9"]
-  @must_reject ["1.7.236", "2.0.0", "2.9.4", "2.24.0", "2.38.0", "2.42.1", "2.64.9", "4.0.0"]
+  @must_admit ["3.5.0", "3.5.1", "3.6.0", "3.9.9"]
+  @must_reject ["1.7.236", "2.0.0", "2.65.0", "2.99.4", "3.0.0", "3.4.0", "3.4.9", "4.0.0"]
 
-  test "the :phoenix_kit requirement admits every core >= 2.65.0 minor and nothing else" do
+  test "the :phoenix_kit requirement admits every core >= 3.5.0 minor and nothing else" do
     requirement = core_requirement()
 
     assert match?({:ok, _parsed}, Version.parse_requirement(requirement)),
@@ -37,7 +31,7 @@ defmodule PhoenixKitStaff.CorePinConformanceTest do
              "`:phoenix_kit` requirement #{inspect(requirement)} rejects core #{version}. " <>
                "A pin that excludes a core minor breaks `mix deps.get` for every host " <>
                "running this module alongside that core. Keep the floor patch-precise " <>
-               "and the ceiling open (`>= 2.65.0 and < 4.0.0`), never a three-segment `~>`."
+               "and the ceiling open (`>= 3.5.0 and < 4.0.0`), never a three-segment `~>`."
     end
 
     for version <- @must_reject do

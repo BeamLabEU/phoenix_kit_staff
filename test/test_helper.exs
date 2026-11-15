@@ -129,21 +129,5 @@ if repo_available do
   {:ok, _} = PhoenixKitStaff.Test.Endpoint.start_link()
 end
 
-# `migrations_build_alone_test.exs` uses core's
-# `PhoenixKit.TestSupport.ModuleChainCheck`, which the first core release after
-# 2.64.1 ships; against an older core in `deps/` it is excluded.
-chain_check =
-  if Code.ensure_loaded?(PhoenixKit.TestSupport.ModuleChainCheck),
-    do: [],
-    else: [:requires_module_chain_check]
-
-exclude = if repo_available, do: chain_check, else: [:integration | chain_check]
+exclude = if repo_available, do: [], else: [:integration]
 ExUnit.start(exclude: exclude)
-
-# The manifest test builds the module's tables with `ModuleChainCheck.build_alone/4`
-# and hands the manifest to repair (`PhoenixKit.Module.expected_schema/0`); both
-# arrive in the first core release after 2.64.1.
-unless Code.ensure_loaded?(PhoenixKit.TestSupport.ModuleChainCheck) and
-         function_exported?(PhoenixKit.TestSupport.ModuleChainCheck, :build_alone, 4) do
-  ExUnit.configure(exclude: [:requires_core_expected_schema | ExUnit.configuration()[:exclude]])
-end
